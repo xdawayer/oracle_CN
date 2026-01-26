@@ -1,0 +1,131 @@
+<view class="container">
+  <view class="header">
+    <view class="header-text">
+      <text class="greeting">{{greeting}}</text>
+      <text class="date">{{currentDate}}</text>
+    </view>
+    <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+    <view class="avatar placeholder" wx:else>
+      <text class="avatar-text">☉</text>
+    </view>
+  </view>
+
+  <view class="daily-card" bindtap="onChangeTab" data-tab="daily" style="{{cardStyle}} color: {{cardTextColor}}">
+    <view class="sparkles"></view>
+    <view class="glow-effect"></view>
+
+    <view class="share-btn" catchtap="showShareModal" style="color: {{cardTextColor}}; border-color: {{cardTextColor}}20">
+      <text class="icon-share">分享</text>
+    </view>
+
+    <view class="card-content">
+      <view class="score-section">
+        <view class="score-box">
+          <text class="score-label" style="color: {{cardTextColor}}80">运势评分</text>
+          <text class="score-value" style="color: {{cardTextColor}}">{{shareData.score}}</text>
+        </view>
+        <view class="summary-box">
+          <text class="summary-text" style="color: {{cardTextColor}}">{{shareData.summary}}</text>
+        </view>
+      </view>
+
+      <view class="desc-box">
+        <text class="desc-text" style="color: {{cardTextColor}}">{{shareData.description}}</text>
+      </view>
+
+      <view class="lucky-section" style="background: {{cardTextColor}}10">
+        <view class="lucky-item">
+          <view class="lucky-label-row">
+            <text class="lucky-label" style="color: {{cardTextColor}}80">幸运色</text>
+          </view>
+          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.color}}</text>
+        </view>
+
+        <view class="divider" style="background: {{cardTextColor}}20"></view>
+
+        <view class="lucky-item">
+          <view class="lucky-label-row">
+            <text class="lucky-label" style="color: {{cardTextColor}}80">幸运数</text>
+          </view>
+          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.number}}</text>
+        </view>
+
+        <view class="divider" style="background: {{cardTextColor}}20"></view>
+
+        <view class="lucky-item">
+          <view class="lucky-label-row">
+            <text class="lucky-label" style="color: {{cardTextColor}}80">吉位</text>
+          </view>
+          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.direction}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="quick-access">
+    <view class="access-btn" bindtap="onChangeTab" data-tab="self">
+      <view class="access-icon-box user-box">
+        <text class="access-icon">☉</text>
+      </view>
+      <text class="access-title">本命盘解读</text>
+      <text class="access-subtitle">探索核心人格</text>
+    </view>
+
+    <view class="access-btn" bindtap="onNavigateToDiscovery" data-route="synastry">
+      <view class="access-icon-box heart-box">
+        <text class="access-icon">♀</text>
+      </view>
+      <text class="access-title">双人合盘</text>
+      <text class="access-subtitle">解析关系匹配度</text>
+    </view>
+  </view>
+
+  <view class="recommendations">
+    <view class="section-header">
+      <text class="section-title">为你推荐</text>
+    </view>
+    <view class="rec-list">
+      <block wx:for="{{recommendations}}" wx:key="id">
+        <view class="rec-card" bindtap="onNavigateToDiscovery" data-route="{{item.route}}">
+          <view class="rec-image-placeholder" wx:if="{{!item.image}}">
+            <text class="rec-image-icon">{{item.route === 'wiki' ? '♄' : '♃'}}</text>
+          </view>
+          <image class="rec-image" src="{{item.image}}" mode="aspectFill" wx:else></image>
+          <view class="rec-content">
+            <text class="rec-category">{{item.category}}</text>
+            <text class="rec-title">{{item.title}}</text>
+            <view class="rec-meta">
+              <view class="avatars">
+                <view class="avatar-sm"></view>
+                <view class="avatar-sm"></view>
+                <view class="avatar-sm"></view>
+              </view>
+              <text class="rec-stats">1.2w 人阅读</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="modal-overlay" wx:if="{{showShareModal}}" bindtap="hideShareModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-header">
+        <view class="modal-sparkle"></view>
+        <text class="modal-title">今日好运签</text>
+        <text class="modal-date">{{shareData.date}}</text>
+      </view>
+      <view class="modal-body">
+        <view class="modal-score-section">
+          <text class="modal-score">{{shareData.score}}</text>
+          <text class="modal-summary">{{shareData.summary}}</text>
+        </view>
+        <text class="modal-desc">"{{shareData.description}}"</text>
+        <button class="save-btn" bindtap="onSaveShare">
+          <text>保存并分享</text>
+        </button>
+      </view>
+      <view class="close-btn" catchtap="hideShareModal">×</view>
+    </view>
+  </view>
+</view>

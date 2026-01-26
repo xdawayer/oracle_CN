@@ -1,0 +1,11 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 指南针外圈 -->
+  <circle cx="24" cy="24" r="16" stroke="#7A746B" stroke-width="2"/>
+  <!-- 指南针内部十字 -->
+  <line x1="24" y1="12" x2="24" y2="20" stroke="#7A746B" stroke-width="2"/>
+  <line x1="24" y1="28" x2="24" y2="36" stroke="#7A746B" stroke-width="2"/>
+  <line x1="12" y1="24" x2="20" y2="24" stroke="#7A746B" stroke-width="2"/>
+  <line x1="28" y1="24" x2="36" y2="24" stroke="#7A746B" stroke-width="2"/>
+  <!-- 中心点 -->
+  <circle cx="24" cy="24" r="3" fill="#7A746B"/>
+</svg>

@@ -1,0 +1,114 @@
+<view class="container">
+  <!-- Header -->
+  <view class="header">
+    <view class="header-content">
+      <view class="back-btn" bindtap="onNavigateBack" wx:if="{{false}}">
+        <!-- Back button typically handled by nav bar, but kept structure if needed -->
+      </view>
+      <view class="title-group">
+        <text class="main-title">占星百科</text>
+        <text class="sub-title">UNIVERSAL KNOWLEDGE</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Categories -->
+  <view class="categories-wrapper">
+    <scroll-view scroll-x class="categories-scroll" enable-flex>
+      <view class="categories-list">
+        <view 
+          wx:for="{{categories}}" 
+          wx:key="id"
+          class="category-item {{selectedCat === item.id ? 'active' : ''}}"
+          bindtap="onSelectCategory"
+          data-id="{{item.id}}"
+        >
+          <view class="cat-pill {{item.id}}">
+            <text class="cat-name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- Content Area -->
+  <view class="content-area">
+    <!-- Search -->
+    <view class="search-bar">
+      <view class="search-icon">搜索</view>
+      <input 
+        class="search-input" 
+        placeholder="搜索知识点、行星、宫位..." 
+        placeholder-class="search-placeholder"
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+      />
+      <view wx:if="{{searchQuery}}" class="clear-btn" bindtap="onClearSearch">清除</view>
+    </view>
+
+    <!-- List -->
+    <scroll-view scroll-y class="items-list" enable-flex>
+      <view wx:if="{{filteredItems.length === 0 && !isLoading}}" class="empty-state">
+        <text class="empty-text">没有找到相关知识条目</text>
+      </view>
+
+      <view 
+        wx:for="{{filteredItems}}" 
+        wx:key="id" 
+        class="wiki-card"
+        bindtap="onSelectItem"
+        data-item="{{item}}"
+      >
+        <view class="wiki-card-content">
+          <view class="wiki-card-header">
+            <view class="cat-tag {{item.type}}">
+              <text>{{item.categoryName || item.category}}</text>
+            </view>
+            <text class="wiki-title">{{item.title}}</text>
+          </view>
+          <text class="wiki-summary">{{item.description}}</text>
+        </view>
+        <view class="arrow-icon">›</view>
+      </view>
+      
+      <!-- Bottom spacing -->
+      <view style="height: 40rpx;"></view>
+    </scroll-view>
+  </view>
+
+  <!-- Detail Modal -->
+  <view class="modal-mask" wx:if="{{selectedItem}}" bindtap="onCloseDetail">
+    <view class="modal-container" catchtap="noop">
+      <view class="modal-header">
+        <view class="close-btn" bindtap="onCloseDetail">关闭</view>
+      </view>
+      
+      <scroll-view scroll-y class="modal-scroll">
+        <view class="modal-content">
+          <view class="modal-top">
+            <view class="modal-cat-tag {{selectedItem.type}}">
+              <text>{{selectedItem.categoryName || selectedItem.category}}</text>
+            </view>
+            <text class="modal-title">{{selectedItem.title}}</text>
+          </view>
+
+          <view class="essence-box">
+            <view class="essence-label">
+              <text>核心要义 (Essence)</text>
+            </view>
+            <text class="essence-text">“{{selectedItem.description}}”</text>
+          </view>
+
+          <view class="detail-section">
+            <view class="section-label">深度解析 (Deep Insight)</view>
+            <text class="detail-text">{{selectedItem.psychology || selectedItem.description}}</text>
+            <text class="detail-subtext" wx:if="{{selectedItem.shadow}}">{{selectedItem.shadow}}</text>
+            <text class="detail-subtext" wx:if="{{selectedItem.integration}}">{{selectedItem.integration}}</text>
+          </view>
+
+          <button class="back-btn-large" bindtap="onCloseDetail">返回百科首页</button>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

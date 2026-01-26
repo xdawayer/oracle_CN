@@ -1,0 +1,306 @@
+<view class="container">
+  <!-- Header -->
+  <view class="header">
+    <view class="header-left" bindtap="onBack">
+      <text class="btn-text">返回</text>
+    </view>
+    <text class="header-title">双人合盘</text>
+    <view class="header-right" bindtap="openManager">
+      <text class="btn-text-accent">档案</text>
+    </view>
+  </view>
+
+  <!-- Step 1: Input Form -->
+  <view class="content" wx:if="{{step === 1}}">
+    <!-- Intro Card -->
+    <view class="card intro-card">
+      <text class="intro-text">分析两人星盘的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
+    </view>
+
+    <!-- Form Card -->
+    <view class="card form-card">
+      
+      <!-- Name A Input -->
+      <view class="input-group">
+        <text class="label">甲方 (你的名字/昵称)</text>
+        <view class="input-wrapper">
+          <input 
+            class="input" 
+            placeholder="输入或选择..." 
+            value="{{nameA}}" 
+            bindinput="onInputA" 
+            bindfocus="onFocusA"
+            placeholder-class="input-placeholder"
+          />
+          <view class="dropdown-trigger" bindtap="toggleDropdownA">下拉</view>
+        </view>
+        
+        <!-- Dropdown A -->
+        <view class="dropdown" wx:if="{{openDropdown === 'A' && profiles.length > 0}}">
+          <scroll-view scroll-y class="dropdown-scroll">
+            <view 
+              class="dropdown-item {{item.name === nameB ? 'disabled' : ''}}" 
+              wx:for="{{profiles}}" 
+              wx:key="id"
+              bindtap="selectProfileA"
+              data-profile="{{item}}"
+            >
+              <text class="dropdown-name">{{item.name}}</text>
+              <text wx:if="{{item.name === nameB}}" class="dropdown-tag">已选为乙方</text>
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+
+      <!-- Name B Input -->
+      <view class="input-group">
+        <text class="label">乙方 (对方的名字/昵称)</text>
+        <view class="input-wrapper">
+          <input 
+            class="input" 
+            placeholder="输入或选择..." 
+            value="{{nameB}}" 
+            bindinput="onInputB" 
+            bindfocus="onFocusB"
+            placeholder-class="input-placeholder"
+          />
+          <view class="dropdown-trigger" bindtap="toggleDropdownB">下拉</view>
+        </view>
+
+        <!-- Dropdown B -->
+        <view class="dropdown" wx:if="{{openDropdown === 'B' && profiles.length > 0}}">
+          <scroll-view scroll-y class="dropdown-scroll">
+            <view 
+              class="dropdown-item {{item.name === nameA ? 'disabled' : ''}}" 
+              wx:for="{{profiles}}" 
+              wx:key="id"
+              bindtap="selectProfileB"
+              data-profile="{{item}}"
+            >
+              <text class="dropdown-name">{{item.name}}</text>
+              <text wx:if="{{item.name === nameA}}" class="dropdown-tag">已选为甲方</text>
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+
+      <!-- Dropdown Backdrop -->
+      <view class="backdrop" wx:if="{{openDropdown}}" bindtap="closeDropdown"></view>
+
+      <!-- Relation Selection -->
+      <view class="relation-group">
+        <text class="label">关系类型</text>
+        <view class="relation-grid">
+          <view 
+            wx:for="{{relations}}" 
+            wx:key="id" 
+            class="relation-btn {{relation === item.id ? 'active' : ''}}"
+            bindtap="setRelation"
+            data-id="{{item.id}}"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="cost-hint">
+        <text class="hint-icon">!</text>
+        <text>需消耗 30 积分 (会员免费)</text>
+      </view>
+
+      <button 
+        class="submit-btn {{(!nameA || !nameB || loading) ? 'disabled' : ''}}" 
+        bindtap="handleAnalyze"
+        disabled="{{!nameA || !nameB || loading}}"
+      >
+        {{loading ? '分析中...' : '开始合盘'}}
+      </button>
+    </view>
+  </view>
+
+  <!-- Step 2: Results -->
+  <view class="content result-container" wx:if="{{step === 2 && resultReady}}">
+    <!-- Tabs -->
+    <scroll-view scroll-x class="tabs-scroll" enable-flex>
+      <view class="tabs-wrapper">
+        <view 
+          wx:for="{{resultTabs}}" 
+          wx:key="id"
+          class="tab-item {{activeTab === item.id ? 'active' : ''}}"
+          bindtap="switchTab"
+          data-id="{{item.id}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- Overview Content -->
+    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab === 'overview'}}">
+      <view class="score-card">
+        <text class="score-label">关系评分</text>
+        <text class="score-value">{{overviewData.score || '--'}}</text>
+        <view class="score-names">
+          <text>{{nameA}}</text>
+          <text class="score-divider">与</text>
+          <text>{{nameB}}</text>
+        </view>
+      </view>
+
+      <view class="card" wx:if="{{synastryChartData.innerPositions.length > 0}}">
+        <text class="section-title">对比盘</text>
+        <view class="chart-container">
+          <astro-chart
+            type="synastry"
+            positions="{{synastryChartData.innerPositions}}"
+            outerPositions="{{synastryChartData.outerPositions}}"
+            aspects="{{synastryChartData.aspects}}"
+            houseCusps="{{synastryChartData.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+        <text class="chart-desc">内环：{{nameA}} | 外环：{{nameB}}</text>
+      </view>
+
+      <view class="card">
+        <text class="section-title">关系关键词</text>
+        <view class="keyword-list">
+          <view wx:for="{{overviewData.keywords}}" wx:key="word" class="keyword-item">
+            <text class="keyword-word">{{item.word}}</text>
+            <text class="keyword-evidence">{{item.evidence}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card">
+        <text class="section-title">五维关系模型</text>
+        <view class="dimension-list">
+          <view class="dimension-item" wx:for="{{overviewData.scores}}" wx:key="dim">
+            <view class="dim-header">
+              <text class="dim-label">{{item.dim}}</text>
+              <text class="dim-score">{{item.score}}</text>
+            </view>
+            <view class="progress-bg">
+              <view class="progress-bar" style="width: {{item.score}}%"></view>
+            </view>
+            <text class="dim-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card" wx:if="{{overviewData.growthTask}}">
+        <text class="section-title">成长任务</text>
+        <text class="body-text">{{overviewData.growthTask.task}}</text>
+        <text class="body-subtext">{{overviewData.growthTask.evidence}}</text>
+      </view>
+
+      <view class="card">
+        <text class="section-title">综合评语</text>
+        <text class="body-text">{{overviewData.summary}}</text>
+        <text class="body-subtext">{{overviewData.disclaimer}}</text>
+      </view>
+
+      <button class="reset-btn" bindtap="reset">测试下一对</button>
+    </scroll-view>
+
+    <!-- Other Sections -->
+    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab !== 'overview'}}">
+      <view class="card" wx:if="{{currentSectionText}}">
+        <view class="section-header">
+          <text class="section-title">{{currentSectionTitle}}</text>
+        </view>
+        <text class="body-text">{{currentSectionText}}</text>
+      </view>
+      <view class="card empty-state" wx:else>
+        <text>暂无数据</text>
+      </view>
+      <button class="reset-btn" bindtap="reset">测试下一对</button>
+    </scroll-view>
+  </view>
+
+  <!-- Profile Manager Modal -->
+  <view class="modal-overlay" wx:if="{{showManager}}" bindtap="closeManager">
+    <view class="modal-content" catchtap="preventProp">
+      
+      <!-- List Mode -->
+      <view wx:if="{{managerMode === 'list'}}" class="manager-list">
+        <view class="modal-header">
+          <text class="modal-title">档案管理</text>
+          <view class="close-btn" bindtap="closeManager">关闭</view>
+        </view>
+        
+        <scroll-view scroll-y class="profile-list">
+          <view wx:if="{{profiles.length === 0}}" class="empty-list">
+            暂无档案，请添加
+          </view>
+          <view wx:for="{{profiles}}" wx:key="id" class="profile-item">
+            <view class="profile-info">
+              <text class="profile-name">{{item.name}}</text>
+              <text class="profile-detail">{{item.birthDate}} {{item.birthCity}}</text>
+            </view>
+            <view class="profile-actions">
+              <view class="action-btn" bindtap="startEdit" data-profile="{{item}}">编辑</view>
+              <view class="action-btn" bindtap="deleteProfile" data-id="{{item.id}}">删除</view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <button class="add-btn" bindtap="startCreate">新增档案</button>
+      </view>
+
+      <!-- Form Mode -->
+      <view wx:else class="manager-form">
+        <view class="modal-header">
+          <view class="back-btn" bindtap="setListMode">返回</view>
+          <text class="modal-title">{{formData.id ? '编辑档案' : '新增档案'}}</text>
+        </view>
+
+        <scroll-view scroll-y class="form-scroll">
+          <view class="form-group">
+            <text class="form-label">姓名/昵称</text>
+            <input class="form-input" value="{{formData.name}}" bindinput="onFormName" placeholder="请输入..." />
+          </view>
+          
+          <view class="form-row">
+            <view class="form-group half">
+              <text class="form-label">出生日期</text>
+              <picker mode="date" value="{{formData.birthDate}}" bindchange="onFormDate">
+                <view class="picker-view {{formData.birthDate ? '' : 'placeholder'}}">
+                  {{formData.birthDate || '选择日期'}}
+                </view>
+              </picker>
+            </view>
+            <view class="form-group half">
+              <text class="form-label">出生时间</text>
+              <picker mode="time" value="{{formData.birthTime}}" bindchange="onFormTime">
+                <view class="picker-view {{formData.birthTime ? '' : 'placeholder'}}">
+                  {{formData.birthTime || '选择时间'}}
+                </view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="form-group">
+            <text class="form-label">出生城市</text>
+            <input class="form-input" value="{{formData.birthCity}}" bindinput="onFormCity" placeholder="例如：上海" />
+          </view>
+
+          <view class="form-group">
+            <text class="form-label">当前居住地 (可选)</text>
+            <input class="form-input" value="{{formData.currentCity}}" bindinput="onFormCurrentCity" placeholder="例如：北京" />
+          </view>
+        </scroll-view>
+
+        <button 
+          class="save-btn {{(!formData.name || !formData.birthDate) ? 'disabled' : ''}}" 
+          bindtap="saveProfile"
+          disabled="{{!formData.name || !formData.birthDate}}"
+        >
+          保存档案
+        </button>
+      </view>
+
+    </view>
+  </view>
+</view>

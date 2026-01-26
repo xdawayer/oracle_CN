@@ -1,0 +1,202 @@
+<view class="page-container">
+  <view class="header">
+    <text class="header-title">探索自我</text>
+    <text class="header-desc">深入解析你的本命星盘与心理维度</text>
+  </view>
+
+  <view class="card-base section">
+    <view class="section-header">
+      <text class="section-title">本命星盘总览</text>
+      <view class="section-action" bindtap="toggleZoom">全屏查看</view>
+    </view>
+    <view class="chart-box">
+      <astro-chart
+        type="natal"
+        positions="{{chartPositions}}"
+        aspects="{{chartAspects}}"
+        houseCusps="{{chartHouseCusps}}"
+        width="{{chartSize}}"
+        height="{{chartSize}}"
+      ></astro-chart>
+    </view>
+  </view>
+
+  <view class="triad-grid">
+    <block wx:for="{{big3}}" wx:key="id">
+      <view class="triad-item" bindtap="onSelectPlanet" data-item="{{item}}">
+        <view class="triad-icon-wrapper">
+          <svg wx:if="{{item.id === 'sun'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg wx:if="{{item.id === 'moon'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg wx:if="{{item.id === 'asc'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"/>
+            <line x1="12" y1="9" x2="12" y2="21"/>
+          </svg>
+        </view>
+        <text class="triad-name">{{item.name}}</text>
+        <text class="triad-sign">{{item.sign}}</text>
+      </view>
+    </block>
+  </view>
+
+  <view class="premium-banner" bindtap="showPaymentModal">
+    <view class="premium-info">
+      <text class="premium-title">2026 流年大运报告</text>
+      <text class="premium-desc">解锁全年运势指南</text>
+    </view>
+    <view class="premium-btn">立即解锁</view>
+  </view>
+
+  <view class="card-base section">
+    <view class="section-header">
+      <text class="section-title">心理维度分析 (12维度)</text>
+    </view>
+    <view class="chart-box" style="height: 400rpx;">
+      <canvas type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
+    </view>
+    <view class="radar-summary">
+      <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。</text>
+      <text class="link-btn">查看详情 ></text>
+    </view>
+  </view>
+
+  <view class="section">
+    <text class="section-title" style="margin-bottom: 24rpx; display: block;">深度解析</text>
+    <view class="domain-grid">
+      <block wx:for="{{lifeDomains}}" wx:key="id">
+        <view class="domain-item" bindtap="onDomainClick" data-id="{{item.id}}">
+           <view class="domain-indicator"></view>
+           <text class="domain-name">{{item.title}}</text>
+           <text class="domain-text">{{item.desc}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="section">
+    <text class="section-title" style="margin-bottom: 24rpx; display: block;">专业技术附录</text>
+    <view class="accordion-item">
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="planets">
+        <text class="accordion-label">行星列表</text>
+        <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
+      </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}">
+        <view class="data-table">
+          <view class="table-row">
+            <text class="table-cell head">行星</text>
+            <text class="table-cell head">星座</text>
+            <text class="table-cell head">宫位</text>
+            <text class="table-cell head right">度数</text>
+          </view>
+          <block wx:for="{{planets}}" wx:key="id">
+            <view class="table-row">
+              <view class="table-cell"><text style="color: {{item.color}}; margin-right: 8rpx;">{{item.symbol}}</text>{{item.name}}</view>
+              <text class="table-cell">{{item.sign}}</text>
+              <text class="table-cell">{{item.house}}宫</text>
+              <text class="table-cell right">{{item.degree}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="accordion-item">
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="elements">
+        <text class="accordion-label">元素矩阵</text>
+        <text class="accordion-icon">{{expandedSection === 'elements' ? '-' : '+'}}</text>
+      </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'elements'}}">
+        <view class="matrix-grid">
+          <view class="matrix-item">
+             <text class="matrix-label">火</text>
+             <text class="matrix-val" style="color: var(--danger)">3</text>
+          </view>
+          <view class="matrix-item">
+             <text class="matrix-label">土</text>
+             <text class="matrix-val" style="color: var(--success)">4</text>
+          </view>
+          <view class="matrix-item">
+             <text class="matrix-label">风</text>
+             <text class="matrix-val" style="color: var(--warning)">2</text>
+          </view>
+          <view class="matrix-item">
+             <text class="matrix-label">水</text>
+             <text class="matrix-val" style="color: var(--info)">1</text>
+          </view>
+        </view>
+        <text class="summary-text" style="font-size: 20rpx; margin-top: 16rpx; display: block; opacity: 0.6;">* 基本: 4 / 固定: 3 / 变动: 3</text>
+      </view>
+    </view>
+
+    <view class="accordion-item">
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
+        <text class="accordion-label">相位表</text>
+        <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
+      </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}">
+        <block wx:for="{{aspects}}" wx:key="id">
+          <view class="table-row">
+            <view class="table-cell">
+               <text style="font-weight: 600">{{item.fromName}}</text> - <text style="font-weight: 600">{{item.toName}}</text>
+            </view>
+            <view class="table-cell right" style="color: {{item.type === 'trine' ? 'var(--info)' : 'var(--danger)'}}">
+               {{item.type === 'trine' ? '拱' : item.type === 'square' ? '刑' : item.type === 'conjunction' ? '合' : '冲'}}
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{selectedItem}}" bindtap="closeDetail">
+    <view class="modal-panel" catchtap="stopProp">
+      <view class="close-btn" bindtap="closeDetail">X</view>
+      <text class="modal-title">{{selectedItem.name || (selectedItem.type + ' 相位')}}</text>
+      <text class="modal-text" style="opacity: 0.7; margin-bottom: 16rpx;">{{selectedItem.sign ? (selectedItem.sign + ' ' + selectedItem.house + '宫') : '能量交织'}}</text>
+      <text class="modal-text">{{selectedItem.description}}</text>
+      <button class="action-btn" style="width: 100%; border: none;">查看完整深度解读 (解锁 VIP)</button>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showPayment}}" bindtap="closePayment">
+    <view class="modal-panel" catchtap="stopProp">
+       <text class="modal-title" style="text-align: center;">解锁流年运势</text>
+       <text class="modal-text" style="text-align: center; margin-bottom: 8rpx;">查看 2026 全年深度运势报告需要消耗</text>
+       <text class="modal-title" style="text-align: center; font-size: 48rpx; color: var(--accent); margin-bottom: 32rpx;">500 积分</text>
+       
+       <button class="action-btn" style="width: 100%; border: none;" bindtap="handlePay" loading="{{paymentLoading}}">{{paymentLoading ? '支付中...' : '确认支付'}}</button>
+       <button class="action-btn secondary" style="width: 100%; border: none;" bindtap="closePayment">取消</button>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{isZoomed}}" style="background: var(--space-950);">
+     <view class="full-screen-container">
+       <view class="fs-header">
+          <text class="section-title">星盘详情</text>
+           <view class="close-btn" bindtap="toggleZoom" style="position: static;">X</view>
+        </view>
+       <view class="fs-content">
+          <astro-chart
+            type="natal"
+            positions="{{chartPositions}}"
+            aspects="{{chartAspects}}"
+            houseCusps="{{chartHouseCusps}}"
+            width="{{fullChartSize}}"
+            height="{{fullChartSize}}"
+          ></astro-chart>
+       </view>
+     </view>
+  </view>
+
+</view>

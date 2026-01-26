@@ -1,0 +1,7 @@
+{
+  "desc": "Astromind Miniprogram",
+  "rules": [{
+    "action": "allow",
+    "page": "*"
+  }]
+}

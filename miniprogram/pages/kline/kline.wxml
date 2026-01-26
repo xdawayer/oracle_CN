@@ -1,0 +1,124 @@
+<view class="container">
+  <!-- Header -->
+  <view class="header">
+    <view class="back-btn" bindtap="onBack">
+      <text class="back-text">返回</text>
+    </view>
+    <view class="header-title">
+      <text class="title-main">人生K线</text>
+      <text class="title-sub">命运趋势分析</text>
+    </view>
+    <view class="spacer"></view>
+  </view>
+
+  <!-- Scrollable Content -->
+  <scroll-view scroll-y class="content-scroll" enable-flex>
+    <!-- Dimensions Selector -->
+    <scroll-view scroll-x class="dims-scroll" enable-flex>
+      <view class="dims-container">
+        <view 
+          wx:for="{{dimensions}}" 
+          wx:key="id" 
+          class="dim-item {{selectedDimId === item.id ? 'active' : ''}}"
+          bindtap="onDimSelect"
+          data-id="{{item.id}}"
+        >
+          <view class="dim-icon-box">
+             <text class="dim-code">{{item.code || '总'}}</text>
+          </view>
+          <text class="dim-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="main-content">
+      <!-- Overview Card -->
+      <view class="card overview-card">
+        <view class="card-header">
+          <view class="trend-info">
+            <view class="trend-title">
+              <text>{{currentDim.name}}趋势概览</text>
+            </view>
+            <view class="trend-score">
+              <text class="score-val">{{currentCycle.type || '分析中'}}</text>
+            </view>
+            <text class="score-label" wx:if="{{currentCycle}}">当前周期: {{currentCycle.start}} 至 {{currentCycle.end}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- Cycles List -->
+      <view class="section-title-row">
+        <text class="section-title">周期列表详情</text>
+        <text class="section-subtitle">周期</text>
+      </view>
+
+      <view class="list-card">
+        <block wx:for="{{dataList}}" wx:key="id">
+          <view class="list-item" bindtap="onDetailSelect" data-item="{{item}}">
+            <view class="item-main">
+              <text class="item-planet">{{item.planet}}</text>
+              <text class="item-type">{{item.type}}</text>
+            </view>
+            
+            <view class="item-dates">
+              <text class="date-range">{{item.start}} ~ {{item.end}}</text>
+              <text class="peak-date">峰值: {{item.peak}}</text>
+            </view>
+          </view>
+        </block>
+        <view wx:if="{{dataList.length === 0}}" class="empty-state">
+           <text>暂无周期数据</text>
+        </view>
+      </view>
+
+      <!-- Advice Section -->
+      <view class="advice-card">
+         <view class="advice-header">
+            <text class="advice-title">运势锦囊</text>
+         </view>
+         <text class="advice-text">
+            {{selectedDimId === 'wealth' ? "本周期财运波动，建议审慎投资。" : ""}}
+            {{selectedDimId === 'love' ? "情感能量活跃，适合增进交流。" : ""}}
+            {{selectedDimId === 'career' ? "职场机会显现，保持专注。" : ""}}
+            {{selectedDimId === 'overall' ? "整体运势平稳，注意资源整合。" : ""}}
+            {{selectedDimId === 'health' ? "注意劳逸结合，保持身心平衡。" : ""}}
+            {{selectedDimId === 'growth' ? "适合内省与学习，提升自我认知。" : ""}}
+         </text>
+      </view>
+
+      <view class="footer-spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!-- Modal -->
+  <view class="modal-overlay" wx:if="{{selectedDetail}}" bindtap="closeDetail">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-header">
+         <text class="modal-subtitle">周期详情</text>
+         <text class="modal-title">{{selectedDetail.planet}} {{selectedDetail.type}}</text>
+      </view>
+
+      <view class="stats-grid">
+         <view class="stat-box">
+            <text class="stat-label">开始时间</text>
+            <text class="stat-value">{{selectedDetail.start}}</text>
+         </view>
+         <view class="stat-box">
+            <text class="stat-label">结束时间</text>
+            <text class="stat-value">{{selectedDetail.end}}</text>
+         </view>
+         <view class="stat-box full-width">
+            <text class="stat-label">峰值时刻</text>
+            <text class="stat-value text-accent">{{selectedDetail.peak}}</text>
+         </view>
+      </view>
+
+      <view class="modal-desc">
+        <text>该周期由{{selectedDetail.planet}}能量主导，表现为{{selectedDetail.type}}特征。请关注峰值日期前后的重要机遇与挑战。</text>
+      </view>
+
+      <button class="modal-btn" bindtap="closeDetail">关闭详情</button>
+    </view>
+  </view>
+</view>

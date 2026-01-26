@@ -1,0 +1,67 @@
+<view class="container">
+  <view class="header">
+    <text class="header-title">发现</text>
+    <text class="header-subtitle">探索与工具</text>
+  </view>
+
+  <view class="hero-card" bindtap="navToSynastry">
+    <view class="hero-content">
+      <view class="hero-header">
+        <view class="hero-icon-box">
+          <text class="icon-users">♀♂</text>
+        </view>
+        <text class="hero-title">双人合盘</text>
+      </view>
+      <text class="hero-desc">解析灵魂伴侣、合作伙伴的匹配契合度。包含本命对比与组合中点盘。</text>
+      <view class="hero-btn">
+        <text>开始探索关系</text>
+        <view class="arrow-right-white"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-card" bindtap="navToSynthetica">
+    <view class="action-left">
+      <view class="action-icon-box">
+        <text class="icon-zap">⚗</text>
+      </view>
+      <view class="action-text">
+        <text class="action-title">占星实验室</text>
+        <text class="action-subtitle">ASTRO LAB</text>
+      </view>
+    </view>
+    <view class="action-arrow">
+      <view class="arrow-right-gray"></view>
+    </view>
+  </view>
+
+  <view class="grid">
+    <block wx:for="{{features}}" wx:key="id">
+      <view class="grid-item" bindtap="navToFeature" data-route="{{item.route}}">
+        <view class="grid-icon-box {{item.colorClass}}">
+          <view class="grid-icon-dot"></view>
+        </view>
+        <view class="grid-text">
+          <text class="grid-title">{{item.title}}</text>
+          <text class="grid-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="topics-section">
+    <view class="section-header">
+      <view class="section-indicator"></view>
+      <text class="section-title">星际观察</text>
+    </view>
+    <view class="topics-list">
+      <block wx:for="{{topics}}" wx:key="title">
+        <view class="topic-card">
+          <text class="topic-tag">{{item.tag}}</text>
+          <text class="topic-title">{{item.title}}</text>
+          <view class="arrow-right-small"></view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

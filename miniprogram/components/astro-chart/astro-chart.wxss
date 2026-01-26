@@ -1,0 +1,64 @@
+/* 星盘组件样式 */
+.astro-chart-container {
+  position: relative;
+  background-color: transparent;
+}
+
+.astro-chart-canvas {
+  display: block;
+}
+
+/* 行星详情卡片 */
+.planet-detail-card {
+  position: absolute;
+  background: rgba(16, 17, 19, 0.95);
+  border: 1px solid #C6A062;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 150px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.planet-detail-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.planet-glyph {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.planet-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #FFFFFF;
+}
+
+.planet-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planet-position {
+  font-size: 14px;
+  color: #C6A062;
+}
+
+.planet-house {
+  font-size: 12px;
+  color: #7A746B;
+}
+
+.close-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 24px;
+  color: #7A746B;
+  cursor: pointer;
+  line-height: 1;
+}

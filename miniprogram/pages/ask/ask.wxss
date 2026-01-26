@@ -1,0 +1,347 @@
+/* pages/ask/ask.wxss */
+page {
+  background-color: var(--space-950);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+/* Header */
+.header {
+  background-color: var(--space-900);
+  border-bottom: 1rpx solid var(--space-700);
+  padding: 0 0 24rpx 0;
+  z-index: 10;
+}
+
+.header-content {
+  padding: 24rpx 32rpx 0 32rpx;
+}
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.app-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4rpx;
+}
+
+.app-subtitle {
+  font-size: 20rpx;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 2rpx;
+}
+
+/* Goal Picker */
+.goal-picker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.goal-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background-color: var(--space-800);
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--space-700);
+  font-size: 24rpx;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.goal-icon {
+  font-size: 18rpx;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.picker-trigger {
+  position: relative;
+  background-color: var(--accent);
+  color: var(--space-950);
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 16rpx 32rpx 16rpx 32rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 8rpx solid transparent;
+  border-right: 8rpx solid transparent;
+  border-top: 8rpx solid var(--space-950);
+}
+
+/* Chat Area */
+.chat-scroll {
+  flex: 1;
+  background-color: var(--space-950);
+}
+
+.chat-list {
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+}
+
+.message-row {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+}
+
+.message-left {
+  justify-content: flex-start;
+}
+
+.message-right {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.avatar-ai {
+  background-color: var(--accent);
+  color: var(--space-950);
+}
+
+.avatar-user {
+  background-color: var(--space-700);
+  color: var(--text-secondary);
+}
+
+.bubble {
+  max-width: 70%;
+  padding: 24rpx 32rpx;
+  border-radius: 24rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  position: relative;
+}
+
+.bubble-ai {
+  background-color: var(--space-800);
+  color: var(--text-primary);
+  border: 1rpx solid var(--space-700);
+  border-top-left-radius: 4rpx;
+}
+
+.bubble-user {
+  background-color: var(--space-700);
+  color: var(--text-primary);
+  border: 1rpx solid var(--space-600);
+  border-top-right-radius: 4rpx;
+}
+
+.bubble-text {
+  word-break: break-all;
+}
+
+/* Suggestions */
+.suggestions-container {
+  margin-top: 16rpx;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  padding: 0 16rpx;
+}
+
+.suggestions-dot {
+  width: 6rpx;
+  height: 24rpx;
+  background-color: var(--accent);
+  border-radius: 3rpx;
+}
+
+.suggestions-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.suggestions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.suggestion-item {
+  background-color: var(--space-900);
+  border: 1rpx solid var(--space-700);
+  padding: 24rpx 32rpx;
+  border-radius: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.suggestion-item:active {
+  background-color: var(--space-800);
+  border-color: var(--accent);
+}
+
+.suggestion-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex: 1;
+  margin-right: 24rpx;
+}
+
+.suggestion-arrow {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 24rpx;
+}
+
+/* Loading */
+.loading-container {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 92rpx; /* 72rpx avatar + 20rpx gap */
+}
+
+.loading-bubble {
+  background-color: var(--space-800);
+  border: 1rpx solid var(--space-700);
+  padding: 24rpx 32rpx;
+  border-radius: 24rpx;
+  border-top-left-radius: 4rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.dots {
+  display: flex;
+  gap: 8rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  background-color: var(--accent);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot-1 { animation-delay: -0.32s; }
+.dot-2 { animation-delay: -0.16s; }
+.dot-3 { animation-delay: 0s; }
+
+.loading-text {
+  font-size: 20rpx;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 1rpx;
+}
+
+/* Input Area */
+.input-area {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--space-950);
+  border-top: 1rpx solid var(--space-700);
+  padding: 24rpx 32rpx calc(32rpx + env(safe-area-inset-bottom)) 32rpx;
+  z-index: 20;
+}
+
+.input-wrapper {
+  background-color: var(--space-900);
+  border: 1rpx solid var(--space-700);
+  border-radius: 24rpx;
+  padding: 12rpx 12rpx 12rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.chat-input {
+  flex: 1;
+  height: 80rpx;
+  color: var(--text-primary);
+  font-size: 28rpx;
+}
+
+.input-placeholder {
+  color: var(--text-muted);
+}
+
+.send-btn {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background-color: var(--space-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.send-btn-active {
+  background-color: var(--accent);
+}
+
+.send-icon {
+  font-size: 18rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.send-btn-active .send-icon {
+  color: var(--space-950);
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}

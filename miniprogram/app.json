@@ -1,0 +1,70 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/self/self",
+    "pages/daily/daily",
+    "pages/discovery/discovery",
+    "pages/me/me",
+    "pages/ask/ask",
+    "pages/cbt/cbt",
+    "pages/synastry/synastry",
+    "pages/synthetica/synthetica",
+    "pages/wiki/wiki",
+    "pages/chart/chart",
+    "pages/kline/kline",
+    "pages/pairing/pairing",
+    "pages/reports/reports",
+    "pages/records/records"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#FAF9F6",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Astromind",
+    "backgroundColor": "#FAF9F6",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#7A746B",
+    "selectedColor": "#C6A062",
+    "backgroundColor": "#FAF9F6",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/self/self",
+        "text": "本我",
+        "iconPath": "images/tabbar/self.png",
+        "selectedIconPath": "images/tabbar/self-active.png"
+      },
+      {
+        "pagePath": "pages/daily/daily",
+        "text": "今日",
+        "iconPath": "images/tabbar/daily.png",
+        "selectedIconPath": "images/tabbar/daily-active.png"
+      },
+      {
+        "pagePath": "pages/discovery/discovery",
+        "text": "发现",
+        "iconPath": "images/tabbar/discovery.png",
+        "selectedIconPath": "images/tabbar/discovery-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的",
+        "iconPath": "images/tabbar/me.png",
+        "selectedIconPath": "images/tabbar/me-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {
+    "astro-chart": "/components/astro-chart/astro-chart"
+  }
+}

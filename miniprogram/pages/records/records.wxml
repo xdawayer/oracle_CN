@@ -1,0 +1,186 @@
+<view class="container">
+  <!-- Header -->
+  <view class="header">
+    <view class="header-content">
+      <text class="header-title">合盘记录</text>
+      <text class="header-subtitle">匹配历史</text>
+    </view>
+  </view>
+
+  <!-- List -->
+  <scroll-view scroll-y class="record-list">
+    <block wx:if="{{records.length > 0}}">
+      <view 
+        class="record-card" 
+        wx:for="{{records}}" 
+        wx:key="id" 
+        bindtap="onSelectRecord" 
+        data-id="{{item.id}}"
+      >
+        <view class="score-badge">
+          <text class="score-value">{{item.score}}</text>
+          <text class="score-label">分</text>
+        </view>
+        
+        <view class="record-info">
+          <view class="record-names">
+            <text class="names-text">{{item.nameA}} & {{item.nameB}}</text>
+            <view class="relation-tag">{{item.relation}}</view>
+          </view>
+          <view class="record-date">
+            <text class="date-text">{{item.date}}</text>
+          </view>
+        </view>
+
+        <!-- No arrow icon needed, or just text -->
+      </view>
+    </block>
+
+    <!-- Empty State -->
+    <block wx:else>
+      <view class="empty-state">
+        <view class="empty-icon-box">
+          <text style="font-size: 48rpx; font-weight: 900; color: var(--text-muted);">无</text>
+        </view>
+        <text class="empty-title">尚无测算记录</text>
+        <text class="empty-desc">快去“发现-双人合盘”中测算你与对方的缘分，记录将自动保存至此。</text>
+        <button class="empty-btn" bindtap="onGoToMatch">立即测算</button>
+      </view>
+    </block>
+  </scroll-view>
+
+  <!-- Detail Modal -->
+  <view class="modal-overlay {{selectedRecord ? 'active' : ''}}" wx:if="{{selectedRecord}}">
+    <view class="modal-content animate-slide-up">
+      <view class="modal-header">
+        <view class="close-btn" bindtap="onCloseDetail">
+          <text>关闭</text>
+        </view>
+        <view class="modal-title-box">
+          <text class="modal-title">合盘解析详情</text>
+          <text class="modal-subtitle">{{selectedRecord.nameA}} & {{selectedRecord.nameB}}</text>
+        </view>
+        <view class="spacer"></view>
+      </view>
+
+      <scroll-view scroll-y class="modal-body">
+        <!-- Score Header -->
+        <view class="detail-score-card">
+          <text class="detail-label">匹配度指数</text>
+          <text class="detail-score">{{selectedRecord.result.overallScore}}%</text>
+          <view class="detail-relation">
+            <text>{{selectedRecord.relation}}关系</text>
+          </view>
+        </view>
+
+        <!-- Dimensions -->
+        <view class="detail-section">
+          <view class="section-title">
+            <text>五维能量分布</text>
+          </view>
+          <view class="dimensions-list">
+            <view class="dimension-item">
+              <view class="dim-header">
+                <text>情感</text>
+                <text>{{selectedRecord.result.dimensions.emotional}}%</text>
+              </view>
+              <view class="progress-bg">
+                <view class="progress-bar color-accent" style="width: {{selectedRecord.result.dimensions.emotional}}%"></view>
+              </view>
+            </view>
+            <view class="dimension-item">
+              <view class="dim-header">
+                <text>沟通</text>
+                <text>{{selectedRecord.result.dimensions.communication}}%</text>
+              </view>
+              <view class="progress-bg">
+                <view class="progress-bar color-info" style="width: {{selectedRecord.result.dimensions.communication}}%"></view>
+              </view>
+            </view>
+            <view class="dimension-item">
+              <view class="dim-header">
+                <text>激情</text>
+                <text>{{selectedRecord.result.dimensions.passion}}%</text>
+              </view>
+              <view class="progress-bg">
+                <view class="progress-bar color-warning" style="width: {{selectedRecord.result.dimensions.passion}}%"></view>
+              </view>
+            </view>
+            <view class="dimension-item">
+              <view class="dim-header">
+                <text>稳定</text>
+                <text>{{selectedRecord.result.dimensions.stability}}%</text>
+              </view>
+              <view class="progress-bg">
+                <view class="progress-bar color-muted" style="width: {{selectedRecord.result.dimensions.stability}}%"></view>
+              </view>
+            </view>
+            <view class="dimension-item">
+              <view class="dim-header">
+                <text>成长</text>
+                <text>{{selectedRecord.result.dimensions.growth}}%</text>
+              </view>
+              <view class="progress-bg">
+                <view class="progress-bar color-mystic" style="width: {{selectedRecord.result.dimensions.growth}}%"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- Overview -->
+        <view class="detail-section">
+          <view class="section-title">
+            <text>综合解析</text>
+          </view>
+          <text class="overview-text">“{{selectedRecord.result.overview}}”</text>
+        </view>
+
+        <!-- Sections Loop -->
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.natalA}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.natalA.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.natalA.content}}</text>
+        </view>
+
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.natalB}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.natalB.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.natalB.content}}</text>
+        </view>
+        
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.synastryAB}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.synastryAB.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.synastryAB.content}}</text>
+        </view>
+
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.synastryBA}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.synastryBA.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.synastryBA.content}}</text>
+        </view>
+
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.composite}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.composite.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.composite.content}}</text>
+        </view>
+
+        <view class="detail-section" wx:if="{{selectedRecord.result.sections.davison}}">
+          <view class="section-title">
+             <text>{{selectedRecord.result.sections.davison.title}}</text>
+          </view>
+          <text class="section-content">{{selectedRecord.result.sections.davison.content}}</text>
+        </view>
+
+        <button class="close-detail-btn" bindtap="onCloseDetail">返回列表</button>
+        <view class="bottom-spacer"></view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

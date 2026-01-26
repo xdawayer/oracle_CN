@@ -1,0 +1,118 @@
+<view class="page-container">
+  <!-- Header -->
+  <view class="header">
+    <view class="header-content">
+      <view class="title-section">
+        <text class="app-title">星象问答</text>
+        <text class="app-subtitle">PROFESSIONAL GUIDANCE</text>
+      </view>
+      
+      <!-- Goal Selector -->
+      <picker bindchange="onGoalChange" value="{{currentGoalIndex}}" range="{{goals}}" range-key="label">
+        <view class="goal-picker">
+          <view class="goal-label">
+            <text class="goal-icon">TARGET</text>
+            <text>目标: {{currentGoalLabel}}</text>
+          </view>
+          <view class="picker-trigger">
+            <text>{{currentGoalLabel}}</text>
+            <view class="arrow-down"></view>
+          </view>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- Chat Area -->
+  <scroll-view 
+    class="chat-scroll" 
+    scroll-y 
+    scroll-with-animation 
+    scroll-into-view="{{toView}}"
+    padding-bottom="200rpx"
+  >
+    <view class="chat-list">
+      <block wx:for="{{messages}}" wx:key="index">
+        <view class="message-row {{item.role === 'user' ? 'message-right' : 'message-left'}}" id="msg-{{index}}">
+          
+          <!-- Avatar -->
+          <view class="avatar {{item.role === 'user' ? 'avatar-user' : 'avatar-ai'}}">
+            <text wx:if="{{item.role === 'user'}}">ME</text>
+            <text wx:else>AI</text>
+          </view>
+
+          <!-- Bubble -->
+          <view class="bubble {{item.role === 'user' ? 'bubble-user' : 'bubble-ai'}}">
+            <text class="bubble-text" user-select>{{item.text}}</text>
+
+            <!-- 星盘显示（如果有星盘数据） -->
+            <view wx:if="{{item.chartData && item.chartData.positions.length > 0}}" class="chart-in-message">
+              <astro-chart
+                type="{{item.chartData.type || 'natal'}}"
+                positions="{{item.chartData.positions}}"
+                outerPositions="{{item.chartData.outerPositions}}"
+                aspects="{{item.chartData.aspects}}"
+                houseCusps="{{item.chartData.houseCusps}}"
+                width="300"
+                height="300"
+              ></astro-chart>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <!-- Suggested Questions (Only shown when just 1 message) -->
+      <view wx:if="{{messages.length === 1 && !isLoading}}" class="suggestions-container">
+        <view class="suggestions-header">
+           <view class="suggestions-dot"></view>
+           <text class="suggestions-title">推荐询问</text>
+        </view>
+        <view class="suggestions-grid">
+           <block wx:for="{{currentSuggestions}}" wx:key="index">
+             <view class="suggestion-item" bindtap="onSuggestionClick" data-text="{{item}}">
+               <text class="suggestion-text">{{item}}</text>
+               <text class="suggestion-arrow">></text>
+             </view>
+           </block>
+        </view>
+      </view>
+
+      <!-- Loading Indicator -->
+      <view wx:if="{{isLoading}}" class="loading-container">
+        <view class="loading-bubble">
+           <view class="dots">
+             <view class="dot dot-1"></view>
+             <view class="dot dot-2"></view>
+             <view class="dot dot-3"></view>
+           </view>
+           <text class="loading-text">正在解析能量场...</text>
+        </view>
+      </view>
+      
+      <!-- Bottom Spacer -->
+      <view style="height: 180rpx;"></view>
+    </view>
+  </scroll-view>
+
+  <!-- Input Area -->
+  <view class="input-area">
+    <view class="input-wrapper">
+      <input 
+        class="chat-input" 
+        value="{{inputValue}}" 
+        bindinput="onInput" 
+        bindconfirm="onSend" 
+        confirm-type="send"
+        placeholder="输入你的困惑..." 
+        placeholder-class="input-placeholder"
+        disabled="{{isLoading}}"
+      />
+      <view 
+        class="send-btn {{inputValue ? 'send-btn-active' : ''}}" 
+        bindtap="onSend"
+      >
+        <text class="send-icon">SEND</text>
+      </view>
+    </view>
+  </view>
+</view>

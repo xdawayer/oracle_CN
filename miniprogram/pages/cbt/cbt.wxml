@@ -1,0 +1,269 @@
+<view class="container-full">
+  <view class="navbar">
+    <view class="nav-left" bindtap="{{viewMode === 'guide' ? 'exitGuide' : ''}}">
+      <view wx:if="{{viewMode === 'guide'}}" class="icon-btn">
+        <text class="icon-arrow-left">←</text>
+      </view>
+      <view wx:else class="placeholder"></view>
+    </view>
+    <view class="nav-center">
+      <text class="nav-title">{{viewMode === 'dashboard' ? '情绪日记' : '深度觉察中'}}</text>
+      <view wx:if="{{viewMode === 'guide' && step < 5}}" class="progress-bar">
+        <block wx:for="{{steps}}" wx:key="index">
+          <view class="progress-dot {{index <= step ? 'active' : ''}}"></view>
+        </block>
+      </view>
+    </view>
+    <view class="nav-right"></view>
+  </view>
+
+  <scroll-view wx:if="{{viewMode === 'dashboard'}}" scroll-y class="content-scroll">
+    <view class="dashboard-content">
+      
+      <view class="card calendar-card">
+        <view class="calendar-header">
+          <view class="icon-btn small"><text class="icon-chevron">&lt;</text></view>
+          <text class="month-title">{{currentMonth}}</text>
+          <view class="icon-btn small"><text class="icon-chevron">&gt;</text></view>
+        </view>
+        
+        <view class="calendar-grid">
+          <view wx:for="{{weekDays}}" wx:key="*this" class="day-label">{{item}}</view>
+          <block wx:for="{{calendarDays}}" wx:key="id">
+            <view class="day-cell {{item.empty ? 'empty' : ''}}">
+              <view wx:if="{{!item.empty}}" class="day-content {{item.isCurrent ? 'current' : ''}}" style="opacity: {{item.opacity}}">
+                <view wx:if="{{item.moodId}}" class="mood-dot mood-{{item.moodId}}"></view>
+                <text wx:else class="day-number">{{item.day}}</text>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <view class="history-list">
+        <block wx:for="{{history}}" wx:key="id">
+          <view class="history-item">
+            <view class="mood-avatar mood-bg-{{item.moodId}}">
+               <view class="face-icon face-{{item.moodId}}"></view>
+            </view>
+            <view class="history-info">
+              <view class="history-header">
+                <text class="history-time">{{item.date}} {{item.time}}</text>
+                <text class="history-mood" style="color: {{item.color}}">{{item.moodLabel}}</text>
+              </view>
+              <text class="history-summary">{{item.summary}}</text>
+            </view>
+            <text class="icon-chevron-right">&gt;</text>
+          </view>
+        </block>
+        
+        <view wx:if="{{history.length === 0}}" class="empty-state">
+           <text>暂无记录，开始第一次觉察吧</text>
+        </view>
+      </view>
+
+      <view class="spacer-bottom"></view>
+    </view>
+  </scroll-view>
+
+  <scroll-view wx:else scroll-y class="content-scroll guide-scroll">
+    <view class="guide-content">
+      
+      <block wx:if="{{step === 0}}">
+        <view class="step-container fade-in">
+          <text class="step-title">此刻发生了什么？</text>
+          <textarea 
+            class="input-area" 
+            placeholder="描述当下引发情绪的具体事件..." 
+            value="{{record.situation}}" 
+            data-field="situation"
+            bindinput="onInput"
+            maxlength="500"
+          ></textarea>
+          <view class="hint-card">
+            <text class="hint-icon">TIP</text>
+            <text class="hint-text">事实 vs 判断：尝试只记录摄像机能拍下的内容，移除主观修饰语。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{step === 1}}">
+        <view class="step-container fade-in">
+          <text class="step-title">标记你的情绪</text>
+          <view class="mood-grid">
+            <block wx:for="{{moods}}" wx:key="id">
+              <view 
+                class="mood-btn {{record.mood.id === item.id ? 'active' : ''}}" 
+                bindtap="onMoodSelect" 
+                data-id="{{item.id}}"
+              >
+                <view class="mood-face-lg face-{{item.id}}"></view>
+                <text class="mood-label">{{item.label}}</text>
+              </view>
+            </block>
+          </view>
+          
+          <view wx:if="{{record.mood}}" class="intensity-card fade-in">
+            <view class="intensity-header">
+              <text class="label">情绪浓度 (Intensity)</text>
+              <text class="value">{{record.intensity}}%</text>
+            </view>
+            <slider 
+              min="0" max="100" 
+              value="{{record.intensity}}" 
+              activeColor="var(--psycho-500)" 
+              backgroundColor="var(--space-800)" 
+              block-size="20"
+              bindchange="onIntensityChange"
+            />
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{step === 2}}">
+        <view class="step-container fade-in">
+          <text class="step-title">捕捉自动思维</text>
+          <textarea 
+            class="input-area" 
+            placeholder="那一瞬间，脑子里闪过了什么念头？" 
+            value="{{record.automaticThought}}" 
+            data-field="automaticThought"
+            bindinput="onInput"
+            maxlength="300"
+          ></textarea>
+          
+          <view class="sub-input-group">
+            <text class="sub-label">其中最具杀伤力的一个 (Hot Thought)</text>
+            <input 
+              class="input-field danger-theme" 
+              placeholder="这个念头最让我难受..." 
+              value="{{record.hotThought}}" 
+              data-field="hotThought"
+              bindinput="onInput"
+            />
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{step === 3}}">
+        <view class="step-container fade-in">
+          <text class="step-title">庭审现场：辩论证据</text>
+          
+          <view class="evidence-box success-theme">
+            <text class="evidence-label">✓ 支持证据</text>
+            <textarea 
+              class="input-area small" 
+              placeholder="有哪些客观事实支持这个想法？" 
+              value="{{record.evidenceFor}}" 
+              data-field="evidenceFor"
+              bindinput="onInput"
+            ></textarea>
+          </view>
+
+          <view class="evidence-box danger-theme">
+            <text class="evidence-label">✗ 反驳证据</text>
+            <textarea 
+              class="input-area small" 
+              placeholder="有哪些事实证明这个想法不一定成立？" 
+              value="{{record.evidenceAgainst}}" 
+              data-field="evidenceAgainst"
+              bindinput="onInput"
+            ></textarea>
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{step === 4}}">
+        <view class="step-container fade-in">
+          <text class="step-title">重构：平衡后的新视角</text>
+          <textarea 
+            class="input-area" 
+            placeholder="综合以上所有信息，现在你怎么看待这件事？" 
+            value="{{record.balancedThought}}" 
+            data-field="balancedThought"
+            bindinput="onInput"
+            maxlength="500"
+          ></textarea>
+          <view class="hint-card">
+            <text class="hint-icon">TIP</text>
+            <text class="hint-text">平衡思维不是自我欺骗，而是寻找更全面的真相。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{step === 5}}">
+        <view class="step-container fade-in text-center">
+          <view class="success-icon">
+            <text>✓</text>
+          </view>
+          <text class="step-title">觉察练习已归档</text>
+          <text class="step-desc">每一次记录都是在重新夺回对心灵的掌控权。</text>
+          
+          <view class="analysis-card">
+            <view class="analysis-header">
+              <text class="icon-sparkles">AI</text>
+              <text>AI 模式深度分析</text>
+            </view>
+            
+            <view wx:if="{{analyzing}}" class="loading-state">
+              <view class="spinner"></view>
+              <text>正在解析认知图谱...</text>
+            </view>
+            <view wx:else class="analysis-result">
+              <text>{{analysis}}</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view class="spacer-bottom"></view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-bar">
+    <view class="bottom-bar-inner">
+      <block wx:if="{{viewMode === 'dashboard'}}">
+        <view class="nav-grid">
+            <view class="nav-item">
+               <view class="nav-icon color-danger"><text>HEAT</text></view>
+               <text class="nav-label">身心</text>
+            </view>
+            <view class="nav-item">
+              <view class="nav-icon color-warning"><text>ANCHR</text></view>
+              <text class="nav-label">锚点</text>
+            </view>
+            <view class="nav-item">
+              <view class="nav-icon color-info"><text>FOCUS</text></view>
+              <text class="nav-label">多维</text>
+            </view>
+            <view class="nav-item">
+              <view class="nav-icon color-success"><text>MIND</text></view>
+              <text class="nav-label">认知</text>
+            </view>
+        </view>
+        <button class="action-btn primary" bindtap="startDeepRecord">
+          <text>深度觉察</text>
+          <text class="btn-icon">GO</text>
+        </button>
+      </block>
+
+      <block wx:else>
+        <block wx:if="{{step === 5}}">
+          <button class="action-btn full" bindtap="completeAndReturn">完成并返回</button>
+        </block>
+        <block wx:else>
+          <button class="action-btn secondary" bindtap="prevStep">
+            {{step === 0 ? '取消' : '回退'}}
+          </button>
+          <button 
+            class="action-btn primary flex-1" 
+            bindtap="{{step === 4 ? 'finishAnalysis' : 'nextStep'}}"
+          >
+            {{step === 4 ? '完成分析' : '继续'}}
+            <text class="btn-icon">→</text>
+          </button>
+        </block>
+      </block>
+    </view>
+  </view>
+</view>

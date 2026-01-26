@@ -1,0 +1,194 @@
+<view class="container">
+  <view class="header">
+    <view class="back-btn" bindtap="onBack">
+      <text class="back-text">返回</text>
+    </view>
+    <view class="header-content">
+      <text class="title-main">专业排盘</text>
+      <text class="title-sub">星盘引擎</text>
+    </view>
+    <view class="placeholder"></view>
+  </view>
+
+  <scroll-view scroll-y class="content" enable-flex>
+    <block wx:if="{{!result}}">
+      <view class="card animate-in">
+        <view class="label-row">
+          <text class="section-label">选择排盘类型</text>
+        </view>
+        <picker mode="selector" range="{{chartTypes}}" range-key="label" value="{{selectedTypeIndex}}" bindchange="handleTypeChange">
+          <view class="picker-display">
+            <text>{{selectedType.label}}</text>
+          </view>
+        </picker>
+        <text class="type-desc">{{selectedType.desc}}</text>
+      </view>
+
+      <view class="card animate-in delay-1">
+        <view class="section-header person-a">
+          <view class="indicator bg-indigo"></view>
+          <text class="section-title">{{selectedType.dual ? '甲方资料' : '核心资料'}}</text>
+        </view>
+        
+        <view class="input-group">
+          <text class="label">姓名 / 昵称</text>
+          <input class="input" placeholder="输入姓名" placeholder-class="placeholder-text" data-person="personA" data-field="name" bindinput="handleInput" value="{{personA.name}}"/>
+        </view>
+        
+        <view class="row">
+          <view class="col">
+            <text class="label">出生日期</text>
+            <picker mode="date" data-person="personA" data-field="date" bindchange="handleInput" value="{{personA.date}}">
+               <view class="input picker-input">{{personA.date}}</view>
+            </picker>
+          </view>
+          <view class="col">
+            <text class="label">出生时间</text>
+             <picker mode="time" data-person="personA" data-field="time" bindchange="handleInput" value="{{personA.time}}">
+               <view class="input picker-input">{{personA.time}}</view>
+            </picker>
+          </view>
+        </view>
+
+        <view class="input-group">
+          <text class="label">出生城市</text>
+          <input class="input" placeholder="例如：Shanghai" placeholder-class="placeholder-text" data-person="personA" data-field="city" bindinput="handleInput" value="{{personA.city}}"/>
+        </view>
+
+        <block wx:if="{{selectedType.dual}}">
+           <view class="section-header person-b">
+            <view class="indicator bg-rose"></view>
+            <text class="section-title">乙方资料</text>
+          </view>
+          
+          <view class="input-group">
+            <text class="label">姓名 / 昵称</text>
+            <input class="input" placeholder="输入姓名" placeholder-class="placeholder-text" data-person="personB" data-field="name" bindinput="handleInput" value="{{personB.name}}"/>
+          </view>
+          
+          <view class="row">
+            <view class="col">
+              <text class="label">出生日期</text>
+              <picker mode="date" data-person="personB" data-field="date" bindchange="handleInput" value="{{personB.date}}">
+                 <view class="input picker-input">{{personB.date}}</view>
+              </picker>
+            </view>
+            <view class="col">
+              <text class="label">出生时间</text>
+               <picker mode="time" data-person="personB" data-field="time" bindchange="handleInput" value="{{personB.time}}">
+                 <view class="input picker-input">{{personB.time}}</view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="input-group">
+            <text class="label">出生城市</text>
+            <input class="input" placeholder="例如：Shanghai" placeholder-class="placeholder-text" data-person="personB" data-field="city" bindinput="handleInput" value="{{personB.city}}"/>
+          </view>
+        </block>
+      </view>
+    </block>
+
+    <block wx:else>
+      <!-- Natal Chart Result -->
+      <view class="card animate-in" wx:if="{{resultKind === 'natal'}}">
+        <view class="result-header">
+           <text class="result-title">本命星盘数据</text>
+           <view class="tags">
+             <text class="tag">地心</text>
+             <text class="tag">黄道</text>
+           </view>
+        </view>
+        <view class="table-header">
+           <text class="th">行星</text>
+           <text class="th">星座</text>
+           <text class="th">度数</text>
+           <text class="th text-right">宫位</text>
+        </view>
+        
+        <block wx:for="{{result.positions}}" wx:key="name">
+           <view class="table-row">
+             <view class="td planet-cell">
+               <text class="planet-name {{index === 0 ? 'text-orange' : (index === 1 ? 'text-gray' : 'text-indigo')}}">{{item.name}}</text>
+             </view>
+             <view class="td">{{item.sign}}</view>
+             <view class="td font-mono">{{item.degree}}</view>
+             <view class="td text-right">{{item.house}}宫</view>
+           </view>
+        </block>
+      </view>
+
+      <!-- Synastry Chart Result -->
+      <view class="card animate-in" wx:if="{{resultKind === 'synastry'}}">
+        <!-- Person A -->
+        <view class="section-sub-header">
+          <text class="sub-title">甲方行星</text>
+        </view>
+        <view class="table-header">
+           <text class="th">行星</text>
+           <text class="th">星座</text>
+           <text class="th">度数</text>
+           <text class="th text-right">宫位</text>
+        </view>
+        <block wx:for="{{result.natal_a.planets}}" wx:key="name">
+           <view class="table-row">
+             <view class="td planet-cell"><text class="planet-name">{{item.name}}</text></view>
+             <view class="td">{{item.sign}}</view>
+             <view class="td font-mono">{{item.degree}}</view>
+             <view class="td text-right">{{item.house}}宫</view>
+           </view>
+        </block>
+
+        <!-- Person B -->
+        <view class="section-sub-header margin-top-lg">
+          <text class="sub-title">乙方行星</text>
+        </view>
+        <view class="table-header">
+           <text class="th">行星</text>
+           <text class="th">星座</text>
+           <text class="th">度数</text>
+           <text class="th text-right">宫位</text>
+        </view>
+        <block wx:for="{{result.natal_b.planets}}" wx:key="name">
+           <view class="table-row">
+             <view class="td planet-cell"><text class="planet-name">{{item.name}}</text></view>
+             <view class="td">{{item.sign}}</view>
+             <view class="td font-mono">{{item.degree}}</view>
+             <view class="td text-right">{{item.house}}宫</view>
+           </view>
+        </block>
+
+        <!-- Aspects -->
+        <view class="section-sub-header margin-top-lg">
+          <text class="sub-title">相位关系</text>
+        </view>
+        <view class="table-header">
+           <text class="th">行星 A</text>
+           <text class="th">相位</text>
+           <text class="th">行星 B</text>
+           <text class="th text-right">容许度</text>
+        </view>
+        <block wx:for="{{result.syn_ab.aspects}}" wx:key="unique_key">
+           <view class="table-row">
+             <view class="td">{{item.planet1}}</view>
+             <view class="td text-indigo">{{item.type}}</view>
+             <view class="td">{{item.planet2}}</view>
+             <view class="td text-right font-mono">{{item.orb}}</view>
+           </view>
+        </block>
+      </view>
+      
+      <view wx:if="{{!result}}" class="empty-state">
+         <text>暂无数据</text>
+      </view>
+    </block>
+    
+    <view class="footer-spacer"></view>
+  </scroll-view>
+
+  <view class="footer">
+    <button class="action-btn {{loading ? 'loading' : ''}}" bindtap="{{result ? 'resetResult' : 'generateChart'}}" disabled="{{loading}}">
+       {{result ? '重新设置排盘参数' : (loading ? '正在计算星历...' : '生成专业星盘')}}
+    </button>
+  </view>
+</view>
