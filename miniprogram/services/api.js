@@ -5,6 +5,7 @@ const API_ENDPOINTS = {
   NATAL_DIMENSION: '/api/natal/dimension',
   DAILY_FORECAST: '/api/daily',
   DAILY_DETAIL: '/api/daily/detail',
+  DETAIL: '/api/detail',
   ASK: '/api/ask',
   SYNASTRY: '/api/synastry',
   SYNASTRY_OVERVIEW_SECTION: '/api/synastry/overview-section',

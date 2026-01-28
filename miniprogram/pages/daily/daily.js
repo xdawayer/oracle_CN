@@ -203,8 +203,7 @@ Page({
     },
     technical: null,
     selectedPlanet: null,
-    detailContent: null,
-    detailContentDate: '',
+    detailContentMap: {},
     detailCard: null
   },
 
@@ -273,6 +272,7 @@ Page({
       selectedDateIndex: index,
       technical: null,
       selectedPlanet: null,
+      detailContentMap: {},
       detailCard: null
     });
     this.handleGenerate();
@@ -551,12 +551,12 @@ Page({
     const { dates, selectedDateIndex } = this.data;
     const selected = dates[selectedDateIndex];
     const dateStr = selected ? selected.fullDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-    const needsDetail = ['career', 'wealth', 'love', 'health', 'chart', 'aspects'].includes(type);
+    const needsDetail = ['career', 'wealth', 'love', 'health', 'chart', 'aspects', 'planets', 'asteroids', 'rulers'].includes(type);
 
-    let detailContent = this.data.detailContent;
+    let detailContent = null;
     if (needsDetail) {
       wx.showLoading({ title: '加载解读...' });
-      detailContent = await this.ensureDetailContent(dateStr);
+      detailContent = await this.ensureDetailContent(type, dateStr);
       wx.hideLoading();
     }
 
@@ -572,26 +572,73 @@ Page({
     return `daily_detail_cache_${birthDate}_${birthTime}_${birthCity}_${dateStr}_zh`;
   },
 
-  async ensureDetailContent(dateStr) {
-    if (this.data.detailContent && this.data.detailContentDate === dateStr) {
-      return this.data.detailContent;
+  getDetailCacheKeyByType(type, dateStr) {
+    const base = this.getDetailCacheKey(dateStr);
+    return base ? `${base}_${type}` : null;
+  },
+
+  resolveDetailType(type) {
+    const map = {
+      career: 'dimension',
+      wealth: 'dimension',
+      love: 'dimension',
+      health: 'dimension',
+      chart: 'astro-report',
+      aspects: 'aspect-matrix',
+      planets: 'planets',
+      asteroids: 'asteroids',
+      rulers: 'rulers'
+    };
+    return map[type] || null;
+  },
+
+  buildDetailPayload(type, dateStr) {
+    if (!this.userProfile) return null;
+    const apiType = this.resolveDetailType(type);
+    if (!apiType) return null;
+    return {
+      type: apiType,
+      context: 'transit',
+      lang: 'zh',
+      date: dateStr,
+      dimension: apiType === 'dimension' ? type : undefined,
+      birth: {
+        date: this.userProfile.birthDate,
+        time: this.userProfile.birthTime,
+        city: this.userProfile.birthCity,
+        lat: this.userProfile.lat,
+        lon: this.userProfile.lon,
+        timezone: this.userProfile.timezone,
+        accuracy: this.userProfile.accuracyLevel
+      }
+    };
+  },
+
+  async ensureDetailContent(type, dateStr) {
+    const cacheKey = this.getDetailCacheKeyByType(type, dateStr);
+    if (cacheKey && this.data.detailContentMap?.[cacheKey]) {
+      return this.data.detailContentMap[cacheKey];
     }
 
-    const cacheKey = this.getDetailCacheKey(dateStr);
     const cached = cacheKey ? storage.get(cacheKey) : null;
     if (cached?.content) {
-      this.setData({ detailContent: cached.content, detailContentDate: dateStr });
+      if (cacheKey) {
+        this.setData({ [`detailContentMap.${cacheKey}`]: cached.content });
+      }
       return cached.content;
     }
 
     try {
-      const query = this.buildDailyParams(dateStr);
-      const result = await request({ url: `${API_ENDPOINTS.DAILY_DETAIL}?${query}`, method: 'GET' });
+      const payload = this.buildDetailPayload(type, dateStr);
+      if (!payload) return null;
+      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload });
       const content = result?.content || null;
       if (content && cacheKey) {
         storage.set(cacheKey, { content });
       }
-      this.setData({ detailContent: content, detailContentDate: dateStr });
+      if (cacheKey) {
+        this.setData({ [`detailContentMap.${cacheKey}`]: content });
+      }
       return content;
     } catch (e) {
       console.error('Fetch daily detail failed', e);
@@ -605,27 +652,28 @@ Page({
     const dimensions = forecast.dimensions || {};
     const titleBase = this.translateDetailType(type);
     const score = Number.isFinite(dimensions[type]) ? dimensions[type] : null;
+    const detailData = detail || {};
 
     const buildSections = (...items) => items.filter(item => item && item.text);
     const safeText = (val) => (val ? String(val).trim() : '');
     const listFrom = (arr) => Array.isArray(arr) ? arr.filter(Boolean).map(String) : [];
 
     if (['career', 'wealth', 'love', 'health'].includes(type)) {
-      const how = detail?.how_it_shows_up || {};
-      const practice = detail?.one_practice || {};
-      const challenge = detail?.one_challenge || {};
-      const question = detail?.one_question || '';
-
+      const keyAspects = Array.isArray(detailData.key_aspects)
+        ? detailData.key_aspects.map((item) => `${item.aspect}：${item.meaning}`)
+        : [];
       const sections = buildSections(
-        { label: '今日表现', text: safeText(type === 'career' ? how.work : type === 'love' ? how.relationships : type === 'health' ? how.emotions : detail?.theme_elaborated) },
-        { label: practice.title || '行动建议', text: safeText(practice.action || forecast.strategy?.best_use) },
-        { label: challenge.pattern_name ? `注意${challenge.pattern_name}` : '注意事项', text: safeText(challenge.description || forecast.strategy?.avoid) }
+        { label: '整体判断', text: safeText(detailData.summary || forecast.theme_explanation) },
+        { label: '关键相位', text: safeText(keyAspects.join('；')) },
+        { label: '机会', text: safeText((detailData.opportunities || []).join('；')) },
+        { label: '挑战', text: safeText((detailData.challenges || []).join('；')) },
+        { label: '行动建议', text: safeText((detailData.actions || []).join('；')) }
       );
 
-      const list = listFrom(question ? [question] : []);
+      const list = listFrom(detailData.reflection_question ? [detailData.reflection_question] : []);
 
       return {
-        title: `${titleBase}解读`,
+        title: detailData.title || `${titleBase}解读`,
         subtitle: score !== null ? `今日评分：${score}` : '',
         sections,
         listTitle: list.length ? '自问提示' : '',
@@ -634,61 +682,85 @@ Page({
     }
 
     if (type === 'chart') {
-      const under = detail?.under_the_hood || {};
       const sections = buildSections(
-        { label: '主题脉络', text: safeText(detail?.theme_elaborated) },
-        { label: '月相', text: safeText(under.moon_phase_sign) }
+        { label: '今日摘要', text: safeText(detailData.summary) },
+        { label: '深度解读', text: safeText(detailData.deep_dive) },
+        { label: '提醒', text: safeText(detailData.caution) },
+        { label: '行动建议', text: safeText(detailData.action) }
       );
-      const list = listFrom(under.key_aspects);
+      const list = listFrom((detailData.highlights || []).map((item) => `${item.title}：${item.description}`));
       return {
-        title: `${titleBase}解读`,
+        title: detailData.title || `${titleBase}解读`,
         subtitle: '',
         sections,
-        listTitle: list.length ? '关键相位' : '',
+        listTitle: list.length ? '关键亮点' : '',
         list
       };
     }
 
     if (type === 'aspects') {
-      const under = detail?.under_the_hood || {};
-      const list = listFrom(under.key_aspects);
+      const keyAspects = (detailData.key_aspects || []).map((item) => `${item.aspect}：${item.impact}｜${item.advice}`);
+      const list = listFrom(keyAspects);
       const fallback = list.length ? list : this.buildAspectSummaryList();
       return {
-        title: `${titleBase}解读`,
+        title: detailData.headline || `${titleBase}解读`,
         subtitle: '',
-        sections: [],
+        sections: buildSections(
+          { label: '总体解读', text: safeText(detailData.summary) },
+          { label: '能量流向', text: safeText((detailData.energy_flow || []).join('；')) },
+          { label: '宜做', text: safeText((detailData.do_dont?.do || []).join('；')) },
+          { label: '忌做', text: safeText((detailData.do_dont?.dont || []).join('；')) }
+        ),
         listTitle: '关键相位',
         list: fallback
       };
     }
 
     if (type === 'planets') {
+      const list = listFrom(detailData.highlights);
       return {
-        title: `${titleBase}详情`,
+        title: detailData.title || `${titleBase}详情`,
         subtitle: '',
-        sections: [],
-        listTitle: '行运行星',
-        list: this.buildTransitList(this.data.technical?.transitPlanets)
+        sections: buildSections(
+          { label: '概览', text: safeText(detailData.summary) }
+        ),
+        listTitle: list.length ? '要点' : '行运行星',
+        list: list.length ? list : this.buildTransitList(this.data.technical?.transitPlanets)
       };
     }
 
     if (type === 'asteroids') {
+      const focusList = (detailData.focus_asteroids || []).map((item) => {
+        const houseText = Number.isFinite(item.house) ? `· ${item.house}宫` : '';
+        return `${item.name} ${item.sign} ${houseText}：${item.theme}｜${item.influence}`.trim();
+      });
       return {
-        title: `${titleBase}详情`,
+        title: detailData.headline || `${titleBase}详情`,
         subtitle: '',
-        sections: [],
-        listTitle: '行运小行星',
-        list: this.buildTransitList(this.data.technical?.transitAsteroids)
+        sections: buildSections(
+          { label: '凯龙星主题', text: safeText(detailData.chiron_focus ? `${detailData.chiron_focus.theme}｜${detailData.chiron_focus.healing_path}` : '') },
+          { label: '提醒', text: safeText(detailData.chiron_focus?.warning) },
+          { label: '建议', text: safeText((detailData.suggestions || []).join('；')) }
+        ),
+        listTitle: focusList.length ? '关键小行星' : '行运小行星',
+        list: focusList.length ? focusList : this.buildTransitList(this.data.technical?.transitAsteroids)
       };
     }
 
     if (type === 'rulers') {
+      const list = (detailData.rulers || []).map((r) => {
+        return `第${r.house}宫 ${r.sign}｜${r.ruler} → 第${r.flies_to_house}宫 ${r.flies_to_sign}：${r.theme}（${r.advice}）`;
+      });
       return {
         title: `${titleBase}详情`,
         subtitle: '',
-        sections: [],
-        listTitle: '宫主星路径',
-        list: this.buildHouseRulerList(this.data.technical?.houseRulers)
+        sections: buildSections(
+          { label: '总体提示', text: safeText(detailData.overview) },
+          { label: '重点链条', text: safeText((detailData.deep_focus || []).map((item) => `${item.title}：${item.description}`).join('；')) },
+          { label: '宫位联动', text: safeText((detailData.combinations || []).map((item) => `第${item.from_house}宫→第${item.to_house}宫：${item.theme}（${item.suggestion}）`).join('；')) }
+        ),
+        listTitle: list.length ? '宫主星路径' : '宫主星路径',
+        list: list.length ? list : this.buildHouseRulerList(this.data.technical?.houseRulers)
       };
     }
 
