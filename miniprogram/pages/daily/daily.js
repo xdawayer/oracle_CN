@@ -9,6 +9,16 @@ const LoadingState = {
   ERROR: 'ERROR'
 };
 
+const DEFAULT_PROFILE = {
+  birthDate: '1989-10-31',
+  birthTime: '22:00',
+  birthCity: '北京',
+  lat: 39.9042,
+  lon: 116.4074,
+  timezone: 'Asia/Shanghai',
+  accuracyLevel: 'exact'
+};
+
 const ASTRO_DICTIONARY = {
   Sun: { zh: '太阳' },
   Moon: { zh: '月亮' },
@@ -55,93 +65,68 @@ const ASTRO_DICTIONARY = {
 };
 
 const ASPECT_CONFIG = {
-  conjunction: { symbol: '☌', color: '#94A3B8' },
-  opposition: { symbol: '☍', color: '#8B5CF6' },
-  square: { symbol: '□', color: '#EF4444' },
-  trine: { symbol: '△', color: '#22C55E' },
-  sextile: { symbol: '⚹', color: '#3B82F6' },
-};
-
-const MATRIX_HEADER_LABELS = {
-  Sun: '日', Moon: '月', Mercury: '水', Venus: '金', Mars: '火',
-  Jupiter: '木', Saturn: '土', Uranus: '天', Neptune: '海', Pluto: '冥',
-  'North Node': '北交', Ascendant: '上升'
+  conjunction: { symbol: '☌', color: 'var(--paper-400)' },
+  opposition: { symbol: '☍', color: 'var(--warm-brown)' },
+  square: { symbol: '□', color: 'var(--danger)' },
+  trine: { symbol: '△', color: 'var(--success)' },
+  sextile: { symbol: '✱', color: 'var(--accent)' },
 };
 
 const ASPECT_MATRIX_CONFIG = {
-  conjunction: { label: '合', color: '#7A746B', bg: 'rgba(122, 116, 107, 0.1)' },
-  opposition: { label: '冲', color: '#8B5CF6', bg: 'rgba(139, 95, 246, 0.1)' },
-  square: { label: '刑', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },
-  trine: { label: '拱', color: '#22C55E', bg: 'rgba(34, 197, 94, 0.1)' },
-  sextile: { label: '六合', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)' },
+  conjunction: { label: '合', color: 'var(--paper-400)', bg: 'var(--paper-200)' },
+  opposition: { label: '冲', color: 'var(--warm-brown)', bg: 'var(--paper-200)' },
+  square: { label: '刑', color: 'var(--danger)', bg: 'var(--paper-200)' },
+  trine: { label: '拱', color: 'var(--success)', bg: 'var(--paper-200)' },
+  sextile: { label: '六合', color: 'var(--accent)', bg: 'var(--paper-200)' },
 };
 
 const PLANET_META = {
-  Sun: { glyph: '☉', color: '#FF6B6B' },
-  Moon: { glyph: '☽', color: '#74B9FF' },
-  Mercury: { glyph: '☿', color: '#FFEAA7' },
-  Venus: { glyph: '♀', color: '#55EFC4' },
-  Mars: { glyph: '♂', color: '#FF85C1' },
-  Jupiter: { glyph: '♃', color: '#FF7675' },
-  Saturn: { glyph: '♄', color: '#DFE6E9' },
-  Uranus: { glyph: '♅', color: '#00CEC9' },
-  Neptune: { glyph: '♆', color: '#74B9FF' },
-  Pluto: { glyph: '♇', color: '#A29BFE' },
-  Chiron: { glyph: '⚷', color: '#E056FD' },
-  Ceres: { glyph: '⚳', color: '#55EFC4' },
-  Pallas: { glyph: '⚴', color: '#00CEC9' },
-  Juno: { glyph: '⚵', color: '#FF85C1' },
-  Vesta: { glyph: '⚶', color: '#FDCB6E' },
-  'North Node': { glyph: '☊', color: '#E056FD' },
-  'South Node': { glyph: '☋', color: '#E056FD' },
-  Lilith: { glyph: '⚸', color: '#FD79A8' },
-  Fortune: { glyph: '⊗', color: '#FDCB6E' },
-  Vertex: { glyph: 'Vx', color: '#DFE6E9' },
-  'East Point': { glyph: 'EA', color: '#DFE6E9' },
-  Ascendant: { glyph: 'Asc', color: '#FFFFFF' },
-  Midheaven: { glyph: 'MC', color: '#00CEC9' },
-  Descendant: { glyph: 'Dsc', color: '#FFFFFF' },
-  IC: { glyph: 'IC', color: '#00CEC9' },
+  Sun: { glyph: '☉', color: 'var(--accent)' },
+  Moon: { glyph: '☽', color: 'var(--paper-400)' },
+  Mercury: { glyph: '☿', color: 'var(--warm-brown)' },
+  Venus: { glyph: '♀', color: 'var(--accent)' },
+  Mars: { glyph: '♂', color: 'var(--danger)' },
+  Jupiter: { glyph: '♃', color: 'var(--accent)' },
+  Saturn: { glyph: '♄', color: 'var(--paper-600)' },
+  Uranus: { glyph: '♅', color: 'var(--paper-400)' },
+  Neptune: { glyph: '♆', color: 'var(--paper-400)' },
+  Pluto: { glyph: '♇', color: 'var(--warm-brown)' },
+  Chiron: { glyph: '⚷', color: 'var(--paper-600)' },
+  Ceres: { glyph: '⚳', color: 'var(--success)' },
+  Pallas: { glyph: '⚴', color: 'var(--paper-400)' },
+  Juno: { glyph: '⚵', color: 'var(--warm-brown)' },
+  Vesta: { glyph: '⚶', color: 'var(--accent)' },
+  'North Node': { glyph: '☊', color: 'var(--warm-brown)' },
+  'South Node': { glyph: '☋', color: 'var(--warm-brown)' },
+  Lilith: { glyph: '⚸', color: 'var(--danger)' },
+  Fortune: { glyph: '⊗', color: 'var(--accent)' },
+  Vertex: { glyph: 'Vx', color: 'var(--paper-400)' },
+  'East Point': { glyph: 'EA', color: 'var(--paper-400)' },
+  Ascendant: { glyph: 'Asc', color: 'var(--paper-600)' },
+  Midheaven: { glyph: 'MC', color: 'var(--paper-600)' },
+  Descendant: { glyph: 'Dsc', color: 'var(--paper-600)' },
+  IC: { glyph: 'IC', color: 'var(--paper-600)' },
 };
 
 const SIGN_META = {
-  Aries: { glyph: '♈', color: '#FF6B6B' },
-  Taurus: { glyph: '♉', color: '#FFEAA7' },
-  Gemini: { glyph: '♊', color: '#00CEC9' },
-  Cancer: { glyph: '♋', color: '#74B9FF' },
-  Leo: { glyph: '♌', color: '#FF7675' },
-  Virgo: { glyph: '♍', color: '#FFEAA7' },
-  Libra: { glyph: '♎', color: '#00CEC9' },
-  Scorpio: { glyph: '♏', color: '#74B9FF' },
-  Sagittarius: { glyph: '♐', color: '#FF6B6B' },
-  Capricorn: { glyph: '♑', color: '#FFEAA7' },
-  Aquarius: { glyph: '♒', color: '#00CEC9' },
-  Pisces: { glyph: '♓', color: '#74B9FF' },
+  Aries: { color: 'var(--warm-brown)' },
+  Taurus: { color: 'var(--accent)' },
+  Gemini: { color: 'var(--paper-400)' },
+  Cancer: { color: 'var(--paper-400)' },
+  Leo: { color: 'var(--accent)' },
+  Virgo: { color: 'var(--paper-600)' },
+  Libra: { color: 'var(--paper-400)' },
+  Scorpio: { color: 'var(--warm-brown)' },
+  Sagittarius: { color: 'var(--accent)' },
+  Capricorn: { color: 'var(--paper-600)' },
+  Aquarius: { color: 'var(--paper-400)' },
+  Pisces: { color: 'var(--paper-400)' },
 };
 
-const CROSS_ASPECT_PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North Node', 'Ascendant'];
-
-const DIMENSION_ORDER = [
-  { key: 'career', label: '事业运', color: '#8B7355' },    // 暖棕色
-  { key: 'wealth', label: '财运', color: '#C6A062' },      // 琥珀金
-  { key: 'love', label: '爱情运', color: '#CD5C5C' },      // 印度红
-  { key: 'health', label: '健康运', color: '#6B8E23' },    // 橄榄绿
+const CROSS_ASPECT_PLANETS = [
+  'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+  'North Node', 'Ascendant'
 ];
-
-const LUCKY_COLOR_MAP = {
-  '深蓝': ['#5D5FEF', '#7B7DF4'],
-  '紫色': ['#8E59FF', '#AC82FF'],
-  '金色': ['#C6A062', '#D4AF37'],
-  '绿色': ['#27AE60', '#2ECC71'],
-  '红色': ['#EB5757', '#F2994A'],
-  '白色': ['#999999', '#CCCCCC'],
-  '橙色': ['#F2994A', '#F2C94C'],
-  '大地棕': ['#8B7355', '#A68B6A'],
-  '棕色': ['#8B7355', '#A68B6A'],
-  '粉色': ['#FF85A2', '#FFA3B1'],
-  '天蓝': ['#4CC9F0', '#4895EF'],
-  'default': ['#1A1A1A', '#2D2D2D']
-};
 
 const COLOR_NAME_MAP = {
   '大地棕': '大地棕',
@@ -157,26 +142,40 @@ const COLOR_NAME_MAP = {
   '天蓝': '天蓝'
 };
 
+const LUCKY_COLOR_TOKEN_MAP = {
+  '深蓝': 'var(--paper-400)',
+  '紫色': 'var(--warm-brown)',
+  '金色': 'var(--accent)',
+  '绿色': 'var(--success)',
+  '红色': 'var(--danger)',
+  '白色': 'var(--paper-200)',
+  '橙色': 'var(--accent)',
+  '大地棕': 'var(--warm-brown)',
+  '棕色': 'var(--warm-brown)',
+  '粉色': 'var(--accent)',
+  '天蓝': 'var(--paper-400)',
+  'default': 'var(--accent)'
+};
+
 const DIMENSION_ICONS = {
   career: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM4QjczNTUiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxyZWN0IHg9IjIiIHk9IjciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNCIgcng9IjIiIHJ5PSIyIj48L3JlY3Q+PHBhdGggZD0iTTE2IDIxVjVhMiAyIDAgMCAwLTItMmgtNGEyIDIgMCAwIDAtMiAydjE2Ij48L3BhdGg+PC9zdmc+',
-  wealth: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNDNkEwNjIiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQsPSJNMTkgNWgtMTRhMiAyIDAgMCAwLTIgMnYxMGEyIDIgMCAwIDAgMiAyaDE0YTIgMiAwIDAgMCAyLTJ2LTEwYTIgMiAwIDAgMC0yLTJ6Ij48L3BhdGg+PHBhdGggZD0iTTEyIDExYTIgMiAwIDEgMCAwIDQgMiAyIDAgMCAwIDAtNHoiPjwvcGF0aD48cGF0aCBkPSJNMjIgOWgtNGEyIDIgMCAwIDAgMCA0aDQiPjwvcGF0aD48L3N2Zz4=',
+  wealth: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNDNkEwNjIiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQsPSJNMTkgNWgtMTRhMiAyIDAgMCAwLTIgMnYxMGEyIDIgMCAwIDAtMiAyaDE0YTIgMiAwIDAgMCAyLTJ2LTEwYTIgMiAwIDAgMC0yLTJ6Ij48L3BhdGg+PHBhdGggZD0iTTEyIDExYTIgMiAwIDEgMCAwIDQgMiAyIDAgMCAwIDAtNHoiPjwvcGF0aD48cGF0aCBkPSJNMjIgOWgtNGEyIDIgMCAwIDAgMCA0aDQiPjwvcGF0aD48L3N2Zz4=',
   love: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjQ0Q1QzVDMzAiIHN0cm9rZT0iI0NENUM1QyIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIwLjg0IDQuNjFhNS41IDUuNSAwIDAgMC03Ljc4IDBMMTIgNS42N2wtMS4wNi0xLjA2YTUuNSA1LjUgMCAwIDAtNy43OCA3Ljc4bDEuMDYgMS4wNkwxMiAyMS4yM2w3Ljc4LTcuNzggMS4wNi0xLjA2YTUuNSA1LjUgMCAwIDAgMC03Ljc4eiI+PC9wYXRoPjwvc3ZnPg==',
   health: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2QjhFMjMiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwcm9seWxpbmUgcG9pbnRzPSIyMiAxMiAxOCAxMiAxNSAyMSA5IDMgNiAxMiAyIDEyIj48L3Byb2x5bGluZT48L3N2Zz4='
 };
 
-const LUCKY_TEXT_COLOR_MAP = {
-  '深蓝': '#FFFFFF',
-  '紫色': '#FFFFFF',
-  '金色': '#FFFFFF',
-  '绿色': '#FFFFFF',
-  '红色': '#FFFFFF',
-  '白色': '#4A4540',
-  '橙色': '#FFFFFF',
-  '大地棕': '#FFFFFF',
-  '棕色': '#FFFFFF',
-  '粉色': '#FFFFFF',
-  '天蓝': '#FFFFFF',
-  'default': '#FFFFFF'
+const DIMENSION_ORDER = [
+  { key: 'career', label: '事业', color: 'var(--career-color)' },
+  { key: 'wealth', label: '财运', color: 'var(--wealth-color)' },
+  { key: 'love', label: '爱情', color: 'var(--love-color)' },
+  { key: 'health', label: '健康', color: 'var(--health-color)' }
+];
+
+const TIME_WINDOW_STYLE_MAP = {
+  '积极': { dotColor: 'var(--accent)', tagBg: 'var(--paper-200)', tagColor: 'var(--warm-brown)' },
+  '平稳': { dotColor: 'var(--success)', tagBg: 'var(--paper-200)', tagColor: 'var(--success)' },
+  '放松': { dotColor: 'var(--paper-400)', tagBg: 'var(--paper-200)', tagColor: 'var(--paper-400)' },
+  '挑战': { dotColor: 'var(--danger)', tagBg: 'var(--paper-200)', tagColor: 'var(--danger)' }
 };
 
 Page({
@@ -186,8 +185,12 @@ Page({
     dates: [],
     selectedDateIndex: 2,
     forecast: null,
-    cardStyle: '',
-    cardTextColor: '#FFFFFF',
+    overviewSummary: '',
+    currentDateStr: '',
+    luckyColorToken: 'var(--accent)',
+    advice: { do: { title: '', details: [] }, dont: { title: '', details: [] } },
+    timeWindows: [],
+    weeklyScores: [],
     dimensionItems: [],
     weekRange: '',
     weeklyEvents: [],
@@ -197,7 +200,8 @@ Page({
       outerPositions: [],
       aspects: [],
       houseCusps: []
-    }
+    },
+    technical: null
   },
 
   onLoad() {
@@ -226,22 +230,14 @@ Page({
   },
 
   loadProfile() {
-    this.userProfile = storage.get('user_profile');
+    const stored = storage.get('user_profile');
+    this.userProfile = { ...DEFAULT_PROFILE, ...(stored || {}) };
+  },
 
-    // 如果没有用户数据，使用默认测试数据
-    if (!this.userProfile) {
-      this.userProfile = {
-        birthDate: '1989-10-31',
-        birthTime: '22:00',
-        birthCity: '北京',
-        lat: 39.9042,
-        lon: 116.4074,
-        timezone: 'Asia/Shanghai',
-        accuracyLevel: 'exact'
-      };
-      // 保存默认数据到 storage
-      storage.set('user_profile', this.userProfile);
-    }
+  getCacheKey(dateStr) {
+    if (!this.userProfile) return null;
+    const { birthDate, birthTime, birthCity } = this.userProfile;
+    return `daily_cache_${birthDate}_${birthTime}_${birthCity}_${dateStr}_zh`;
   },
 
   buildDailyParams(dateStr) {
@@ -269,7 +265,10 @@ Page({
 
   onDateSelect(e) {
     const index = e.currentTarget.dataset.index;
-    this.setData({ selectedDateIndex: index });
+    this.setData({
+      selectedDateIndex: index,
+      technical: null
+    });
     this.handleGenerate();
   },
 
@@ -285,8 +284,18 @@ Page({
       const { dates, selectedDateIndex } = this.data;
       const selected = dates[selectedDateIndex];
       const dateStr = selected ? selected.fullDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-      const query = this.buildDailyParams(dateStr);
+      
+      // 1. Check Cache
+      const cacheKey = this.getCacheKey(dateStr);
+      const cachedData = storage.get(cacheKey);
+      
+      if (cachedData) {
+        this.processDailyData(cachedData, dateStr);
+        return;
+      }
 
+      // 2. Fetch Summary
+      const query = this.buildDailyParams(dateStr);
       if (!query) {
         this.setData({ status: LoadingState.ERROR });
         return;
@@ -297,55 +306,72 @@ Page({
         method: 'GET'
       });
 
-      const forecast = result && result.content ? result.content : null;
-      const transits = result && result.transits && result.transits.positions ? result.transits.positions : [];
+      if (result) {
+        // Save to cache
+        storage.set(cacheKey, result);
+        this.processDailyData(result, dateStr);
+      } else {
+        this.setData({ status: LoadingState.ERROR });
+      }
 
-      // 适配四个运势维度（事业/财运/爱情/健康）
-      const dimensions = forecast && forecast.dimensions ? forecast.dimensions : null;
-      const dimensionItems = dimensions ? DIMENSION_ORDER.map((item) => ({
-        key: item.key,
-        label: item.label,
-        color: item.color,
-        score: dimensions[item.key] || 0,
-        iconUrl: DIMENSION_ICONS[item.key]
-      })) : DIMENSION_ORDER.map((item) => ({
-        key: item.key,
-        label: item.label,
-        color: item.color,
-        score: 0,
-        iconUrl: DIMENSION_ICONS[item.key]
-      }));
-
-      // 本周星象提醒
-      const weeklyEvents = forecast && forecast.weekly_events ? forecast.weekly_events : [];
-      const weekRange = this.getWeekRange();
-
-      // 准备行运盘数据
-      const transitChartData = this.prepareTransitChartData(result);
-      const technical = this.prepareTechnicalData(result.technical);
-
-      const luckyColorName = forecast ? (forecast.lucky_color || '深蓝') : '深蓝';
-      const normalizedColor = COLOR_NAME_MAP[luckyColorName] || luckyColorName;
-      const colors = LUCKY_COLOR_MAP[normalizedColor] || LUCKY_COLOR_MAP.default;
-      const cardStyle = `background: linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%);`;
-      const cardTextColor = LUCKY_TEXT_COLOR_MAP[normalizedColor] || LUCKY_TEXT_COLOR_MAP.default;
-
-      this.setData({
-        status: LoadingState.SUCCESS,
-        forecast,
-        cardStyle,
-        cardTextColor,
-        dimensionItems,
-        weekRange,
-        weeklyEvents,
-        transits,
-        transitChartData,
-        technical
-      });
     } catch (e) {
       console.error(e);
       this.setData({ status: LoadingState.ERROR });
     }
+  },
+
+  processDailyData(result, dateStr) {
+    const forecast = result && result.content ? result.content : null;
+    const currentDateStr = this.formatDateLabel(dateStr);
+    const overviewSummary = forecast?.summary || forecast?.theme_explanation || forecast?.theme_title || forecast?.share_text || '';
+    const transits = result && result.transits && result.transits.positions ? result.transits.positions : [];
+    const transitChartData = this.prepareTransitChartData(result);
+    const technical = this.prepareTechnicalData(result.technical);
+
+    // 适配四个运势维度（事业/财运/爱情/健康）
+    const dimensions = forecast && forecast.dimensions ? forecast.dimensions : null;
+    const dimensionItems = dimensions ? DIMENSION_ORDER.map((item) => ({
+      key: item.key,
+      label: item.label,
+      color: item.color,
+      score: Number.isFinite(dimensions[item.key]) ? dimensions[item.key] : 0,
+      iconUrl: DIMENSION_ICONS[item.key]
+    })) : DIMENSION_ORDER.map((item) => ({
+      key: item.key,
+      label: item.label,
+      color: item.color,
+      score: 0,
+      iconUrl: DIMENSION_ICONS[item.key]
+    }));
+
+    const weeklyTrend = forecast?.weekly_trend || {};
+    const weeklyEvents = this.buildWeeklyEvents(forecast);
+    const weeklyScores = this.buildWeeklyScores(forecast, dateStr);
+    const weekRange = weeklyTrend.weekRange || weeklyTrend.week_range || this.getWeekRange();
+
+    const luckyColorName = forecast ? (forecast.lucky_color || '深蓝') : '深蓝';
+    const normalizedColor = COLOR_NAME_MAP[luckyColorName] || luckyColorName;
+    const luckyColorToken = LUCKY_COLOR_TOKEN_MAP[normalizedColor] || LUCKY_COLOR_TOKEN_MAP.default;
+
+    const advice = this.buildAdvice(forecast);
+    const timeWindows = this.buildTimeWindows(forecast);
+
+    this.setData({
+      status: LoadingState.SUCCESS,
+      forecast,
+      overviewSummary,
+      currentDateStr,
+      luckyColorToken,
+      advice,
+      timeWindows,
+      dimensionItems,
+      weekRange,
+      weeklyEvents,
+      weeklyScores,
+      transits,
+      transitChartData,
+      technical
+    });
   },
 
   // 获取本周日期范围
@@ -364,65 +390,210 @@ Page({
     return `${formatDate(monday)} - ${formatDate(sunday)}`;
   },
 
+  formatDateLabel(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${weekdays[d.getDay()]}`;
+  },
+
+  normalizeEnergyLabel(label) {
+    const raw = String(label || '').replace(/[⭐🌙⚡⚠️]/g, '').trim();
+    return raw || '平稳';
+  },
+
+  buildAdvice(forecast) {
+    const fallbackDo = forecast?.strategy?.best_use || '';
+    const fallbackDont = forecast?.strategy?.avoid || '';
+    const advice = forecast?.advice || {};
+    return {
+      do: {
+        title: advice.do?.title || fallbackDo,
+        details: Array.isArray(advice.do?.details) ? advice.do.details : []
+      },
+      dont: {
+        title: advice.dont?.title || fallbackDont,
+        details: Array.isArray(advice.dont?.details) ? advice.dont.details : []
+      }
+    };
+  },
+
+  buildTimeWindows(forecast) {
+    if (!forecast) return [];
+    const enhanced = forecast.time_windows_enhanced || forecast.time_windows_enhanced_list;
+    if (Array.isArray(enhanced)) {
+      return enhanced.map((item) => {
+        const energyLevel = this.normalizeEnergyLabel(item.energyLevel || item.energy_level || item.tag || item.mood);
+        const style = TIME_WINDOW_STYLE_MAP[energyLevel] || TIME_WINDOW_STYLE_MAP['平稳'];
+        const bestFor = Array.isArray(item.bestFor) ? item.bestFor : [];
+        const avoidFor = Array.isArray(item.avoidFor) ? item.avoidFor : [];
+        return {
+          period: item.period || '',
+          time: item.time || '',
+          description: item.description || '',
+          energyLevel,
+          dotColor: style.dotColor,
+          tagBg: style.tagBg,
+          tagColor: style.tagColor,
+          bestForStr: bestFor.join('、'),
+          avoidForStr: avoidFor.join('、')
+        };
+      });
+    }
+
+    const timeWindows = forecast.time_windows || {};
+    const fallback = [
+      {
+        period: '上午',
+        time: '6:00-12:00',
+        mood: this.normalizeEnergyLabel(timeWindows.morning_mood || '积极'),
+        description: timeWindows.morning || ''
+      },
+      {
+        period: '午间',
+        time: '12:00-18:00',
+        mood: this.normalizeEnergyLabel(timeWindows.midday_mood || '平稳'),
+        description: timeWindows.midday || ''
+      },
+      {
+        period: '晚上',
+        time: '18:00-24:00',
+        mood: this.normalizeEnergyLabel(timeWindows.evening_mood || '放松'),
+        description: timeWindows.evening || ''
+      }
+    ];
+
+    return fallback.map((item) => {
+      const style = TIME_WINDOW_STYLE_MAP[item.mood] || TIME_WINDOW_STYLE_MAP['平稳'];
+      return {
+        period: item.period,
+        time: item.time,
+        description: item.description,
+        energyLevel: item.mood,
+        dotColor: style.dotColor,
+        tagBg: style.tagBg,
+        tagColor: style.tagColor,
+        bestForStr: '',
+        avoidForStr: ''
+      };
+    });
+  },
+
+  buildWeeklyScores(forecast, dateStr) {
+    if (!forecast) return [];
+    const weeklyTrend = forecast.weekly_trend || forecast.weeklyTrend || {};
+    const raw = weeklyTrend.dailyScores || weeklyTrend.daily_scores || forecast.weekly_scores || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((item) => {
+      const score = Number.isFinite(item.score) ? item.score : 0;
+      const label = String(item.label || item.tag || item.event_label || '').replace(/[⭐🌙⚡⚠️]/g, '').trim();
+      const date = item.date || '';
+      let dayText = item.day || item.weekday || '';
+      if (!dayText && date) {
+        const parsed = new Date(date);
+        if (!Number.isNaN(parsed.getTime())) {
+          const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+          dayText = weekdays[parsed.getDay()];
+        }
+      }
+      return {
+        date,
+        day: dayText,
+        score,
+        label,
+        isToday: date === dateStr,
+        barColor: date === dateStr ? 'var(--accent)' : 'var(--paper-200)'
+      };
+    });
+  },
+
+  buildWeeklyEvents(forecast) {
+    if (!forecast) return [];
+    const weeklyTrend = forecast.weekly_trend || forecast.weeklyTrend || {};
+    const raw = weeklyTrend.keyDates || weeklyTrend.key_dates || forecast.weekly_events || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((item) => ({
+      date: item.date || '',
+      label: String(item.label || item.tag || '').replace(/[⭐🌙⚡⚠️]/g, '').trim(),
+      description: item.description || item.reason || ''
+    }));
+  },
+
+  onViewDetail(e) {
+    const type = e?.currentTarget?.dataset?.type || 'detail';
+    wx.showToast({
+      title: `正在生成${this.translateDetailType(type)}解读...`,
+      icon: 'loading'
+    });
+  },
+
   translate(term) {
     return ASTRO_DICTIONARY[term]?.zh || term;
   },
 
   getPlanetMeta(name) {
-    return PLANET_META[name] || { glyph: '?', color: '#888' };
+    return PLANET_META[name] || { glyph: '?', color: 'var(--paper-400)' };
   },
 
   getSignMeta(name) {
-    return SIGN_META[name] || { glyph: '?', color: '#888' };
+    return SIGN_META[name] || { color: 'var(--paper-400)' };
   },
 
   formatDegree(degree, minute) {
     return `${Math.floor(degree)}°${String(Math.floor(minute || 0)).padStart(2, '0')}'`;
   },
 
+  formatOrb(orb) {
+    const value = Math.abs(orb || 0);
+    let deg = Math.floor(value);
+    let min = Math.round((value - deg) * 60);
+    if (min === 60) {
+      deg += 1;
+      min = 0;
+    }
+    return `${deg}°${String(min).padStart(2, '0')}'`;
+  },
+
   buildAspectMatrix(aspects) {
+    const transitBodies = CROSS_ASPECT_PLANETS;
+    const natalBodies = CROSS_ASPECT_PLANETS;
     const matrix = [];
-    const aspectMap = new Map();
 
-    aspects.forEach(a => {
-      const p1 = a.planet1.startsWith('T-') ? a.planet1.slice(2) : a.planet1;
-      const p2 = a.planet2.startsWith('N-') ? a.planet2.slice(2) : a.planet2;
-      if (CROSS_ASPECT_PLANETS.includes(p1) && CROSS_ASPECT_PLANETS.includes(p2)) {
-        aspectMap.set(`${p1}|${p2}`, a);
-      }
+    const headerRow = [{ isEmpty: true }];
+    natalBodies.forEach((name) => {
+      headerRow.push({ isHeader: true, symbol: this.getPlanetMeta(name).glyph || '' });
     });
+    matrix.push(headerRow);
 
-    CROSS_ASPECT_PLANETS.forEach(p1 => {
-      const row = {
-        planet: p1,
-        meta: this.getPlanetMeta(p1),
-        cells: []
-      };
-      CROSS_ASPECT_PLANETS.forEach(p2 => {
-        const aspect = aspectMap.get(`${p1}|${p2}`);
-        row.cells.push(aspect ? {
-          ...aspect,
-          config: ASPECT_CONFIG[aspect.type]
-        } : null);
+    transitBodies.forEach((tName) => {
+      const row = [];
+      row.push({ isHeader: true, symbol: this.getPlanetMeta(tName).glyph || '' });
+
+      natalBodies.forEach((nName) => {
+        const aspect = (aspects || []).find((a) => {
+          const p1 = a.planet1 || '';
+          const p2 = a.planet2 || '';
+          const transit = p1.startsWith('T-') ? p1.slice(2) : (p2.startsWith('T-') ? p2.slice(2) : p1);
+          const natal = p2.startsWith('N-') ? p2.slice(2) : (p1.startsWith('N-') ? p1.slice(2) : p2);
+          return transit === tName && natal === nName;
+        });
+
+        row.push({
+          isHeader: false,
+          aspect: aspect ? {
+            ...aspect,
+            symbol: ASPECT_CONFIG[aspect.type]?.symbol || '',
+            color: ASPECT_CONFIG[aspect.type]?.color || 'var(--paper-400)',
+            orbText: this.formatOrb(aspect.orb)
+          } : null
+        });
       });
+
       matrix.push(row);
     });
 
-    return {
-      header: CROSS_ASPECT_PLANETS.map(p => ({
-        name: p,
-        label: MATRIX_HEADER_LABELS[p] || p,
-        meta: this.getPlanetMeta(p)
-      })),
-      rows: matrix.map(row => ({
-        ...row,
-        label: MATRIX_HEADER_LABELS[row.planet] || row.planet,
-        cells: row.cells.map(cell => cell ? {
-          ...cell,
-          matrixConfig: ASPECT_MATRIX_CONFIG[cell.type]
-        } : null)
-      }))
-    };
+    return matrix;
   },
 
   prepareTechnicalData(tech) {
@@ -431,28 +602,36 @@ Page({
     return {
       transitPlanets: tech.transit_planets.map(p => ({
         ...p,
+        signId: p.sign,
         zhName: this.translate(p.name),
         zhSign: this.translate(p.sign),
         meta: this.getPlanetMeta(p.name),
         signMeta: this.getSignMeta(p.sign),
+        signIcon: `/images/astro-symbols/${(p.sign || 'aries').toLowerCase()}.png`,
         degreeText: this.formatDegree(p.degree, p.minute)
       })),
       transitAsteroids: tech.transit_asteroids.map(p => ({
         ...p,
+        signId: p.sign,
         zhName: this.translate(p.name),
         zhSign: this.translate(p.sign),
         meta: this.getPlanetMeta(p.name),
         signMeta: this.getSignMeta(p.sign),
+        signIcon: `/images/astro-symbols/${(p.sign || 'aries').toLowerCase()}.png`,
         degreeText: this.formatDegree(p.degree, p.minute)
       })),
       houseRulers: tech.house_rulers.map(r => ({
         ...r,
+        signId: r.sign,
+        fliesToSignId: r.fliesToSign,
         zhSign: this.translate(r.sign),
         zhRuler: this.translate(r.ruler),
         zhFliesToSign: this.translate(r.fliesToSign),
         rulerMeta: this.getPlanetMeta(r.ruler),
         signMeta: this.getSignMeta(r.sign),
-        fliesToSignMeta: this.getSignMeta(r.fliesToSign)
+        fliesToSignMeta: this.getSignMeta(r.fliesToSign),
+        signIcon: `/images/astro-symbols/${(r.sign || 'aries').toLowerCase()}.png`,
+        fliesToSignIcon: `/images/astro-symbols/${(r.fliesToSign || 'aries').toLowerCase()}.png`
       })),
       aspectMatrix: this.buildAspectMatrix(tech.cross_aspects)
     };
@@ -489,21 +668,17 @@ Page({
     };
   },
 
-  onViewDetail(e) {
-    const { type } = e.currentTarget.dataset;
-    wx.showToast({
-      title: `正在生成${this.translateDetailType(type)}解读...`,
-      icon: 'loading'
-    });
-  },
-
   translateDetailType(type) {
     const map = {
       chart: '行运星盘',
       aspects: '相位矩阵',
       planets: '行运行星',
       asteroids: '小行星',
-      rulers: '宫主星'
+      rulers: '宫主星',
+      career: '事业运',
+      wealth: '财运',
+      love: '爱情运',
+      health: '健康运'
     };
     return map[type] || '详情';
   }

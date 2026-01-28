@@ -8,57 +8,167 @@
   display: block;
 }
 
-/* 行星详情卡片 */
-.planet-detail-card {
-  position: absolute;
-  background: rgba(16, 17, 19, 0.95);
-  border: 1px solid #C6A062;
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 150px;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+/* 半透明遮罩层（用于点击关闭，同时降低背景干扰） */
+.planet-detail-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 9998;
 }
 
-.planet-detail-header {
+/* 行星详情卡片（居中显示） */
+.planet-detail-card {
+  position: fixed;
+  width: 280px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 9999;
+  white-space: normal; /* Ensure text wraps in cover-view */
+}
+
+.card-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 20px;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.card-header {
   display: flex;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: row;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
 .planet-glyph {
-  font-size: 24px;
-  margin-right: 8px;
+  font-size: 28px;
+  line-height: 1;
+  margin-right: 12px;
+}
+
+.planet-info {
+  flex: 1;
+}
+
+.planet-name-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .planet-name {
   font-size: 16px;
-  font-weight: bold;
-  color: #FFFFFF;
+  font-weight: 600;
+  margin-right: 8px;
 }
 
-.planet-detail-body {
+.planet-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+}
+
+.planet-keywords {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.card-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.section-label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.section-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.section-text {
+  font-size: 14px;
+  color: #1e293b;
+  margin-right: 4px;
+}
+
+.sign-name, .sign-glyph {
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.house-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-right: 4px;
+}
+
+.divider {
+  margin: 0 8px;
+  color: #94a3b8;
+}
+
+.aspect-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
-.planet-position {
-  font-size: 14px;
-  color: #C6A062;
+.aspect-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.planet-house {
-  font-size: 12px;
-  color: #7A746B;
+.other-planet, .other-glyph {
+  font-size: 13px;
+  font-weight: 500;
+  margin-right: 4px;
 }
 
-.close-btn {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  font-size: 24px;
-  color: #7A746B;
-  cursor: pointer;
-  line-height: 1;
+.aspect-angle {
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.aspect-symbol {
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+.aspect-orb {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.cross-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: rgba(159, 118, 69, 0.15);
+  color: #9F7645;
+  margin-left: 4px;
 }

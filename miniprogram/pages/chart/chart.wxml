@@ -18,7 +18,8 @@
         </view>
         <picker mode="selector" range="{{chartTypes}}" range-key="label" value="{{selectedTypeIndex}}" bindchange="handleTypeChange">
           <view class="picker-display">
-            <text>{{selectedType.label}}</text>
+            <text class="picker-text">{{selectedType.label}}</text>
+            <view class="picker-arrow"></view>
           </view>
         </picker>
         <text class="type-desc">{{selectedType.desc}}</text>

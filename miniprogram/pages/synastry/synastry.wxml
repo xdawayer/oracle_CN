@@ -1,13 +1,15 @@
 <view class="container">
+  <view class="nav-placeholder" style="height: {{statusBarHeight + navBarHeight}}px"></view>
   <!-- Header -->
   <view class="header">
     <view class="header-left" bindtap="onBack">
       <text class="btn-text">返回</text>
     </view>
     <text class="header-title">双人合盘</text>
-    <view class="header-right" bindtap="openManager">
+    <view class="header-right" wx:if="{{step === 1}}" bindtap="openManager">
       <text class="btn-text-accent">档案</text>
     </view>
+    <view class="header-right" wx:else></view>
   </view>
 
   <!-- Step 1: Input Form -->
@@ -21,7 +23,7 @@
     <view class="card form-card">
       
       <!-- Name A Input -->
-      <view class="input-group">
+      <view class="input-group {{openDropdown === 'A' ? 'input-open' : ''}}">
         <text class="label">甲方 (你的名字/昵称)</text>
         <view class="input-wrapper">
           <input 
@@ -46,14 +48,17 @@
               data-profile="{{item}}"
             >
               <text class="dropdown-name">{{item.name}}</text>
-              <text wx:if="{{item.name === nameB}}" class="dropdown-tag">已选为乙方</text>
+              <view class="dropdown-tags">
+                <text wx:if="{{item.isSelf}}" class="dropdown-tag self-tag">我</text>
+                <text wx:if="{{item.name === nameB}}" class="dropdown-tag">已选为乙方</text>
+              </view>
             </view>
           </scroll-view>
         </view>
       </view>
 
       <!-- Name B Input -->
-      <view class="input-group">
+      <view class="input-group {{openDropdown === 'B' ? 'input-open' : ''}}">
         <text class="label">乙方 (对方的名字/昵称)</text>
         <view class="input-wrapper">
           <input 
@@ -78,7 +83,10 @@
               data-profile="{{item}}"
             >
               <text class="dropdown-name">{{item.name}}</text>
-              <text wx:if="{{item.name === nameA}}" class="dropdown-tag">已选为甲方</text>
+              <view class="dropdown-tags">
+                <text wx:if="{{item.isSelf}}" class="dropdown-tag self-tag">我</text>
+                <text wx:if="{{item.name === nameA}}" class="dropdown-tag">已选为甲方</text>
+              </view>
             </view>
           </scroll-view>
         </view>
@@ -236,7 +244,10 @@
           </view>
           <view wx:for="{{profiles}}" wx:key="id" class="profile-item">
             <view class="profile-info">
-              <text class="profile-name">{{item.name}}</text>
+              <view class="profile-name-row">
+                <text class="profile-name">{{item.name}}</text>
+                <text wx:if="{{item.isSelf}}" class="profile-tag">我</text>
+              </view>
               <text class="profile-detail">{{item.birthDate}} {{item.birthCity}}</text>
             </view>
             <view class="profile-actions">

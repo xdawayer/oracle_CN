@@ -171,6 +171,7 @@ page {
 
 .heart-box .access-icon {
   color: var(--love-color);
+  transform: translateY(2rpx);
 }
 
 .access-icon {
@@ -612,8 +613,21 @@ page {
 }
 
 .access-icon {
-  font-size: 32rpx;
-  font-weight: 600;
+  width: 36rpx;
+  height: 36rpx;
+  background-color: currentColor;
+}
+
+.colored-icon {
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
 }
 
 .access-title {
@@ -871,4 +885,224 @@ page {
   text-align: center;
   z-index: 10;
   font-weight: 300;
+}
+
+/* Quick Access */
+.quick-access {
+  display: block;
+  margin-bottom: 48rpx;
+}
+
+.quick-access .section-header {
+  width: 100%;
+}
+
+.quick-access-grid {
+  display: flex;
+  gap: 20rpx;
+  align-items: stretch;
+  width: 100%;
+}
+
+.quick-access-item {
+  background: var(--paper-50);
+  border: 1rpx solid var(--paper-200);
+  border-radius: 20rpx;
+  padding: 16rpx 12rpx;
+  min-height: 140rpx;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  gap: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.quick-access-item:active {
+  transform: scale(0.98);
+  border-color: var(--accent);
+  background: var(--paper-100);
+}
+
+.quick-access-icon-box {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-access-icon {
+  width: 26rpx;
+  height: 26rpx;
+  background-color: currentColor;
+}
+
+.quick-access-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--star-50);
+  display: block;
+  width: 100%;
+}
+
+.quick-access-subtitle {
+  font-size: 20rpx;
+  color: var(--star-400);
+  display: block;
+  width: 100%;
+}
+
+/* My Chart */
+.my-chart {
+  margin-bottom: 48rpx;
+}
+
+.my-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+
+.my-chart-card {
+  background: var(--space-900);
+  border: 1px solid var(--space-800);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.my-chart-icon-box {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18rpx;
+}
+
+.my-chart-icon {
+  width: 36rpx;
+  height: 36rpx;
+  background-color: currentColor;
+}
+
+.my-chart-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--star-50);
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.my-chart-subtitle {
+  font-size: 22rpx;
+  color: var(--star-400);
+  line-height: 1.4;
+  display: block;
+}
+
+/* Recommendations */
+.recommendations-loading,
+.recommendations-empty {
+  padding: 24rpx;
+  background: var(--paper-50);
+  border: 1rpx dashed var(--paper-200);
+  border-radius: 20rpx;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: var(--paper-400);
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.recommendation-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx;
+  background: var(--paper-50);
+  border: 1rpx solid var(--paper-200);
+  border-radius: 24rpx;
+  transition: all 0.2s ease;
+}
+
+.recommendation-card:active {
+  transform: scale(0.98);
+  border-color: var(--accent);
+}
+
+.recommendation-icon-box {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recommendation-icon {
+  width: 128rpx;
+  height: 128rpx;
+  background-color: currentColor;
+}
+
+.recommendation-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.recommendation-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--star-50);
+}
+
+.recommendation-subtitle {
+  font-size: 22rpx;
+  color: var(--star-200);
+}
+
+.recommendation-category {
+  font-size: 20rpx;
+  color: var(--paper-400);
+}
+
+.accent-gold {
+  color: var(--accent);
+  background: rgba(198, 160, 98, 0.12);
+  border: 1rpx solid rgba(198, 160, 98, 0.2);
+}
+
+.accent-psycho {
+  color: var(--psycho-500);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1rpx solid rgba(59, 130, 246, 0.2);
+}
+
+.accent-mystic {
+  color: var(--mystic-500);
+  background: rgba(168, 85, 247, 0.12);
+  border: 1rpx solid rgba(168, 85, 247, 0.2);
+}
+
+.accent-love {
+  color: var(--love-color);
+  background: rgba(205, 92, 92, 0.12);
+  border: 1rpx solid rgba(205, 92, 92, 0.2);
 }

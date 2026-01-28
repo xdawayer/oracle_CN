@@ -8,7 +8,7 @@
     <view class="hero-content">
       <view class="hero-header">
         <view class="hero-icon-box">
-          <text class="icon-users">♀♂</text>
+          <view class="icon-mask" style="color: #FFFFFF; -webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
         </view>
         <text class="hero-title">双人合盘</text>
       </view>
@@ -23,7 +23,7 @@
   <view class="action-card" bindtap="navToSynthetica">
     <view class="action-left">
       <view class="action-icon-box">
-        <text class="icon-zap">⚗</text>
+        <view class="icon-mask" style="color: var(--accent); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>
       </view>
       <view class="action-text">
         <text class="action-title">占星实验室</text>
@@ -39,7 +39,7 @@
     <block wx:for="{{features}}" wx:key="id">
       <view class="grid-item" bindtap="navToFeature" data-route="{{item.route}}">
         <view class="grid-icon-box {{item.colorClass}}">
-          <view class="grid-icon-dot"></view>
+          <view class="grid-icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
         </view>
         <view class="grid-text">
           <text class="grid-title">{{item.title}}</text>

@@ -8,20 +8,76 @@
     bindtap="onCanvasTap"
   ></canvas>
 
-  <!-- 行星详情卡片 -->
-  <view
-    wx:if="{{selectedPlanet}}"
+  <!-- 遮罩层（用于点击关闭） -->
+  <cover-view
+    wx:if="{{selectedPlanet && !useExternalDetail}}"
+    class="planet-detail-mask"
+    bindtap="closePlanetDetail"
+  ></cover-view>
+
+  <!-- 行星详情卡片（居中显示） -->
+  <cover-view
+    wx:if="{{selectedPlanet && !useExternalDetail}}"
     class="planet-detail-card"
-    style="left: {{detailCardX}}px; top: {{detailCardY}}px;"
+    catchtap="stopPropagation"
   >
-    <view class="planet-detail-header">
-      <text class="planet-glyph" style="color: {{selectedPlanet.color}};">{{selectedPlanet.glyph}}</text>
-      <text class="planet-name">{{selectedPlanet.name}}</text>
-    </view>
-    <view class="planet-detail-body">
-      <text class="planet-position">{{selectedPlanet.sign}} {{selectedPlanet.degree}}°{{selectedPlanet.minute}}'</text>
-      <text class="planet-house" wx:if="{{selectedPlanet.house}}">第 {{selectedPlanet.house}} 宫</text>
-    </view>
-    <view class="close-btn" bindtap="closePlanetDetail">×</view>
-  </view>
+    <!-- 关闭按钮 -->
+    <cover-view class="card-close" bindtap="closePlanetDetail">×</cover-view>
+
+    <!-- 行星标识区 -->
+    <cover-view class="card-header">
+      <cover-view class="planet-glyph" style="color: {{selectedPlanet.color}};">{{selectedPlanet.glyph}}</cover-view>
+      <cover-view class="planet-info">
+        <cover-view class="planet-name-row">
+          <cover-view class="planet-name" style="color: {{selectedPlanet.color}};">{{selectedPlanet.displayName}}</cover-view>
+          <cover-view class="planet-badge">{{selectedPlanet.isRetrograde ? '逆行' : '顺行'}}</cover-view>
+        </cover-view>
+        <cover-view class="planet-keywords" wx:if="{{selectedPlanet.keywords}}">{{selectedPlanet.keywords}}</cover-view>
+      </cover-view>
+    </cover-view>
+
+    <!-- 星座位置区 -->
+    <cover-view class="card-section">
+      <cover-view class="section-label">星座位置</cover-view>
+      <cover-view class="section-row">
+        <cover-view class="section-text">位于</cover-view>
+        <cover-view class="sign-name" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signName}}</cover-view>
+        <cover-view class="sign-glyph" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signGlyph}}</cover-view>
+        <cover-view class="section-text">{{selectedPlanet.degree}}°{{selectedPlanet.minute}}'</cover-view>
+      </cover-view>
+    </cover-view>
+
+    <!-- 宫位信息区 -->
+    <cover-view class="card-section" wx:if="{{selectedPlanet.house}}">
+      <cover-view class="section-label">宫位信息</cover-view>
+      <cover-view class="section-row">
+        <cover-view class="section-text">位于</cover-view>
+        <cover-view class="house-num">{{selectedPlanet.house}}</cover-view>
+        <cover-view class="section-text">宫</cover-view>
+        <block wx:if="{{selectedPlanet.ruledHouses}}">
+          <cover-view class="divider">|</cover-view>
+          <cover-view class="section-text">守护</cover-view>
+          <cover-view class="house-num">{{selectedPlanet.ruledHouses}}</cover-view>
+          <cover-view class="section-text">宫</cover-view>
+        </block>
+      </cover-view>
+    </cover-view>
+
+    <!-- 相位列表区 -->
+    <cover-view class="card-section" wx:if="{{selectedPlanet.aspects.length > 0}}">
+      <cover-view class="section-label">主要相位</cover-view>
+      <cover-view class="aspect-list">
+        <cover-view class="aspect-row" wx:for="{{selectedPlanet.aspects}}" wx:key="index">
+          <cover-view class="section-text">与</cover-view>
+          <cover-view class="other-planet" style="color: {{item.otherColor}};">{{item.otherName}}</cover-view>
+          <cover-view class="other-glyph" style="color: {{item.otherColor}};">{{item.otherGlyph}}</cover-view>
+          <cover-view class="section-text">成</cover-view>
+          <cover-view class="aspect-angle" style="color: {{item.aspectColor}};">{{item.angle}}°</cover-view>
+          <cover-view class="aspect-symbol" style="color: {{item.aspectColor}};">{{item.aspectSymbol}}</cover-view>
+          <cover-view class="aspect-orb">{{item.orb}}°</cover-view>
+          <cover-view class="cross-badge" wx:if="{{item.isCross}}">跨盘</cover-view>
+        </cover-view>
+      </cover-view>
+    </cover-view>
+  </cover-view>
 </view>

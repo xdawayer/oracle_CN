@@ -2,8 +2,12 @@ const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 
+const SELF_PROFILE_ID = 'self_profile';
+
 Page({
   data: {
+    statusBarHeight: 0,
+    navBarHeight: 44,
     step: 1,
     nameA: '',
     nameB: '',
@@ -66,6 +70,17 @@ Page({
   },
 
   onLoad() {
+    const sysInfo = wx.getSystemInfoSync();
+    const statusBarHeight = sysInfo.statusBarHeight || 0;
+    let navBarHeight = 44;
+    if (wx.getMenuButtonBoundingClientRect) {
+      const menuButton = wx.getMenuButtonBoundingClientRect();
+      if (menuButton && menuButton.top) {
+        const topGap = menuButton.top - statusBarHeight;
+        navBarHeight = menuButton.height + topGap * 2;
+      }
+    }
+    this.setData({ statusBarHeight, navBarHeight });
     this.loadProfiles();
   },
 
@@ -75,7 +90,50 @@ Page({
 
   loadProfiles() {
     const profiles = storage.get('synastry_profiles', []);
-    this.setData({ profiles: Array.isArray(profiles) ? profiles : [] });
+    const userProfile = storage.get('user_profile') || {};
+    const normalized = Array.isArray(profiles) ? profiles : [];
+    const selfProfile = this.buildSelfProfile(userProfile);
+
+    let mergedProfiles = normalized.filter(profile => profile.id !== SELF_PROFILE_ID && !profile.isSelf);
+    if (selfProfile) {
+      const existingSelf = normalized.find(profile => profile.id === SELF_PROFILE_ID || profile.isSelf);
+      const mergedSelf = { ...existingSelf, ...selfProfile, id: SELF_PROFILE_ID, isSelf: true };
+      mergedProfiles = [mergedSelf, ...mergedProfiles];
+    }
+
+    this.setData({ profiles: mergedProfiles });
+    storage.set('synastry_profiles', mergedProfiles);
+
+    if (!this.data.nameA && selfProfile) {
+      this.profileA = selfProfile;
+      this.setData({ nameA: selfProfile.name });
+    }
+  },
+
+  buildSelfProfile(userProfile) {
+    const normalizedProfile = userProfile && typeof userProfile === 'object' ? userProfile : {
+      birthDate: '1989-10-31',
+      birthTime: '22:00',
+      birthCity: '中国, 湖南, 娄底',
+      timezone: '8',
+      lat: 27.7,
+      lon: 112.0,
+      accuracyLevel: 'city'
+    };
+    const name = normalizedProfile.name || '我';
+    return {
+      id: SELF_PROFILE_ID,
+      name,
+      birthDate: normalizedProfile.birthDate || '',
+      birthTime: normalizedProfile.birthTime || '',
+      birthCity: normalizedProfile.birthCity || '',
+      currentCity: normalizedProfile.currentCity || '',
+      timezone: normalizedProfile.timezone || '',
+      accuracy: normalizedProfile.accuracy || normalizedProfile.accuracyLevel || '',
+      lat: normalizedProfile.lat,
+      lon: normalizedProfile.lon,
+      isSelf: true
+    };
   },
 
   openManager() {

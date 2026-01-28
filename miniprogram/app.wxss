@@ -24,6 +24,10 @@ page {
   --accent-hover: #D4B47A;
   --accent-light: #E8D4B0;
 
+  /* 功能域色（与 UI 规范一致） */
+  --mystic-500: #A855F7;
+  --psycho-500: #3B82F6;
+
   /* 辅助色：暖棕色系（替代紫色） */
   --warm-brown: #8B7355;
   --warm-brown-light: #A68968;

@@ -471,32 +471,154 @@ function getMockResponse<T>(promptId: string, lang: Language): LocalizedContent<
     },
     'daily-forecast': {
       zh: {
-        date: '2024-01-01',
-        theme_title: '今日主题：内在整合',
-        anchor_quote: '静水流深，力量在沉淀中积蓄',
-        energy_profile: {
-          drive: { score: 70, feeling: '动力充沛', scenario: '适合推进重要项目', action: '抓住上午的高效时段' },
-          pressure: { score: 40, feeling: '压力适中', scenario: '可能有小挑战', action: '保持冷静应对' },
-          heat: { score: 30, feeling: '摩擦较少', scenario: '人际关系顺畅', action: '适合沟通协作' },
-          nourishment: { score: 80, feeling: '滋养充足', scenario: '情感支持到位', action: '感恩身边的人' },
+        overall_score: 78,
+        summary: '今天节奏清晰，适合把重要任务分段推进。沟通更看重边界与表达的节制，稳住节奏就有进展。',
+        theme_title: '稳步推进',
+        theme_explanation: '行运带来专注与执行力，适合整理与落实。',
+        tags: ['专注', '执行', '沟通', '稳态'],
+        lucky_color: '深蓝',
+        lucky_number: '7',
+        lucky_direction: '北方',
+        dimensions: { career: 82, wealth: 74, love: 68, health: 80 },
+        advice: {
+          do: {
+            title: '把任务切块推进',
+            details: ['先处理最关键的一步', '把沟通提前说明清楚', '留出缓冲时间']
+          },
+          dont: {
+            title: '避免临时改方向',
+            details: ['不做高强度的多线并行', '避免情绪化判断', '不在疲惫时做大决定']
+          }
         },
-        time_windows: { morning: '高效工作', midday: '社交互动', evening: '自我反思' },
-        strategy: { best_use: '推进长期目标', avoid: '避免冲动决策' },
-        share_text: '今日能量：内在整合，静水流深',
+        strategy: { best_use: '推进关键任务并做收尾', avoid: '临时改变计划或过度消耗精力' },
+        time_windows: {
+          morning: '适合处理复杂与需要专注的任务',
+          midday: '适合沟通对齐与资源协调',
+          evening: '适合复盘与整理节奏'
+        },
+        time_windows_enhanced: [
+          {
+            period: '上午',
+            time: '06:00-12:00',
+            energy_level: '积极',
+            description: '思路清晰，适合推进重点任务。',
+            best_for: ['计划拆分', '集中执行'],
+            avoid_for: ['临时改方向']
+          },
+          {
+            period: '午间',
+            time: '12:00-18:00',
+            energy_level: '平稳',
+            description: '沟通效率更高，适合对齐共识。',
+            best_for: ['会议沟通', '资源协调'],
+            avoid_for: ['过度争辩']
+          },
+          {
+            period: '晚上',
+            time: '18:00-24:00',
+            energy_level: '放松',
+            description: '适合复盘与整理收尾。',
+            best_for: ['复盘总结', '轻松社交'],
+            avoid_for: ['高压决策']
+          }
+        ],
+        weekly_trend: {
+          week_range: '1/20-1/26',
+          daily_scores: [
+            { date: '2024-01-20', score: 72, label: '稳' },
+            { date: '2024-01-21', score: 68, label: '缓' },
+            { date: '2024-01-22', score: 75, label: '进' },
+            { date: '2024-01-23', score: 80, label: '强' },
+            { date: '2024-01-24', score: 70, label: '稳' },
+            { date: '2024-01-25', score: 66, label: '缓' },
+            { date: '2024-01-26', score: 78, label: '进' }
+          ],
+          key_dates: [
+            { date: '2024-01-22', label: '效率日', description: '适合推进关键事项。' },
+            { date: '2024-01-25', label: '放松日', description: '适合减少安排、恢复节奏。' }
+          ]
+        },
+        weekly_events: [
+          { date: '1/22 周一', description: '适合推进重点任务并完成阶段性收尾。' },
+          { date: '1/24 周三', description: '沟通效率提升，适合对齐资源。' },
+          { date: '1/26 周五', description: '注意节奏变化，留出缓冲。' }
+        ],
+        share_text: '今日节奏清晰，稳住重点就能推进。'
       },
       en: {
-        date: '2024-01-01',
-        theme_title: 'Today\'s Theme: Inner Integration',
-        anchor_quote: 'Still waters run deep, power accumulates in stillness',
-        energy_profile: {
-          drive: { score: 70, feeling: 'Energized', scenario: 'Good for advancing projects', action: 'Seize the morning hours' },
-          pressure: { score: 40, feeling: 'Moderate pressure', scenario: 'Minor challenges possible', action: 'Stay calm' },
-          heat: { score: 30, feeling: 'Low friction', scenario: 'Smooth relationships', action: 'Good for collaboration' },
-          nourishment: { score: 80, feeling: 'Well nourished', scenario: 'Emotional support available', action: 'Appreciate those around you' },
+        overall_score: 78,
+        summary: '今天节奏清晰，适合把重要任务分段推进。沟通更看重边界与表达的节制，稳住节奏就有进展。',
+        theme_title: '稳步推进',
+        theme_explanation: '行运带来专注与执行力，适合整理与落实。',
+        tags: ['专注', '执行', '沟通', '稳态'],
+        lucky_color: '深蓝',
+        lucky_number: '7',
+        lucky_direction: '北方',
+        dimensions: { career: 82, wealth: 74, love: 68, health: 80 },
+        advice: {
+          do: {
+            title: '把任务切块推进',
+            details: ['先处理最关键的一步', '把沟通提前说明清楚', '留出缓冲时间']
+          },
+          dont: {
+            title: '避免临时改方向',
+            details: ['不做高强度的多线并行', '避免情绪化判断', '不在疲惫时做大决定']
+          }
         },
-        time_windows: { morning: 'Productive work', midday: 'Social interaction', evening: 'Self-reflection' },
-        strategy: { best_use: 'Advance long-term goals', avoid: 'Avoid impulsive decisions' },
-        share_text: 'Today\'s energy: Inner integration, still waters run deep',
+        strategy: { best_use: '推进关键任务并做收尾', avoid: '临时改变计划或过度消耗精力' },
+        time_windows: {
+          morning: '适合处理复杂与需要专注的任务',
+          midday: '适合沟通对齐与资源协调',
+          evening: '适合复盘与整理节奏'
+        },
+        time_windows_enhanced: [
+          {
+            period: '上午',
+            time: '06:00-12:00',
+            energy_level: '积极',
+            description: '思路清晰，适合推进重点任务。',
+            best_for: ['计划拆分', '集中执行'],
+            avoid_for: ['临时改方向']
+          },
+          {
+            period: '午间',
+            time: '12:00-18:00',
+            energy_level: '平稳',
+            description: '沟通效率更高，适合对齐共识。',
+            best_for: ['会议沟通', '资源协调'],
+            avoid_for: ['过度争辩']
+          },
+          {
+            period: '晚上',
+            time: '18:00-24:00',
+            energy_level: '放松',
+            description: '适合复盘与整理收尾。',
+            best_for: ['复盘总结', '轻松社交'],
+            avoid_for: ['高压决策']
+          }
+        ],
+        weekly_trend: {
+          week_range: '1/20-1/26',
+          daily_scores: [
+            { date: '2024-01-20', score: 72, label: '稳' },
+            { date: '2024-01-21', score: 68, label: '缓' },
+            { date: '2024-01-22', score: 75, label: '进' },
+            { date: '2024-01-23', score: 80, label: '强' },
+            { date: '2024-01-24', score: 70, label: '稳' },
+            { date: '2024-01-25', score: 66, label: '缓' },
+            { date: '2024-01-26', score: 78, label: '进' }
+          ],
+          key_dates: [
+            { date: '2024-01-22', label: '效率日', description: '适合推进关键事项。' },
+            { date: '2024-01-25', label: '放松日', description: '适合减少安排、恢复节奏。' }
+          ]
+        },
+        weekly_events: [
+          { date: '1/22 周一', description: '适合推进重点任务并完成阶段性收尾。' },
+          { date: '1/24 周三', description: '沟通效率提升，适合对齐资源。' },
+          { date: '1/26 周五', description: '注意节奏变化，留出缓冲。' }
+        ],
+        share_text: '今日节奏清晰，稳住重点就能推进。'
       },
     },
     'daily-detail': {
@@ -506,16 +628,16 @@ function getMockResponse<T>(promptId: string, lang: Language): LocalizedContent<
         one_challenge: { pattern_name: '过度担忧', description: '担心失控会让你更紧绷。' },
         one_practice: { title: '定心呼吸', action: '用 4-6 呼吸节奏完成 3 轮。' },
         one_question: '我可以放下的担忧是什么？',
-        under_the_hood: { moon_phase_sign: '盈凸月·处女', key_aspects: ['Moon trine Venus', 'Sun square Mars'] },
+        under_the_hood: { moon_phase_sign: '盈凸月·处女', key_aspects: ['月亮拱金星', '太阳刑火星'] },
         confidence: 'high'
       },
       en: {
-        theme_elaborated: 'Today balances rhythm and boundaries.',
-        how_it_shows_up: { emotions: 'More sensitive and craving stability', relationships: 'Soft communication helps', work: 'Steady progress wins' },
-        one_challenge: { pattern_name: 'Over-worrying', description: 'Fear of losing control tightens the body.' },
-        one_practice: { title: 'Grounding breath', action: 'Use a 4-6 breathing cadence for 3 rounds.' },
-        one_question: 'What worry can I set down today?',
-        under_the_hood: { moon_phase_sign: 'Waxing Gibbous · Virgo', key_aspects: ['Moon trine Venus', 'Sun square Mars'] },
+        theme_elaborated: '今日星象强调节奏与边界的平衡。',
+        how_it_shows_up: { emotions: '更敏感、更需要安稳', relationships: '沟通更需要温柔', work: '适合稳步推进' },
+        one_challenge: { pattern_name: '过度担忧', description: '担心失控会让你更紧绷。' },
+        one_practice: { title: '定心呼吸', action: '用 4-6 呼吸节奏完成 3 轮。' },
+        one_question: '我可以放下的担忧是什么？',
+        under_the_hood: { moon_phase_sign: '盈凸月·处女', key_aspects: ['月亮拱金星', '太阳刑火星'] },
         confidence: 'high'
       },
     },

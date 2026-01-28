@@ -156,6 +156,9 @@ export interface WeeklyEventAI {
 
 export interface DailyForecastAI {
   overall_score: number;
+  summary?: string;
+  theme_title?: string;
+  theme_explanation?: string;
   tags: string[];
   lucky_color: string;
   lucky_number: string;
@@ -165,6 +168,10 @@ export interface DailyForecastAI {
     wealth: number;
     love: number;
     health: number;
+  };
+  advice?: {
+    do: { title: string; details: string[] };
+    dont: { title: string; details: string[] };
   };
   strategy: {
     best_use: string;
@@ -178,7 +185,21 @@ export interface DailyForecastAI {
     midday_mood: string;
     evening_mood: string;
   };
+  time_windows_enhanced?: Array<{
+    period: string;
+    time: string;
+    energy_level: string;
+    description: string;
+    best_for: string[];
+    avoid_for: string[];
+  }>;
+  weekly_trend?: {
+    week_range: string;
+    daily_scores: Array<{ date: string; score: number; label: string }>;
+    key_dates: Array<{ date: string; label: string; description: string }>;
+  };
   weekly_events: WeeklyEventAI[];
+  share_text?: string;
 }
 
 export interface DailyDetailAI {

@@ -46,6 +46,16 @@ const LUCKY_TEXT_COLOR_MAP = {
   'default': '#FFFFFF'
 };
 
+const DEFAULT_PROFILE = {
+  birthDate: '1989-10-31',
+  birthTime: '22:00',
+  birthCity: '北京',
+  timezone: 'Asia/Shanghai',
+  lat: 39.9042,
+  lon: 116.4074,
+  accuracyLevel: 'exact'
+};
+
 Page({
   data: {
     greeting: '早安, 星智用户',
@@ -66,32 +76,22 @@ Page({
     },
     showShareModal: false,
     isLoadingForecast: true,
-    recommendations: [
-      {
-        id: 'wiki',
-        image: '/images/wiki-cover.png',
-        category: '星象百科',
-        title: '水星逆行生存指南',
-        route: 'wiki'
-      },
-      {
-        id: 'cbt',
-        image: '/images/cbt-cover.png',
-        category: '心理疗愈',
-        title: '情绪日记与认知重构',
-        route: 'cbt'
-      }
-    ]
+    isLoadingRecommendations: true,
+    recommendations: []
   },
 
   onLoad() {
     this.updateDate();
     this.loadUserProfile();
     this.fetchDailyForecast();
+    this.initRecommendations();
   },
 
   onPullDownRefresh() {
-    this.fetchDailyForecast().then(() => {
+    Promise.all([
+      this.fetchDailyForecast(),
+      this.initRecommendations()
+    ]).then(() => {
       wx.stopPullDownRefresh();
     });
   },
@@ -108,19 +108,8 @@ Page({
   },
 
   loadUserProfile() {
-    let profile = storage.get('user_profile');
-    
-    if (!profile) {
-      profile = {
-        birthDate: '1989-10-31',
-        birthTime: '22:00',
-        birthCity: '中国, 湖南, 娄底',
-        timezone: '8',
-        lat: 27.7,
-        lon: 112.0,
-        accuracyLevel: 'city'
-      };
-    }
+    const stored = storage.get('user_profile');
+    const profile = { ...DEFAULT_PROFILE, ...(stored || {}) };
 
     const avatarUrl = storage.get('user_avatar') || '';
     if (avatarUrl) {
@@ -240,33 +229,296 @@ Page({
     }
   },
 
-  onChangeTab(e) {
-    const tab = e.currentTarget.dataset.tab;
-    if (tab === 'self') {
-      wx.switchTab({ url: '/pages/self/self' });
-    } else if (tab === 'daily') {
-      wx.switchTab({ url: '/pages/daily/daily' });
+  async initRecommendations() {
+    this.setData({ isLoadingRecommendations: true });
+    const [userStatus, astroEvents] = await Promise.all([
+      this.fetchUserStatus(),
+      this.fetchAstroEvents()
+    ]);
+    this.generateRecommendations(userStatus, astroEvents);
+  },
+
+  normalizeUserStatus(raw) {
+    const base = {
+      isNewUser: false,
+      registeredAt: null,
+      hasBirthChart: false,
+      hasUsedSynastry: false,
+      lastCBTEntry: null,
+      recentActions: []
+    };
+
+    if (!raw || raw.success === false) {
+      return base;
+    }
+
+    const merged = {
+      ...base,
+      ...raw
+    };
+
+    if (!merged.isNewUser && merged.registeredAt) {
+      const diffMs = Date.now() - new Date(merged.registeredAt).getTime();
+      merged.isNewUser = diffMs <= 3 * 24 * 60 * 60 * 1000;
+    }
+
+    return merged;
+  },
+
+  async fetchUserStatus() {
+    try {
+      const res = await request({ url: API_ENDPOINTS.USER_STATUS });
+      return this.normalizeUserStatus(res);
+    } catch (error) {
+      console.error('Fetch user status failed', error);
+      const profile = storage.get('user_profile');
+      const synastryProfiles = storage.get('synastry_profiles') || [];
+      return this.normalizeUserStatus({
+        isNewUser: false,
+        hasBirthChart: !!profile,
+        hasUsedSynastry: Array.isArray(synastryProfiles) && synastryProfiles.length > 0,
+        lastCBTEntry: null,
+        recentActions: []
+      });
     }
   },
 
-  onNavigateToDiscovery(e) {
-    const route = e.currentTarget.dataset.route;
-    
-    if (route === 'synastry') {
-      wx.switchTab({
-        url: '/pages/discovery/discovery'
+  async fetchAstroEvents() {
+    const CACHE_KEY = 'astro_events_cache';
+    const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+    const cached = storage.get(CACHE_KEY);
+    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+      return cached.data || [];
+    }
+
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await request({ url: `${API_ENDPOINTS.ASTRO_EVENTS}?date=${today}` });
+      if (res && Array.isArray(res.events)) {
+        storage.set(CACHE_KEY, {
+          data: res.events,
+          timestamp: Date.now()
+        });
+        return res.events;
+      }
+    } catch (error) {
+      console.error('Fetch astro events failed', error);
+    }
+    return [];
+  },
+
+  generateRecommendations(userStatus, astroEvents) {
+    const recs = [];
+    const trendingPool = [
+      {
+        id: 'trending_retrograde',
+        title: '水星逆行生存指南',
+        subtitle: '高频场景的避坑策略',
+        category: '热门内容',
+        route: 'wiki',
+        icon: '/images/astro-symbols/mercury.svg',
+        accentClass: 'accent-gold',
+        priority: 5
+      },
+      {
+        id: 'trending_wiki',
+        title: '冥王星入水瓶座',
+        subtitle: '时代能量的转向提示',
+        category: '热门内容',
+        route: 'wiki',
+        icon: '/images/astro-symbols/pluto.svg',
+        accentClass: 'accent-mystic',
+        priority: 5
+      }
+    ];
+
+    const educationPool = [
+      {
+        id: 'edu_wiki',
+        title: '占星入门指南',
+        subtitle: '三分钟理解星盘结构',
+        category: '教育内容',
+        route: 'wiki',
+        icon: '/images/icons/study.svg',
+        accentClass: 'accent-psycho',
+        priority: 4
+      },
+      {
+        id: 'edu_chart',
+        title: '认识你的太阳月亮上升',
+        subtitle: '核心人格的快速索引',
+        category: '教育内容',
+        route: 'self',
+        icon: '/images/astro-symbols/sun.svg',
+        accentClass: 'accent-gold',
+        priority: 4
+      }
+    ];
+
+    if (userStatus.isNewUser) {
+      this.setData({
+        isLoadingRecommendations: false,
+        recommendations: [
+          {
+            id: 'onboard_chart',
+            title: '生成你的本命盘',
+            subtitle: '建立专属星盘档案',
+            category: '新手引导',
+            route: 'self',
+            icon: '/images/astro-symbols/sun.svg',
+            accentClass: 'accent-gold'
+          },
+          {
+            id: 'onboard_synastry',
+            title: '了解双人合盘',
+            subtitle: '关系能量地图',
+            category: '新手引导',
+            route: 'synastry',
+            icon: '/images/icons/love.svg',
+            accentClass: 'accent-love'
+          },
+          {
+            id: 'onboard_wiki',
+            title: '占星入门指南',
+            subtitle: '从基础概念开始',
+            category: '新手引导',
+            route: 'wiki',
+            icon: '/images/icons/study.svg',
+            accentClass: 'accent-psycho'
+          }
+        ]
       });
       return;
     }
 
-    const urlMap = {
-      'wiki': '/pages/wiki/wiki',
-      'cbt': '/pages/cbt/cbt'
-    };
-    
-    if (urlMap[route]) {
-      wx.navigateTo({ url: urlMap[route] });
+    if (!userStatus.hasBirthChart) {
+      recs.push({
+        id: 'chart_gen',
+        priority: 10,
+        title: '5分钟了解真实的自己',
+        subtitle: '生成星盘，开启探索之旅',
+        category: '本命盘引导',
+        route: 'self',
+        icon: '/images/astro-symbols/sun.svg',
+        accentClass: 'accent-gold'
+      });
     }
+
+    if (Array.isArray(astroEvents) && astroEvents.length > 0) {
+      const importantEvent = astroEvents.find(event => event.importance === 'high') || astroEvents[0];
+      if (importantEvent) {
+        recs.push({
+          id: `event_${importantEvent.id}`,
+          priority: 9,
+          title: importantEvent.title,
+          subtitle: importantEvent.description || '查看本周星象提醒',
+          category: '星象提醒',
+          route: 'wiki',
+          icon: '/images/astro-symbols/mercury.svg',
+          accentClass: 'accent-mystic'
+        });
+      }
+    }
+
+    const recentActions = Array.isArray(userStatus.recentActions) ? userStatus.recentActions : [];
+    if (recentActions.length > 0) {
+      recs.push({
+        id: 'behavior_daily',
+        priority: 8,
+        title: '查看今日星象细节',
+        subtitle: '延伸今日的关键能量',
+        category: '行为推荐',
+        route: 'daily',
+        icon: '/images/astro-symbols/moon.svg',
+        accentClass: 'accent-gold'
+      });
+    }
+
+    if (userStatus.lastCBTEntry) {
+      const lastEntryTime = new Date(userStatus.lastCBTEntry).getTime();
+      const daysSince = Math.floor((Date.now() - lastEntryTime) / (24 * 60 * 60 * 1000));
+      if (daysSince > 3) {
+        recs.push({
+          id: 'cbt_remind',
+          priority: 7,
+          title: '记录此刻的情绪',
+          subtitle: 'CBT日记帮助你梳理思绪',
+          category: 'CBT提醒',
+          route: 'cbt',
+          icon: '/images/icons/health.svg',
+          accentClass: 'accent-psycho'
+        });
+      }
+    }
+
+    if (!userStatus.hasUsedSynastry) {
+      recs.push({
+        id: 'synastry_promo',
+        priority: 6,
+        title: '测测你们的契合度',
+        subtitle: '双人合盘深度解析',
+        category: '社交推荐',
+        route: 'synastry',
+        icon: '/images/icons/relations.svg',
+        accentClass: 'accent-love'
+      });
+    }
+
+    recs.push(trendingPool[0]);
+    recs.push(educationPool[0]);
+
+    recs.sort((a, b) => b.priority - a.priority);
+    this.setData({
+      isLoadingRecommendations: false,
+      recommendations: recs.slice(0, 4)
+    });
+  },
+
+  onChangeTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab === 'daily') {
+      wx.switchTab({ url: '/pages/daily/daily' });
+    }
+  },
+
+  onNavigateToQuickAccess(e) {
+    const type = e.currentTarget.dataset.type;
+    if (type === 'synastry') {
+      storage.set('discovery_entry', 'synastry');
+      wx.switchTab({ url: '/pages/discovery/discovery' });
+    } else if (type === 'cbt') {
+      wx.navigateTo({ url: '/pages/cbt/cbt' });
+    } else if (type === 'ask') {
+      wx.navigateTo({ url: '/pages/ask/ask' });
+    }
+  },
+
+  onNavigateToChart(e) {
+    const type = e.currentTarget.dataset.type;
+    if (type === 'natal') {
+      wx.switchTab({ url: '/pages/self/self' });
+    } else if (type === 'kline') {
+      wx.navigateTo({ url: '/pages/kline/kline' });
+    }
+  },
+
+  onNavigateToRecommendation(e) {
+    const route = e.currentTarget.dataset.route;
+    if (route === 'synastry') {
+      storage.set('discovery_entry', 'synastry');
+      wx.switchTab({ url: '/pages/discovery/discovery' });
+      return;
+    }
+    if (route === 'self') {
+      wx.switchTab({ url: '/pages/self/self' });
+      return;
+    }
+    if (route === 'daily') {
+      wx.switchTab({ url: '/pages/daily/daily' });
+      return;
+    }
+    wx.navigateTo({ url: `/pages/${route}/${route}` });
   },
 
   showShareModal() {

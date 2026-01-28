@@ -63,20 +63,53 @@
   </view>
 
   <view class="quick-access">
-    <view class="access-btn" bindtap="onChangeTab" data-tab="self">
-      <view class="access-icon-box user-box">
-        <text class="access-icon">☉</text>
-      </view>
-      <text class="access-title">本命盘解读</text>
-      <text class="access-subtitle">探索核心人格</text>
+    <view class="section-header">
+      <text class="section-title">快速体验</text>
     </view>
-
-    <view class="access-btn" bindtap="onNavigateToDiscovery" data-route="synastry">
-      <view class="access-icon-box heart-box">
-        <text class="access-icon">♀</text>
+    <view class="quick-access-grid">
+      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="synastry">
+        <view class="quick-access-icon-box accent-love">
+          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/love.svg'); mask-image: url('/images/icons/love.svg');"></view>
+        </view>
+        <text class="quick-access-title">双人合盘</text>
+        <text class="quick-access-subtitle">关系能量解析</text>
       </view>
-      <text class="access-title">双人合盘</text>
-      <text class="access-subtitle">解析关系匹配度</text>
+      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="cbt">
+        <view class="quick-access-icon-box accent-psycho">
+          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/health.svg'); mask-image: url('/images/icons/health.svg');"></view>
+        </view>
+        <text class="quick-access-title">CBT日记</text>
+        <text class="quick-access-subtitle">情绪觉察记录</text>
+      </view>
+      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="ask">
+        <view class="quick-access-icon-box accent-mystic">
+          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
+        </view>
+        <text class="quick-access-title">AI问答</text>
+        <text class="quick-access-subtitle">星象即时咨询</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="my-chart">
+    <view class="section-header">
+      <text class="section-title">我的星盘</text>
+    </view>
+    <view class="my-chart-grid">
+      <view class="my-chart-card" bindtap="onNavigateToChart" data-type="natal">
+        <view class="my-chart-icon-box accent-gold">
+          <view class="my-chart-icon colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
+        </view>
+        <text class="my-chart-title">本命盘解读</text>
+        <text class="my-chart-subtitle">了解核心人格</text>
+      </view>
+      <view class="my-chart-card" bindtap="onNavigateToChart" data-type="kline">
+        <view class="my-chart-icon-box accent-psycho">
+          <view class="my-chart-icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+        </view>
+        <text class="my-chart-title">人生k线图</text>
+        <text class="my-chart-subtitle">命运起伏趋势</text>
+      </view>
     </view>
   </view>
 
@@ -84,24 +117,22 @@
     <view class="section-header">
       <text class="section-title">为你推荐</text>
     </view>
-    <view class="rec-list">
+    <view class="recommendations-loading" wx:if="{{isLoadingRecommendations}}">
+      <text class="loading-text">推荐生成中...</text>
+    </view>
+    <view class="recommendations-empty" wx:if="{{!isLoadingRecommendations && recommendations.length === 0}}">
+      <text class="loading-text">暂无推荐</text>
+    </view>
+    <view class="recommendations-list" wx:if="{{!isLoadingRecommendations && recommendations.length > 0}}">
       <block wx:for="{{recommendations}}" wx:key="id">
-        <view class="rec-card" bindtap="onNavigateToDiscovery" data-route="{{item.route}}">
-          <view class="rec-image-placeholder" wx:if="{{!item.image}}">
-            <text class="rec-image-icon">{{item.route === 'wiki' ? '♄' : '♃'}}</text>
+        <view class="recommendation-card" bindtap="onNavigateToRecommendation" data-route="{{item.route}}">
+          <view class="recommendation-icon-box {{item.accentClass}}">
+            <view class="recommendation-icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
           </view>
-          <image class="rec-image" src="{{item.image}}" mode="aspectFill" wx:else></image>
-          <view class="rec-content">
-            <text class="rec-category">{{item.category}}</text>
-            <text class="rec-title">{{item.title}}</text>
-            <view class="rec-meta">
-              <view class="avatars">
-                <view class="avatar-sm"></view>
-                <view class="avatar-sm"></view>
-                <view class="avatar-sm"></view>
-              </view>
-              <text class="rec-stats">1.2w 人阅读</text>
-            </view>
+          <view class="recommendation-text">
+            <text class="recommendation-title">{{item.title}}</text>
+            <text class="recommendation-subtitle">{{item.subtitle}}</text>
+            <text class="recommendation-category">{{item.category}}</text>
           </view>
         </view>
       </block>

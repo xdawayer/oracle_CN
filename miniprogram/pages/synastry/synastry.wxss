@@ -8,6 +8,10 @@
 }
 
 /* Header */
+.nav-placeholder {
+  width: 100%;
+}
+
 .header {
   height: 88rpx;
   display: flex;
@@ -51,6 +55,7 @@
   gap: 32rpx;
 }
 
+
 .card {
   background-color: var(--space-900);
   border-radius: 24rpx;
@@ -69,6 +74,7 @@
   line-height: 1.5;
 }
 
+
 /* Form Styles */
 .form-card {
   display: flex;
@@ -79,6 +85,10 @@
 .input-group {
   position: relative;
   z-index: 10;
+}
+
+.input-group.input-open {
+  z-index: 120;
 }
 
 .label {
@@ -133,7 +143,7 @@
   border-radius: 16rpx;
   border: 1px solid var(--space-700);
   box-shadow: 0 8rpx 24rpx 0 var(--space-950);
-  z-index: 50;
+  z-index: 130;
   overflow: hidden;
 }
 
@@ -147,6 +157,12 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--space-700);
+}
+
+.dropdown-tags {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 }
 
 .dropdown-item:last-child {
@@ -171,10 +187,17 @@
   border-radius: 4rpx;
 }
 
+.dropdown-tag.self-tag {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: transparent;
+  margin-right: 8rpx;
+}
+
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 110;
 }
 
 /* Relation Grid */
@@ -524,6 +547,20 @@
   color: var(--text-primary);
   font-size: 28rpx;
   font-weight: 500;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.profile-tag {
+  font-size: 20rpx;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
 }
 
 .profile-detail {

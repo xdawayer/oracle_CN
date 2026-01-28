@@ -21,182 +21,183 @@
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.SUCCESS && forecast}}">
-    <!-- 今日综合运势卡片 -->
-    <view class="comprehensive-card" style="{{cardStyle}} color: {{cardTextColor}}">
-      <view class="comprehensive-main">
-        <view class="comprehensive-score-group">
-          <text class="comprehensive-score-label" style="color: {{cardTextColor}}B0">今日运势</text>
-          <text class="comprehensive-score-value" style="color: {{cardTextColor}}">{{forecast.overall_score || 85}}</text>
+    
+    <!-- ========== 快速浏览层 ========== -->
+    
+    <!-- 1. 今日运势概览卡片 -->
+    <view class="overview-card">
+      <view class="overview-header">
+        <view class="overview-date">
+          <text class="date-label">今日运势</text>
+          <text class="date-value">{{currentDateStr}}</text>
         </view>
-        <view class="comprehensive-tags">
-          <text class="tag" wx:for="{{forecast.tags || ['积极', '专注']}}" wx:key="*this" style="color: {{cardTextColor}}; background: {{cardTextColor}}20; border-color: {{cardTextColor}}30">{{item}}</text>
+        
+        <!-- Ring Progress Score -->
+        <view class="score-ring-container">
+          <view class="score-ring" style="background: conic-gradient(var(--accent) {{forecast.overall_score * 3.6}}deg, var(--paper-200) 0deg);">
+            <view class="score-ring-inner">
+              <text class="score-number">{{forecast.overall_score || 0}}</text>
+              <text class="score-suffix">分</text>
+            </view>
+          </view>
         </view>
       </view>
+      
+      <view class="overview-summary">
+        <text class="summary-text">{{overviewSummary || '今日星象平和，适合稳步推进计划。'}}</text>
+      </view>
+      
+      <view class="lucky-row">
+        <view class="lucky-chip">
+          <text class="lucky-label">幸运色</text>
+          <view class="lucky-color-dot" style="background: {{luckyColorToken || 'var(--accent)'}}"></view>
+          <text class="lucky-value">{{forecast.lucky_color || '深蓝'}}</text>
+        </view>
+        <view class="lucky-divider"></view>
+        <view class="lucky-chip">
+          <text class="lucky-label">幸运数</text>
+          <text class="lucky-value lucky-number">{{forecast.lucky_number || '7'}}</text>
+        </view>
+        <view class="lucky-divider"></view>
+        <view class="lucky-chip">
+          <text class="lucky-label">吉位</text>
+          <text class="lucky-value">{{forecast.lucky_direction || '北方'}}</text>
+        </view>
+      </view>
+    </view>
 
-      <view class="comprehensive-footer" style="background: {{cardTextColor}}15">
-        <view class="lucky-item">
-          <view class="lucky-icon-bg" style="background: {{cardTextColor}}20">
-            <text class="lucky-icon glyph">◯</text>
+    <!-- 2. 四维度评分 -->
+    <view class="dimensions-section">
+      <text class="section-title">四维运势</text>
+      
+      <view class="dimension-list">
+      <view class="dimension-item" wx:for="{{dimensionItems}}" wx:key="key" bindtap="onViewDetail" data-type="{{item.key}}">
+          <view class="dimension-header">
+            <view class="dimension-icon" style="background: var(--paper-200); color: {{item.color}}">
+              <view class="dimension-icon-inner icon-{{item.key}}"></view>
+            </view>
+            <text class="dimension-name">{{item.label}}</text>
+            <text class="dimension-score" style="color: {{item.color}}">{{item.score || '-'}}</text>
           </view>
-          <view class="lucky-text-group">
-            <text class="lucky-label" style="color: {{cardTextColor}}B0">幸运色</text>
-            <text class="lucky-value" style="color: {{cardTextColor}}">{{forecast.lucky_color || '深蓝'}}</text>
-          </view>
-        </view>
-        <view class="vertical-divider" style="background: {{cardTextColor}}30"></view>
-        <view class="lucky-item">
-          <view class="lucky-icon-bg" style="background: {{cardTextColor}}20">
-            <text class="lucky-icon glyph">№</text>
-          </view>
-          <view class="lucky-text-group">
-            <text class="lucky-label" style="color: {{cardTextColor}}B0">幸运数字</text>
-            <text class="lucky-value" style="color: {{cardTextColor}}">{{forecast.lucky_number || '7'}}</text>
-          </view>
-        </view>
-        <view class="vertical-divider" style="background: {{cardTextColor}}30"></view>
-        <view class="lucky-item">
-          <view class="lucky-icon-bg" style="background: {{cardTextColor}}20">
-            <text class="lucky-icon glyph">◈</text>
-          </view>
-          <view class="lucky-text-group">
-            <text class="lucky-label" style="color: {{cardTextColor}}B0">吉位</text>
-            <text class="lucky-value" style="color: {{cardTextColor}}">{{forecast.lucky_direction || '北方'}}</text>
+          <view class="dimension-score-ring" style="background: conic-gradient({{item.color}} {{(item.score || 0) * 3.6}}deg, var(--paper-200) 0deg);">
+            <view class="dimension-score-inner">
+              <text class="dimension-score-text">{{item.score || '-'}}</text>
+            </view>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 四个运势维度网格 -->
-    <view class="dimensions-grid">
-      <view class="dimension-card" wx:for="{{dimensionItems}}" wx:key="key">
-        <view class="dimension-left">
-          <view class="dimension-icon-box" style="background: {{item.color}}15;">
-            <view class="dimension-custom-icon icon-{{item.key}}"></view>
-          </view>
-          <text class="dimension-label">{{item.label}}</text>
-        </view>
-        <view class="dimension-right">
-          <view class="score-circle">
-            <view class="score-inner-bg"></view>
-            <text class="dimension-score-text">{{item.score || '-'}}</text>
-            <view class="score-progress" style="background: conic-gradient({{item.color}} {{item.score * 3.6}}deg, transparent 0);"></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 宜忌模块 -->
-    <view class="advice-grid">
+    <!-- 3. 今日宜忌 -->
+    <view class="advice-section">
       <view class="advice-card advice-do">
-        <text class="advice-title">宜 Do</text>
-        <text class="advice-content">{{forecast.strategy.best_use || '冥想、深度思考、创意工作'}}</text>
+        <view class="advice-header">
+          <view class="advice-badge do-badge">宜</view>
+          <text class="advice-title-text">{{advice.do.title || forecast.strategy.best_use || '积极行动'}}</text>
+        </view>
+        <view class="advice-list" wx:if="{{advice.do.details && advice.do.details.length > 0}}">
+          <view class="advice-item" wx:for="{{advice.do.details}}" wx:key="*this">
+            <text class="advice-dot do-dot">·</text>
+            <text class="advice-text">{{item}}</text>
+          </view>
+        </view>
       </view>
+      
       <view class="advice-card advice-dont">
-        <text class="advice-title">忌 Don't</text>
-        <text class="advice-content">{{forecast.strategy.avoid || '冲动决策、情绪化沟通'}}</text>
+        <view class="advice-header">
+          <view class="advice-badge dont-badge">忌</view>
+          <text class="advice-title-text">{{advice.dont.title || forecast.strategy.avoid || '盲目冒险'}}</text>
+        </view>
+        <view class="advice-list" wx:if="{{advice.dont.details && advice.dont.details.length > 0}}">
+          <view class="advice-item" wx:for="{{advice.dont.details}}" wx:key="*this">
+            <text class="advice-dot dont-dot">·</text>
+            <text class="advice-text">{{item}}</text>
+          </view>
+        </view>
       </view>
     </view>
 
-    <!-- 时间窗口模块 -->
-    <view class="card">
+    <!-- 4. 时间窗口 -->
+    <view class="time-section card">
       <text class="card-title">时间窗口</text>
-      <view class="time-windows">
-        <view class="time-window-item">
-          <view class="time-window-header">
-            <text class="time-window-label">上午</text>
-            <text class="time-window-mood">{{forecast.time_windows.morning_mood || '积极'}}</text>
+      
+      <view class="time-timeline">
+        <view class="time-slot" wx:for="{{timeWindows}}" wx:key="period">
+          <view class="time-line">
+            <view class="time-dot" style="background: {{item.dotColor}}"></view>
+            <view class="time-connector" wx:if="{{index < timeWindows.length - 1}}"></view>
           </view>
-          <text class="time-window-text">{{forecast.time_windows.morning || '思维活跃，适合文书工作'}}</text>
-        </view>
-        <view class="time-window-item">
-          <view class="time-window-header">
-            <text class="time-window-label">午间</text>
-            <text class="time-window-mood">{{forecast.time_windows.midday_mood || '平稳'}}</text>
+          <view class="time-content">
+            <view class="time-header">
+              <text class="time-period">{{item.period}}</text>
+              <text class="time-range">{{item.time}}</text>
+              <view class="energy-tag" style="background: {{item.tagBg}}; color: {{item.tagColor}}">
+                <view class="energy-dot" style="background: {{item.dotColor}}"></view>
+                <text class="energy-text">{{item.energyLevel}}</text>
+              </view>
+            </view>
+            <text class="time-desc">{{item.description}}</text>
+            <view class="time-tips" wx:if="{{item.bestForStr}}">
+              <text class="tip-label">适合：</text>
+              <text class="tip-value">{{item.bestForStr}}</text>
+            </view>
+            <view class="time-tips" wx:if="{{item.avoidForStr}}">
+              <text class="tip-label">避免：</text>
+              <text class="tip-value">{{item.avoidForStr}}</text>
+            </view>
           </view>
-          <text class="time-window-text">{{forecast.time_windows.midday || '适合协作，避免冲突'}}</text>
-        </view>
-        <view class="time-window-item">
-          <view class="time-window-header">
-            <text class="time-window-label">晚上</text>
-            <text class="time-window-mood">{{forecast.time_windows.evening_mood || '放松'}}</text>
-          </view>
-          <text class="time-window-text">{{forecast.time_windows.evening || '适合冥想或阅读'}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 本周星象提醒 -->
-    <view class="card">
-      <view class="card-header-row">
-        <text class="card-title">本周星象提醒</text>
-        <text class="card-subtitle">{{weekRange || '1/20 - 1/26'}}</text>
-      </view>
-      <view class="weekly-events">
-        <view class="event-item" wx:for="{{weeklyEvents}}" wx:key="date">
-          <text class="event-date">{{item.date}}</text>
-          <text class="event-desc">{{item.description}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 今日行运星象 -->
+    <!-- ========== 深度解读层 ========== -->
+    
+    <!-- 5. 今日行运星象 -->
     <view class="card technical-card">
       <view class="card-header-row">
         <text class="card-title">今日行运星象</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="chart">查看详情</view>
       </view>
-      
-      <view class="chart-content">
-        <view class="chart-legend">
-          <view class="legend-item"><view class="dot aspect-sextile"></view><text>六合</text></view>
-          <view class="legend-item"><view class="dot aspect-square"></view><text>刑</text></view>
-          <view class="legend-item"><view class="dot aspect-trine"></view><text>拱</text></view>
-          <view class="legend-item"><view class="dot aspect-opposition"></view><text>冲</text></view>
-        </view>
         
-        <view class="chart-wrapper" wx:if="{{transitChartData.innerPositions.length > 0}}">
-          <astro-chart
-            type="transit"
-            positions="{{transitChartData.innerPositions}}"
-            outerPositions="{{transitChartData.outerPositions}}"
-            aspects="{{transitChartData.aspects}}"
-            houseCusps="{{transitChartData.houseCusps}}"
-            width="350"
-            height="350"
-          ></astro-chart>
+        <view class="chart-content">
+          <view class="chart-legend">
+            <view class="legend-item"><view class="dot aspect-sextile"></view><text>六合</text></view>
+            <view class="legend-item"><view class="dot aspect-square"></view><text>刑</text></view>
+            <view class="legend-item"><view class="dot aspect-trine"></view><text>拱</text></view>
+            <view class="legend-item"><view class="dot aspect-opposition"></view><text>冲</text></view>
+          </view>
+          
+          <view class="chart-wrapper" wx:if="{{transitChartData.innerPositions.length > 0}}">
+            <astro-chart
+              type="transit"
+              positions="{{transitChartData.innerPositions}}"
+              outerPositions="{{transitChartData.outerPositions}}"
+              aspects="{{transitChartData.aspects}}"
+              houseCusps="{{transitChartData.houseCusps}}"
+              width="350"
+              height="350"
+            ></astro-chart>
+          </view>
+          <text class="chart-desc">内环：本命盘 | 外环：今日行运</text>
         </view>
-        <text class="chart-desc">内环：本命盘 | 外环：今日行运</text>
       </view>
-    </view>
 
-    <!-- 星象详情 - 相位矩阵 -->
+    <!-- 6. 相位矩阵 -->
     <view class="card technical-card" wx:if="{{technical.aspectMatrix}}">
       <view class="card-header-row">
         <text class="card-title">星象详情：相位矩阵</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="aspects">查看详情</view>
       </view>
-      
-      <view class="matrix-flat-container">
-        <view class="aspect-matrix">
-          <view class="matrix-row header">
-            <view class="matrix-cell label">
-              <view class="label-inner">
-                <text class="label-top">行运</text>
-                <text class="label-divider">/</text>
-                <text class="label-bottom">本命</text>
-              </view>
-            </view>
-            <view class="matrix-cell" wx:for="{{technical.aspectMatrix.header}}" wx:key="name">
-              <text class="header-label">{{item.label}}</text>
-            </view>
-          </view>
-          <view class="matrix-row" wx:for="{{technical.aspectMatrix.rows}}" wx:key="planet" wx:for-item="row">
-            <view class="matrix-cell label">
-              <text class="header-label">{{row.label}}</text>
-            </view>
-            <view class="matrix-cell {{cell ? 'has-aspect' : ''}}" wx:for="{{row.cells}}" wx:key="index" wx:for-item="cell">
-              <view class="aspect-matrix-info" wx:if="{{cell}}">
-                <text class="aspect-matrix-label" style="color: {{cell.matrixConfig.color}}">{{cell.matrixConfig.label}}</text>
+      <view class="technical-body">
+        <view class="aspect-matrix-container">
+          <view class="aspect-matrix">
+            <view wx:for="{{technical.aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i" class="matrix-row">
+              <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" class="matrix-cell {{cell.isHeader ? 'cell-header' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
+                <text wx:if="{{cell.isHeader}}" class="p-symbol">{{cell.symbol}}</text>
+                <view wx:elif="{{cell.aspect}}" class="a-info">
+                  <text class="a-symbol" style="color: {{cell.aspect.color}}">{{cell.aspect.symbol}}</text>
+                  <text class="a-orb">{{cell.aspect.orbText}}</text>
+                </view>
               </view>
             </view>
           </view>
@@ -204,111 +205,167 @@
       </view>
     </view>
 
-    <!-- 行运行星 -->
+    <!-- 7. 行运行星 -->
     <view class="card technical-card" wx:if="{{technical.transitPlanets}}">
       <view class="card-header-row">
         <text class="card-title">行运行星</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="planets">查看详情</view>
       </view>
-      
-      <view class="flat-table">
-        <view class="flat-table-header">
-          <text class="col-body">星体</text>
-          <text class="col-sign-degree">星座度数</text>
-          <text class="col-house">宫位</text>
-          <text class="col-retro">逆行</text>
+        
+        <view class="technical-body">
+          <view class="planet-info-table">
+            <view class="pi-row pi-head">
+              <view class="pi-cell pi-planet">星体</view>
+              <view class="pi-cell pi-sign">星座</view>
+              <view class="pi-cell pi-house">宫位</view>
+              <view class="pi-cell pi-retro">逆行</view>
+            </view>
+            <view class="pi-row" wx:for="{{technical.transitPlanets}}" wx:key="name">
+              <view class="pi-cell pi-planet">
+                <view class="pi-icon-circle">
+                  <text class="glyph" style="color: {{item.meta.color}}">{{item.meta.glyph}}</text>
+                </view>
+                <text class="pi-name">{{item.zhName}}</text>
+              </view>
+              <view class="pi-cell pi-sign">
+                <view class="pi-icon-circle mini">
+                  <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+                </view>
+                <view class="pi-sign-info">
+                  <text class="pi-sign-name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
+                  <text class="pi-degree">{{item.degreeText}}</text>
+                </view>
+              </view>
+              <view class="pi-cell pi-house">{{item.house}}宫</view>
+              <view class="pi-cell pi-retro">
+                <text wx:if="{{item.isRetrograde}}" class="retro-tag">R</text>
+                <text wx:else class="retro-none">-</text>
+              </view>
+            </view>
+          </view>
         </view>
-        <view class="flat-table-row" wx:for="{{technical.transitPlanets}}" wx:key="name">
-          <view class="col-body">
-            <text class="glyph" style="color: {{item.meta.color}}">{{item.meta.glyph}}</text>
-            <text class="name">{{item.zhName}}</text>
-          </view>
-          <view class="col-sign-degree">
-            <text class="name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
-            <text class="glyph-small" style="color: {{item.signMeta.color}}">{{item.signMeta.glyph}}</text>
-            <text class="degree">{{item.degreeText}}</text>
-          </view>
-          <view class="col-house">
-            <text class="house-val">{{item.house}}宫</text>
-          </view>
-          <view class="col-retro">
-            <text class="retro-text" wx:if="{{item.isRetrograde}}">Rx 逆行</text>
-            <text class="no-retro" wx:else>—</text>
-          </view>
-        </view>
-      </view>
     </view>
 
-    <!-- 行运小行星 -->
+    <!-- 8. 行运小行星 -->
     <view class="card technical-card" wx:if="{{technical.transitAsteroids}}">
       <view class="card-header-row">
         <text class="card-title">行运小行星</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="asteroids">查看详情</view>
       </view>
-      
-      <view class="flat-table">
-        <view class="flat-table-header">
-          <text class="col-body">星体</text>
-          <text class="col-sign-degree">星座度数</text>
-          <text class="col-house">宫位</text>
-          <text class="col-retro">逆行</text>
-        </view>
-        <view class="flat-table-row" wx:for="{{technical.transitAsteroids}}" wx:key="name">
-          <view class="col-body">
-            <text class="glyph" style="color: {{item.meta.color}}">{{item.meta.glyph}}</text>
-            <text class="name">{{item.zhName}}</text>
+      <view class="technical-body">
+        <view class="planet-info-table">
+          <view class="pi-row pi-head">
+            <view class="pi-cell pi-planet">星体</view>
+            <view class="pi-cell pi-sign">星座</view>
+            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-retro">逆行</view>
           </view>
-          <view class="col-sign-degree">
-            <text class="name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
-            <text class="glyph-small" style="color: {{item.signMeta.color}}">{{item.signMeta.glyph}}</text>
-            <text class="degree">{{item.degreeText}}</text>
-          </view>
-          <view class="col-house">
-            <text class="house-val">{{item.house}}宫</text>
-          </view>
-          <view class="col-retro">
-            <text class="retro-text" wx:if="{{item.isRetrograde}}">Rx 逆行</text>
-            <text class="no-retro" wx:else>—</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 宫主星 -->
-    <view class="card technical-card" wx:if="{{technical.houseRulers}}">
-      <view class="card-header-row">
-        <text class="card-title">宫主星</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">查看详情</view>
-      </view>
-      
-      <view class="flat-table rulers-flat-table">
-        <view class="flat-table-header">
-          <text class="col-house">宫位</text>
-          <text class="col-sign">星座</text>
-          <text class="col-ruler">宫主星</text>
-          <text class="col-flies">飞入宫位</text>
-        </view>
-        <view class="flat-table-row" wx:for="{{technical.houseRulers}}" wx:key="house">
-          <text class="col-house house-num">{{item.house}}</text>
-          <view class="col-sign">
-            <text class="glyph" style="color: {{item.signMeta.color}}">{{item.signMeta.glyph}}</text>
-            <text class="name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
-          </view>
-          <view class="col-ruler">
-            <text class="glyph" style="color: {{item.rulerMeta.color}}">{{item.rulerMeta.glyph}}</text>
-            <text class="name">{{item.zhRuler}}</text>
-          </view>
-          <view class="col-flies">
-            <text class="arrow">→</text>
-            <view class="flies-label">
-              <text class="glyph-small" style="color: {{item.fliesToSignMeta.color}}">{{item.fliesToSignMeta.glyph}}</text>
-              <text class="sign-name" style="color: {{item.fliesToSignMeta.color}}">{{item.zhFliesToSign}}</text>
-              <text class="house-name">{{item.fliesTo}}宫</text>
+          <view class="pi-row" wx:for="{{technical.transitAsteroids}}" wx:key="name">
+            <view class="pi-cell pi-planet">
+              <view class="pi-icon-circle">
+                <text class="glyph" style="color: {{item.meta.color}}">{{item.meta.glyph}}</text>
+              </view>
+              <text class="pi-name">{{item.zhName}}</text>
+            </view>
+            <view class="pi-cell pi-sign">
+              <view class="pi-icon-circle mini">
+                <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+              </view>
+              <view class="pi-sign-info">
+                <text class="pi-sign-name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
+                <text class="pi-degree">{{item.degreeText}}</text>
+              </view>
+            </view>
+            <view class="pi-cell pi-house">{{item.house}}宫</view>
+            <view class="pi-cell pi-retro">
+              <text wx:if="{{item.isRetrograde}}" class="retro-tag">R</text>
+              <text wx:else class="retro-none">-</text>
             </view>
           </view>
         </view>
       </view>
     </view>
+
+    <!-- 9. 宫主星 -->
+    <view class="card technical-card" wx:if="{{technical.houseRulers}}">
+      <view class="card-header-row">
+        <text class="card-title">宫主星</text>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">查看详情</view>
+      </view>
+      <view class="technical-body">
+        <view class="planet-info-table">
+          <view class="pi-row pi-head">
+            <view class="pi-cell pi-hr-house">宫位</view>
+            <view class="pi-cell pi-hr-sign">星座</view>
+            <view class="pi-cell pi-hr-ruler">宫主星</view>
+            <view class="pi-cell pi-hr-arrow"></view>
+            <view class="pi-cell pi-hr-fly">飞入宫位</view>
+          </view>
+          <view class="pi-row" wx:for="{{technical.houseRulers}}" wx:key="house">
+            <view class="pi-cell pi-hr-house">{{item.house}}</view>
+            <view class="pi-cell pi-hr-sign">
+              <view class="pi-icon-circle mini">
+                <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+              </view>
+              <text class="pi-sign-name" style="color: {{item.signMeta.color}}">{{item.zhSign}}</text>
+            </view>
+            <view class="pi-cell pi-hr-ruler">
+              <view class="pi-icon-circle mini">
+                <text class="glyph-small" style="color: {{item.rulerMeta.color}}">{{item.rulerMeta.glyph}}</text>
+              </view>
+              <text class="pi-name">{{item.zhRuler}}</text>
+            </view>
+            <view class="pi-cell pi-hr-arrow"></view>
+            <view class="pi-cell pi-hr-fly">
+              <view class="fly-capsule">
+                <text class="fly-arrow">→</text>
+                <image class="pi-icon mini-fly" src="{{item.fliesToSignIcon}}" mode="aspectFit"></image>
+                <text class="fly-text" style="color: {{item.fliesToSignMeta.color}}">{{item.zhFliesToSign}}</text>
+                <text class="fly-house">{{item.fliesTo}}宫</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 趋势预览层 ========== -->
+
+    <!-- 8. 本周运势趋势 -->
+    <view class="weekly-section card">
+      <view class="card-header-row">
+        <text class="card-title">本周趋势</text>
+        <text class="card-subtitle">{{weekRange}}</text>
+      </view>
+      
+      <!-- 柱状图 -->
+      <view class="weekly-chart" wx:if="{{weeklyScores.length > 0}}">
+        <view class="chart-bar-group" wx:for="{{weeklyScores}}" wx:key="date">
+          <view class="chart-bar-wrapper">
+          <view class="chart-bar" style="height: {{item.score}}%; background: {{item.barColor}}">
+            <text class="bar-score" wx:if="{{item.score >= 60}}">{{item.score}}</text>
+          </view>
+            <text class="bar-score-below" wx:if="{{item.score < 60}}">{{item.score}}</text>
+          </view>
+          <text class="chart-day {{item.isToday ? 'today' : ''}}">{{item.day}}</text>
+          <view class="chart-label" wx:if="{{item.label}}">
+            <text class="label-icon">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 关键日期 -->
+      <view class="key-dates" wx:if="{{weeklyEvents.length > 0}}">
+        <view class="key-date-item" wx:for="{{weeklyEvents}}" wx:key="date">
+          <view class="key-date-badge">
+            <text class="key-date-icon">{{item.label || '重点'}}</text>
+            <text class="key-date-day">{{item.date}}</text>
+          </view>
+          <text class="key-date-reason">{{item.description}}</text>
+        </view>
+      </view>
+    </view>
+      
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.LOADING}}">

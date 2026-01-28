@@ -17,6 +17,8 @@ const API_ENDPOINTS = {
   WIKI_HOME: '/api/wiki/home',
   WIKI_ITEMS: '/api/wiki/items',
   WIKI_SEARCH: '/api/wiki/search',
+  USER_STATUS: '/api/user/status',
+  ASTRO_EVENTS: '/api/astro/events',
 };
 
 module.exports = {

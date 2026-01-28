@@ -4,47 +4,106 @@
     <text class="header-desc">深入解析你的本命星盘与心理维度</text>
   </view>
 
-  <view class="card-base section">
+  <view class="card-base section" style="margin-bottom: 32rpx;">
     <view class="section-header">
       <text class="section-title">本命星盘总览</text>
-      <view class="section-action" bindtap="toggleZoom">全屏查看</view>
     </view>
-    <view class="chart-box">
+    <view class="chart-box" style="height: {{chartSize}}px;">
       <astro-chart
+        wx:if="{{!selectedPlanet}}"
         type="natal"
         positions="{{chartPositions}}"
         aspects="{{chartAspects}}"
         houseCusps="{{chartHouseCusps}}"
         width="{{chartSize}}"
         height="{{chartSize}}"
+        useExternalDetail="{{true}}"
+        bind:planetdetail="onPlanetDetail"
+        bind:planetdetailclose="closePlanetDetail"
       ></astro-chart>
     </view>
+
+    <!-- 行星详情弹窗 (External Overlay) -->
+    <cover-view
+      wx:if="{{selectedPlanet}}"
+      class="planet-detail-mask"
+      bindtap="closePlanetDetail"
+    ></cover-view>
+
+    <cover-view
+      wx:if="{{selectedPlanet}}"
+      class="planet-detail-card"
+      catchtap="stopProp"
+    >
+      <cover-view class="card-close" bindtap="closePlanetDetail">×</cover-view>
+
+      <cover-view class="card-header">
+        <cover-view class="planet-glyph" style="color: {{selectedPlanet.color}};">{{selectedPlanet.glyph}}</cover-view>
+        <cover-view class="planet-info">
+          <cover-view class="planet-name-row">
+            <cover-view class="planet-name" style="color: {{selectedPlanet.color}};">{{selectedPlanet.displayName}}</cover-view>
+            <cover-view class="planet-badge">{{selectedPlanet.isRetrograde ? '逆行' : '顺行'}}</cover-view>
+          </cover-view>
+          <cover-view class="planet-keywords" wx:if="{{selectedPlanet.keywords}}">{{selectedPlanet.keywords}}</cover-view>
+        </cover-view>
+      </cover-view>
+
+      <cover-view class="card-section">
+        <cover-view class="section-label">星座位置</cover-view>
+        <cover-view class="section-row">
+          <cover-view class="section-text">位于</cover-view>
+          <cover-view class="sign-name" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signName}}</cover-view>
+          <cover-view class="sign-glyph" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signGlyph}}</cover-view>
+          <cover-view class="section-text">{{selectedPlanet.degree}}°{{selectedPlanet.minute}}'</cover-view>
+        </cover-view>
+      </cover-view>
+
+      <cover-view class="card-section" wx:if="{{selectedPlanet.house}}">
+        <cover-view class="section-label">宫位信息</cover-view>
+        <cover-view class="section-row">
+          <cover-view class="section-text">位于</cover-view>
+          <cover-view class="house-num">{{selectedPlanet.house}}</cover-view>
+          <cover-view class="section-text">宫</cover-view>
+          <block wx:if="{{selectedPlanet.ruledHouses}}">
+            <cover-view class="divider">|</cover-view>
+            <cover-view class="section-text">守护</cover-view>
+            <cover-view class="house-num">{{selectedPlanet.ruledHouses}}</cover-view>
+            <cover-view class="section-text">宫</cover-view>
+          </block>
+        </cover-view>
+      </cover-view>
+
+      <cover-view class="card-section" wx:if="{{selectedPlanet.aspects.length > 0}}">
+        <cover-view class="section-label">主要相位</cover-view>
+        <cover-view class="aspect-list">
+          <cover-view class="aspect-row" wx:for="{{selectedPlanet.aspects}}" wx:key="index">
+            <cover-view class="section-text">与</cover-view>
+            <cover-view class="other-planet" style="color: {{item.otherColor}};">{{item.otherName}}</cover-view>
+            <cover-view class="other-glyph" style="color: {{item.otherColor}};">{{item.otherGlyph}}</cover-view>
+            <cover-view class="section-text">成</cover-view>
+            <cover-view class="aspect-angle" style="color: {{item.aspectColor}};">{{item.angle}}°</cover-view>
+            <cover-view class="aspect-symbol" style="color: {{item.aspectColor}};">{{item.aspectSymbol}}</cover-view>
+            <cover-view class="aspect-orb">{{item.orb}}°</cover-view>
+            <cover-view class="cross-badge" wx:if="{{item.isCross}}">跨盘</cover-view>
+          </cover-view>
+        </cover-view>
+      </cover-view>
+    </cover-view>
   </view>
 
   <view class="triad-grid">
     <block wx:for="{{big3}}" wx:key="id">
       <view class="triad-item" bindtap="onSelectPlanet" data-item="{{item}}">
-        <view class="triad-icon-wrapper">
-          <svg wx:if="{{item.id === 'sun'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-          <svg wx:if="{{item.id === 'moon'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-          <svg wx:if="{{item.id === 'asc'}}" class="triad-icon" viewBox="0 0 24 24" fill="none" stroke="{{item.color}}" stroke-width="2">
-            <polyline points="18 15 12 9 6 15"/>
-            <line x1="12" y1="9" x2="12" y2="21"/>
-          </svg>
+        <view class="triad-row">
+          <view class="triad-icon-wrapper">
+            <view class="triad-icon-placeholder" style="color: {{item.color}};">
+              <view wx:if="{{item.id === 'sun'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
+              <view wx:if="{{item.id === 'moon'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/moon.svg'); mask-image: url('/images/astro-symbols/moon.svg');"></view>
+              <view wx:if="{{item.id === 'asc'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/asc.svg'); mask-image: url('/images/asc.svg');"></view>
+            </view>
+          </view>
+          <text class="triad-name">{{item.name}}</text>
         </view>
-        <text class="triad-name">{{item.name}}</text>
         <text class="triad-sign">{{item.sign}}</text>
       </view>
     </block>
@@ -58,16 +117,15 @@
     <view class="premium-btn">立即解锁</view>
   </view>
 
-  <view class="card-base section">
+  <view class="card-base section" style="margin-bottom: 64rpx;">
     <view class="section-header">
       <text class="section-title">心理维度分析 (12维度)</text>
     </view>
-    <view class="chart-box" style="height: 400rpx;">
+    <view class="chart-box" style="height: 500rpx;">
       <canvas type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
     </view>
     <view class="radar-summary">
-      <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。</text>
-      <text class="link-btn">查看详情 ></text>
+      <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。<text class="link-btn">查看详情></text></text>
     </view>
   </view>
 
@@ -76,7 +134,9 @@
     <view class="domain-grid">
       <block wx:for="{{lifeDomains}}" wx:key="id">
         <view class="domain-item" bindtap="onDomainClick" data-id="{{item.id}}">
-           <view class="domain-indicator"></view>
+           <view class="domain-icon-box" style="color: {{item.iconColor}}; background-color: {{item.iconBg}};">
+             <view class="domain-icon colored-icon" style="-webkit-mask-image: url({{item.icon}}); mask-image: url({{item.icon}});"></view>
+           </view>
            <text class="domain-name">{{item.title}}</text>
            <text class="domain-text">{{item.desc}}</text>
         </view>
@@ -86,75 +146,238 @@
 
   <view class="section">
     <text class="section-title" style="margin-bottom: 24rpx; display: block;">专业技术附录</text>
+    
+    <!-- 1. 元素矩阵 -->
+    <view class="accordion-item">
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="elements">
+        <text class="accordion-label">元素矩阵</text>
+        <text class="accordion-icon">{{expandedSection === 'elements' ? '-' : '+'}}</text>
+      </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'elements'}}" style="padding: 0;">
+        <view class="element-table">
+          <view class="el-row el-head">
+            <view class="el-cell"></view>
+            <view class="el-cell">开创</view>
+            <view class="el-cell">固定</view>
+            <view class="el-cell">变动</view>
+          </view>
+          
+          <view class="el-row">
+            <view class="el-cell el-label" style="color: #FF4D4F">火</view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.fire.cardinal}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.fire.cardinal.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.fire.fixed}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.fire.fixed.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.fire.mutable}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.fire.mutable.length === 0}}" class="empty-dash">-</text>
+            </view>
+          </view>
+
+          <view class="el-row">
+            <view class="el-cell el-label" style="color: #C6A062">土</view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.earth.cardinal}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.earth.cardinal.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.earth.fixed}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.earth.fixed.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.earth.mutable}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.earth.mutable.length === 0}}" class="empty-dash">-</text>
+            </view>
+          </view>
+
+          <view class="el-row">
+            <view class="el-cell el-label" style="color: #40A9FF">风</view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.air.cardinal}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.air.cardinal.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.air.fixed}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.air.fixed.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.air.mutable}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.air.mutable.length === 0}}" class="empty-dash">-</text>
+            </view>
+          </view>
+
+          <view class="el-row">
+            <view class="el-cell el-label" style="color: #52C41A">水</view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.water.cardinal}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.water.cardinal.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.water.fixed}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.water.fixed.length === 0}}" class="empty-dash">-</text>
+            </view>
+            <view class="el-cell">
+              <view class="planet-capsule" wx:for="{{elementMatrix.water.mutable}}" wx:key="id" style="color: {{item.color}}">{{item.symbol}}</view>
+              <text wx:if="{{elementMatrix.water.mutable.length === 0}}" class="empty-dash">-</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 2. 相位矩阵 -->
+    <view class="accordion-item">
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
+        <text class="accordion-label">相位矩阵</text>
+        <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
+      </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}" style="padding: 0;">
+        <view class="aspect-matrix-container">
+          <view class="aspect-matrix">
+            <view wx:for="{{aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i" class="matrix-row">
+              <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" class="matrix-cell {{cell.isHeader ? 'cell-header' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
+                <text wx:if="{{cell.isHeader}}" class="p-symbol">{{cell.symbol}}</text>
+                <view wx:elif="{{cell.aspect}}" class="a-info">
+                  <text class="a-symbol" style="color: {{cell.aspect.color}}">{{cell.aspect.symbol}}</text>
+                  <text class="a-orb">2°0'</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 3. 行星信息 -->
     <view class="accordion-item">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="planets">
-        <text class="accordion-label">行星列表</text>
+        <text class="accordion-label">行星信息</text>
         <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
       </view>
-      <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}">
-        <view class="data-table">
-          <view class="table-row">
-            <text class="table-cell head">行星</text>
-            <text class="table-cell head">星座</text>
-            <text class="table-cell head">宫位</text>
-            <text class="table-cell head right">度数</text>
+      <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}" style="padding: 0;">
+        <view class="planet-info-table">
+          <view class="pi-row pi-head">
+            <view class="pi-cell pi-planet">星体</view>
+            <view class="pi-cell pi-sign">星座</view>
+            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-retro">逆行</view>
           </view>
           <block wx:for="{{planets}}" wx:key="id">
-            <view class="table-row">
-              <view class="table-cell"><text style="color: {{item.color}}; margin-right: 8rpx;">{{item.symbol}}</text>{{item.name}}</view>
-              <text class="table-cell">{{item.sign}}</text>
-              <text class="table-cell">{{item.house}}宫</text>
-              <text class="table-cell right">{{item.degree}}</text>
+            <view class="pi-row">
+              <view class="pi-cell pi-planet">
+                <view class="pi-icon-circle">
+                   <text class="glyph" style="color: {{item.color}}">{{item.symbol}}</text>
+                </view>
+                <text class="pi-name">{{item.name}}</text>
+              </view>
+              <view class="pi-cell pi-sign">
+                <view class="pi-icon-circle mini">
+                   <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+                </view>
+                <view class="pi-sign-info">
+                  <text class="pi-sign-name" style="color: {{item.color}}">{{item.sign}}</text>
+                  <text class="pi-degree">{{item.degree}}</text>
+                </view>
+              </view>
+              <view class="pi-cell pi-house">{{item.house}}宫</view>
+              <view class="pi-cell pi-retro">
+                <text wx:if="{{item.isRetrograde}}" class="retro-tag">R</text>
+                <text wx:else class="retro-none">-</text>
+              </view>
             </view>
           </block>
         </view>
       </view>
     </view>
 
+    <!-- 4. 小行星信息 -->
     <view class="accordion-item">
-      <view class="accordion-head" bindtap="toggleAccordion" data-id="elements">
-        <text class="accordion-label">元素矩阵</text>
-        <text class="accordion-icon">{{expandedSection === 'elements' ? '-' : '+'}}</text>
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="asteroids">
+        <text class="accordion-label">小行星信息</text>
+        <text class="accordion-icon">{{expandedSection === 'asteroids' ? '-' : '+'}}</text>
       </view>
-      <view class="accordion-body" wx:if="{{expandedSection === 'elements'}}">
-        <view class="matrix-grid">
-          <view class="matrix-item">
-             <text class="matrix-label">火</text>
-             <text class="matrix-val" style="color: var(--danger)">3</text>
+      <view class="accordion-body" wx:if="{{expandedSection === 'asteroids'}}" style="padding: 0;">
+        <view class="planet-info-table">
+          <view class="pi-row pi-head">
+            <view class="pi-cell pi-planet">星体</view>
+            <view class="pi-cell pi-sign">星座</view>
+            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-retro">逆行</view>
           </view>
-          <view class="matrix-item">
-             <text class="matrix-label">土</text>
-             <text class="matrix-val" style="color: var(--success)">4</text>
-          </view>
-          <view class="matrix-item">
-             <text class="matrix-label">风</text>
-             <text class="matrix-val" style="color: var(--warning)">2</text>
-          </view>
-          <view class="matrix-item">
-             <text class="matrix-label">水</text>
-             <text class="matrix-val" style="color: var(--info)">1</text>
-          </view>
+          <block wx:for="{{asteroids}}" wx:key="id">
+            <view class="pi-row">
+              <view class="pi-cell pi-planet">
+                <view class="pi-icon-circle">
+                   <text class="glyph" style="color: {{item.color}}">{{item.symbol}}</text>
+                </view>
+                <text class="pi-name">{{item.name}}</text>
+              </view>
+              <view class="pi-cell pi-sign">
+                <view class="pi-icon-circle mini">
+                   <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+                </view>
+                <view class="pi-sign-info">
+                  <text class="pi-sign-name" style="color: {{item.color}}">{{item.sign}}</text>
+                  <text class="pi-degree">{{item.degree}}</text>
+                </view>
+              </view>
+              <view class="pi-cell pi-house">{{item.house}}宫</view>
+              <view class="pi-cell pi-retro">
+                <text wx:if="{{item.isRetrograde}}" class="retro-tag">R</text>
+                <text wx:else class="retro-none">-</text>
+              </view>
+            </view>
+          </block>
         </view>
-        <text class="summary-text" style="font-size: 20rpx; margin-top: 16rpx; display: block; opacity: 0.6;">* 基本: 4 / 固定: 3 / 变动: 3</text>
       </view>
     </view>
 
+    <!-- 5. 宫主星信息 -->
     <view class="accordion-item">
-      <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
-        <text class="accordion-label">相位表</text>
-        <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
+      <view class="accordion-head" bindtap="toggleAccordion" data-id="houseRulers">
+        <text class="accordion-label">宫主星信息</text>
+        <text class="accordion-icon">{{expandedSection === 'houseRulers' ? '-' : '+'}}</text>
       </view>
-      <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}">
-        <block wx:for="{{aspects}}" wx:key="id">
-          <view class="table-row">
-            <view class="table-cell">
-               <text style="font-weight: 600">{{item.fromName}}</text> - <text style="font-weight: 600">{{item.toName}}</text>
-            </view>
-            <view class="table-cell right" style="color: {{item.type === 'trine' ? 'var(--info)' : 'var(--danger)'}}">
-               {{item.type === 'trine' ? '拱' : item.type === 'square' ? '刑' : item.type === 'conjunction' ? '合' : '冲'}}
-            </view>
+      <view class="accordion-body" wx:if="{{expandedSection === 'houseRulers'}}" style="padding: 0;">
+        <view class="planet-info-table">
+          <view class="pi-row pi-head">
+            <view class="pi-cell pi-hr-house">宫位</view>
+            <view class="pi-cell pi-hr-sign">星座</view>
+            <view class="pi-cell pi-hr-ruler">宫主星</view>
+            <view class="pi-cell pi-hr-arrow"></view>
+            <view class="pi-cell pi-hr-fly">飞入宫位</view>
           </view>
-        </block>
+          <block wx:for="{{houseRulers}}" wx:key="house">
+            <view class="pi-row">
+              <view class="pi-cell pi-hr-house">{{item.house}}</view>
+              <view class="pi-cell pi-hr-sign">
+                <view class="pi-icon-circle mini">
+                  <image class="pi-icon" src="{{item.signIcon}}" mode="aspectFit"></image>
+                </view>
+                <text class="pi-sign-name" style="color: {{item.signColor}}">{{item.signName}}</text>
+              </view>
+              <view class="pi-cell pi-hr-ruler">
+                <view class="pi-icon-circle mini">
+                   <text class="glyph-small" style="color: {{item.rulerColor}}">{{item.rulerName === '太阳' ? '☉' : item.rulerName === '月亮' ? '☽' : item.rulerName === '水星' ? '☿' : item.rulerName === '金星' ? '♀' : item.rulerName === '火星' ? '♂' : item.rulerName === '木星' ? '♃' : item.rulerName === '土星' ? '♄' : item.rulerName === '天王星' ? '♅' : item.rulerName === '海王星' ? '♆' : '♇'}}</text>
+                </view>
+                <text class="pi-name">{{item.rulerName}}</text>
+              </view>
+              <view class="pi-cell pi-hr-arrow"></view>
+              <view class="pi-cell pi-hr-fly">
+                <view class="fly-capsule">
+                  <text class="fly-arrow">→</text>
+                  <image class="pi-icon mini-fly" src="{{item.fliesToSignIcon}}" mode="aspectFit"></image>
+                  <text class="fly-text" style="color: {{item.fliesToSignColor}}">{{item.fliesToSignName}}</text>
+                  <text class="fly-house">{{item.fliesToHouse}}宫</text>
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
       </view>
     </view>
   </view>
@@ -188,6 +411,7 @@
         </view>
        <view class="fs-content">
           <astro-chart
+            wx:if="{{!selectedPlanet}}"
             type="natal"
             positions="{{chartPositions}}"
             aspects="{{chartAspects}}"

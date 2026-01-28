@@ -78,15 +78,11 @@ async function parseBirthInput(query: Record<string, unknown>): Promise<BirthInp
   };
 }
 
-function resolveLang(value: unknown): Language {
-  return value === 'en' ? 'en' : 'zh';
-}
-
 // GET /api/daily - 每日运势
 dailyRouter.get('/', async (req, res) => {
   try {
     const requestStart = performance.now();
-    const lang = resolveLang(req.query.lang);
+    const lang: Language = 'zh';
     const birth = await parseBirthInput(req.query as Record<string, unknown>);
     let date = new Date(req.query.date as string || new Date().toISOString().split('T')[0]);
     if (isNaN(date.getTime())) {
@@ -133,7 +129,7 @@ dailyRouter.get('/', async (req, res) => {
 dailyRouter.get('/detail', async (req, res) => {
   try {
     const requestStart = performance.now();
-    const lang = resolveLang(req.query.lang);
+    const lang: Language = 'zh';
     const birth = await parseBirthInput(req.query as Record<string, unknown>);
     let date = new Date(req.query.date as string || new Date().toISOString().split('T')[0]);
     if (isNaN(date.getTime())) {

@@ -9,6 +9,15 @@ import {
   SIGN_NAMES,
   ASPECT_COLORS,
   VISUAL_LAYER_STYLES,
+  SINGLE_CHART_LAYOUT,
+  DUAL_CHART_LAYOUT,
+  ASPECT_SYMBOLS,
+  PLANET_NAMES_ZH,
+  SIGN_NAMES_ZH,
+  PLANET_KEYWORDS,
+  SIGN_RULERS,
+  ASPECT_ANGLES,
+  SIGN_SVG_PATHS,
 } from '../../constants/chart-config.js';
 
 import {
@@ -21,8 +30,6 @@ import {
   calculateAspectsFromAngles,
   calculateCrossAspectsFromAngles,
   getAspectLayer,
-  isLuminaryAspect,
-  isOuterPlanetOnlyAspect,
   stripOuterPrefix,
 } from './chart-utils.js';
 
@@ -67,6 +74,11 @@ Component({
       type: Object,
       value: null
     },
+    // 是否使用外部详情弹层
+    useExternalDetail: {
+      type: Boolean,
+      value: false
+    },
   },
 
   data: {
@@ -77,24 +89,188 @@ Component({
 
   lifetimes: {
     attached() {
+      this.imagesLoaded = false;
+      this.isImagesLoading = false;
       this.initCanvas();
     },
     ready() {
+      // 等待图片加载完成后再绘制
       if (this.data.positions.length > 0) {
-        this.drawChart();
+        this.ensureImagesLoaded();
       }
     },
   },
 
   observers: {
     'positions, outerPositions, aspects, houseCusps, type': function() {
-      if (this.canvas) {
+      if (!this.canvas) return;
+      if (!this.data.positions || this.data.positions.length === 0) return;
+
+      if (this.imagesLoaded) {
         this.drawChart();
+        return;
       }
+
+      this.ensureImagesLoaded();
     },
   },
 
   methods: {
+    /**
+     * 预加载所有符号图片
+     * @returns {Promise} 所有图片加载完成的 Promise
+     */
+    loadImages() {
+      return new Promise((resolve) => {
+        if (!this.canvas) {
+          resolve();
+          return;
+        }
+
+        this.imageCache = {};
+        const loadPromises = [];
+
+        // 行星图片映射
+        const planetImages = {
+          'Sun': 'sun',
+          'Moon': 'moon',
+          'Mercury': 'mercury',
+          'Venus': 'venus',
+          'Mars': 'mars',
+          'Jupiter': 'jupiter',
+          'Saturn': 'saturn',
+          'Uranus': 'uranus',
+          'Neptune': 'neptune',
+          'Pluto': 'pluto',
+          'Ascendant': 'ascendant',
+          'Rising': 'ascendant',
+          'Midheaven': 'ascendant',  // 暂时使用 ascendant 图标
+          'MC': 'ascendant',          // 暂时使用 ascendant 图标
+          'North Node': 'north node',
+        };
+
+        // 星座图片映射
+        const signImages = {
+          'Aries': 'aries',
+          'Taurus': 'taurus',
+          'Gemini': 'gemini',
+          'Cancer': 'cancer',
+          'Leo': 'leo',
+          'Virgo': 'virgo',
+          'Libra': 'libra',
+          'Scorpio': 'scorpio',
+          'Sagittarius': 'sagittarius',
+          'Capricorn': 'capricorn',
+          'Aquarius': 'aquarius',
+          'Pisces': 'pisces',
+        };
+
+        // 加载行星图片
+        Object.entries(planetImages).forEach(([key, filename]) => {
+          const img = this.canvas.createImage();
+          const imagePath = `/images/astro-symbols/${filename}.png`;
+          console.log(`[Image Load] Attempting to load planet: ${key} from ${imagePath}`);
+
+          const promise = new Promise((resolveImg) => {
+            img.onload = () => {
+              console.log(`[Image Load] ✓ Successfully loaded planet: ${key}, size: ${img.width}x${img.height}`);
+              resolveImg();
+            };
+            img.onerror = (err) => {
+              console.error(`[Image Load] ✗ Failed to load planet image: ${filename}`, err);
+              resolveImg();
+            };
+            img.src = imagePath;
+          });
+          this.imageCache[key] = img;
+          loadPromises.push(promise);
+        });
+
+        // 加载星座图片
+        Object.entries(signImages).forEach(([key, filename]) => {
+          const img = this.canvas.createImage();
+          const imagePath = `/images/astro-symbols/${filename}.png`;
+          console.log(`[Image Load] Attempting to load sign: ${key} from ${imagePath}`);
+
+          const promise = new Promise((resolveImg) => {
+            img.onload = () => {
+              console.log(`[Image Load] ✓ Successfully loaded sign: ${key}, size: ${img.width}x${img.height}`);
+              resolveImg();
+            };
+            img.onerror = (err) => {
+              console.error(`[Image Load] ✗ Failed to load sign image: ${filename}`, err);
+              resolveImg();
+            };
+            img.src = imagePath;
+          });
+          this.imageCache[`sign_${key}`] = img;
+          loadPromises.push(promise);
+        });
+
+        // 等待所有图片加载完成
+        Promise.all(loadPromises).then(() => {
+          this.imagesLoaded = true;
+          console.log('All astro symbol images loaded successfully');
+          resolve();
+        });
+      });
+    },
+
+    /**
+     * 绘制图片符号（带颜色着色）
+     * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+     * @param {string} key - 图片缓存键
+     * @param {number} x - 中心 X 坐标
+     * @param {number} y - 中心 Y 坐标
+     * @param {number} size - 符号大小
+     * @param {string} color - 着色颜色（可选）
+     */
+    drawImageSymbol(ctx, key, x, y, size, color) {
+      console.log(`[Draw Symbol] Attempting to draw: ${key} at (${x.toFixed(1)}, ${y.toFixed(1)}), size: ${size}px, color: ${color || 'none'}`);
+
+      if (!this.imageCache) {
+        console.error(`[Draw Symbol] ✗ Image cache not initialized`);
+        return false;
+      }
+
+      const img = this.imageCache[key];
+      if (!img) {
+        console.warn(`[Draw Symbol] ✗ Image not found in cache: ${key}`);
+        console.log(`[Draw Symbol] Available cache keys:`, Object.keys(this.imageCache));
+        return false;
+      }
+
+      console.log(`[Draw Symbol] Image found in cache: ${key}, complete: ${img.complete}, width: ${img.width}, height: ${img.height}`);
+
+      if (img && img.complete) {
+        ctx.save();
+
+        // 如果提供了颜色，使用着色技术
+        if (color) {
+          // 先绘制图片
+          ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+
+          // 使用 source-atop 模式，只在现有内容上绘制颜色
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.fillStyle = color;
+          ctx.fillRect(x - size / 2, y - size / 2, size, size);
+
+          // 恢复默认混合模式
+          ctx.globalCompositeOperation = 'source-over';
+        } else {
+          // 不着色，直接绘制
+          ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+        }
+
+        ctx.restore();
+        console.log(`[Draw Symbol] ✓ Successfully drew image: ${key}${color ? ' with color: ' + color : ''}`);
+        return true;
+      }
+
+      console.warn(`[Draw Symbol] ✗ Image not complete: ${key}`);
+      return false;
+    },
+
     /**
      * 初始化 Canvas
      */
@@ -115,30 +291,102 @@ Component({
             this.canvas = canvas;
             this.ctx = ctx;
 
+            // Canvas 初始化完成后，加载图片再绘制
             if (this.data.positions.length > 0) {
-              this.drawChart();
+              this.ensureImagesLoaded();
             }
           }
         });
+    },
+
+    ensureImagesLoaded() {
+      if (this.imagesLoaded || this.isImagesLoading) return;
+      this.isImagesLoading = true;
+      console.log('[Canvas Init] Canvas initialized, loading images...');
+      this.loadImages().then(() => {
+        this.isImagesLoading = false;
+        console.log('[Canvas Init] Images loaded, drawing chart...');
+        this.drawChart();
+      });
+    },
+
+    /**
+     * 绘制 SVG 路径符号
+     * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+     * @param {string} pathData - SVG 路径数据
+     * @param {number} x - 中心 X 坐标
+     * @param {number} y - 中心 Y 坐标
+     * @param {number} size - 符号大小
+     * @param {string} color - 填充颜色
+     * @param {boolean} stroke - 是否描边（默认填充）
+     */
+    drawSvgPath(ctx, pathData, x, y, size, color, stroke = false) {
+      if (!pathData || !this.canvas) return false;
+
+      try {
+        // 创建 Path2D 对象
+        const path = this.canvas.createPath2D ? this.canvas.createPath2D(pathData) : new Path2D(pathData);
+
+        // 计算缩放比例（SVG 原始 viewBox 是 24x24）
+        const scale = size / 24;
+
+        ctx.save();
+        // 移动到目标位置并缩放
+        ctx.translate(x - size / 2, y - size / 2);
+        ctx.scale(scale, scale);
+
+        if (stroke) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2 / scale;
+          ctx.stroke(path);
+        } else {
+          ctx.fillStyle = color;
+          ctx.fill(path);
+        }
+
+        ctx.restore();
+        return true;
+      } catch (e) {
+        // Path2D 不支持，回退到文本渲染
+        return false;
+      }
     },
 
     /**
      * 绘制星盘
      */
     drawChart() {
-      if (!this.ctx) return;
+      if (!this.ctx) {
+        console.warn('[Draw Chart] Canvas context not initialized');
+        return;
+      }
+
+      // 检查图片是否加载完成
+      if (!this.imagesLoaded) {
+        console.warn('[Draw Chart] Images not loaded yet, waiting...');
+        // 等待图片加载完成后再绘制
+        setTimeout(() => this.drawChart(), 100);
+        return;
+      }
+
+      console.log('[Draw Chart] Starting chart drawing with loaded images');
 
       const ctx = this.ctx;
       const { width, height, type, positions, outerPositions, houseCusps } = this.data;
       const cx = width / 2;
       const cy = height / 2;
+      const baseRadius = Math.min(cx, cy);
 
       // 清空画布
       ctx.clearRect(0, 0, width, height);
+      this.clickAreas = [];
 
       // 获取配置
       const chartConfig = this.data.config || getChartConfig(type);
       const isBiWheel = type === 'synastry' || type === 'transit';
+
+      // 选择布局配置
+      const layout = isBiWheel ? DUAL_CHART_LAYOUT : SINGLE_CHART_LAYOUT;
 
       // 处理行星数据
       let innerPlanets = this.processPlanets(positions);
@@ -160,14 +408,23 @@ Component({
       }
 
       // 应用防重叠算法
-      innerDisplayPlanets = spreadPlanets(innerDisplayPlanets, 8);
+      innerDisplayPlanets = spreadPlanets(innerDisplayPlanets, isBiWheel ? 10 : 8);
       if (outerPlanets.length > 0) {
-        outerPlanets = spreadPlanets(outerPlanets, 8);
+        outerPlanets = spreadPlanets(outerPlanets, 10);
       }
 
       // 计算相位
       let allAspects = [];
-      if (this.data.aspects && this.data.aspects.length > 0) {
+      const hasProvidedAspects = this.data.aspects && this.data.aspects.length > 0;
+
+      if (type === 'transit' && isBiWheel && 'crossAspects' in chartConfig) {
+        // 行运盘仅保留跨盘相位
+        allAspects = calculateCrossAspectsFromAngles(
+          innerAspectPlanets,
+          outerPlanets,
+          chartConfig.crossAspects
+        );
+      } else if (hasProvidedAspects) {
         allAspects = this.data.aspects;
       } else {
         // 自动计算相位
@@ -185,24 +442,40 @@ Component({
       }
 
       // 过滤相位
-      const filteredAspects = filterAspects(allAspects, singleConfig.aspects);
+      const aspectSettings = type === 'transit' && 'crossAspects' in chartConfig
+        ? chartConfig.crossAspects
+        : singleConfig.aspects;
+      const filteredAspects = filterAspects(allAspects, aspectSettings);
 
       // 保存数据供点击事件使用
       this.chartData = {
         innerPlanets: innerDisplayPlanets,
         outerPlanets,
+        aspects: filteredAspects,
         rotation,
         cx,
         cy,
+        baseRadius,
+        layout,
+        isBiWheel,
       };
 
       // 绘制星盘各层
-      this.drawZodiacWheel(ctx, cx, cy, rotation);
-      this.drawHouseCusps(ctx, cx, cy, houseCusps, rotation);
-      this.drawAspects(ctx, cx, cy, filteredAspects, innerDisplayPlanets, outerPlanets, rotation, singleConfig);
-      this.drawPlanets(ctx, cx, cy, innerDisplayPlanets, rotation, false);
-      if (outerPlanets.length > 0) {
-        this.drawPlanets(ctx, cx, cy, outerPlanets, rotation, true);
+      this.drawZodiacWheel(ctx, cx, cy, baseRadius, rotation, layout);
+      this.drawHouseCusps(ctx, cx, cy, baseRadius, houseCusps, rotation, layout);
+      this.drawHouseCuspLabels(ctx, cx, cy, baseRadius, houseCusps, rotation, layout);
+      this.drawAspects(ctx, cx, cy, baseRadius, filteredAspects, innerDisplayPlanets, outerPlanets, rotation, singleConfig, layout);
+
+      // 绘制行星位置信息
+      if (isBiWheel) {
+        // 双盘：先绘制内环，再绘制外环
+        this.drawPlanetInfo(ctx, cx, cy, baseRadius, innerDisplayPlanets, rotation, layout, false);
+        this.drawPlanetInfo(ctx, cx, cy, baseRadius, outerPlanets, rotation, layout, true);
+        // 绘制分隔线
+        this.drawSeparator(ctx, cx, cy, baseRadius, layout);
+      } else {
+        // 单盘
+        this.drawPlanetInfo(ctx, cx, cy, baseRadius, innerDisplayPlanets, rotation, layout, false);
       }
     },
 
@@ -223,11 +496,11 @@ Component({
     /**
      * 绘制黄道带轮盘
      */
-    drawZodiacWheel(ctx, cx, cy, rotation) {
-      const outerRadius = Math.min(cx, cy) * 0.85;
-      const innerRadius = outerRadius * 0.75;
+    drawZodiacWheel(ctx, cx, cy, baseRadius, rotation, layout) {
+      const outerRadius = baseRadius * layout.outerRim;
+      const innerRadius = baseRadius * layout.zodiacInner;
 
-      // 绘制12个星座扇形
+      // 绘制12个星座扇形（不再绘制星座符号，由宫头标注统一处理）
       for (let i = 0; i < 12; i++) {
         const startAngle = (i * 30 - rotation) * Math.PI / 180;
         const endAngle = ((i + 1) * 30 - rotation) * Math.PI / 180;
@@ -239,25 +512,6 @@ Component({
         ctx.arc(cx, cy, innerRadius, endAngle, startAngle, true);
         ctx.closePath();
         ctx.fill();
-
-        // 绘制星座符号
-        const signAngle = (i * 30 + 15 - rotation) * Math.PI / 180;
-        const signRadius = (outerRadius + innerRadius) / 2;
-        const signX = cx + signRadius * Math.cos(signAngle);
-        const signY = cy + signRadius * Math.sin(signAngle);
-
-        const signName = SIGN_NAMES[i];
-        const signMeta = SIGN_META[signName];
-
-        ctx.save();
-        ctx.translate(signX, signY);
-        ctx.rotate(signAngle + Math.PI / 2);
-        ctx.fillStyle = signMeta.color;
-        ctx.font = 'bold 18px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(signMeta.glyph, 0, 0);
-        ctx.restore();
       }
 
       // 绘制外圈 - 纸感中灰色
@@ -276,43 +530,171 @@ Component({
     /**
      * 绘制宫位线
      */
-    drawHouseCusps(ctx, cx, cy, houseCusps, rotation) {
+    drawHouseCusps(ctx, cx, cy, baseRadius, houseCusps, rotation, layout) {
       if (!houseCusps || houseCusps.length !== 12) return;
 
-      const outerRadius = Math.min(cx, cy) * 0.85;
-      const innerRadius = outerRadius * 0.75;
+      const outerRadius = baseRadius * layout.zodiacInner;
+      const houseRingRadius = baseRadius * layout.houseRing;
+      const innerHubRadius = baseRadius * layout.innerHub;
+      const houseNumRadius = baseRadius * layout.houseNumbers;
+      const ascLongitude = houseCusps[0];
+      const equalAngles = houseCusps.map((_, i) => normalizeAngle(ascLongitude + i * 30));
 
+      // 绘制宫位外分隔圆
       ctx.strokeStyle = 'rgba(216, 209, 197, 0.6)';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(cx, cy, houseRingRadius, 0, 2 * Math.PI);
+      ctx.stroke();
 
-      houseCusps.forEach((cuspLongitude, i) => {
-        const angle = (cuspLongitude - rotation) * Math.PI / 180;
-        const startCoords = getCoords(cuspLongitude - rotation, innerRadius, cx, cy);
-        const endCoords = getCoords(cuspLongitude - rotation, outerRadius, cx, cy);
+      // 绘制宫位内分隔圆（相位线区域边界）
+      const aspectLineRadius = baseRadius * layout.aspectLine;
+      ctx.beginPath();
+      ctx.arc(cx, cy, aspectLineRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // 绘制中心点
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerHubRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // 绘制宫位线
+      equalAngles.forEach((cuspLongitude, i) => {
+        const angle = cuspLongitude - rotation;
+        const startCoords = getCoords(angle, innerHubRadius, cx, cy);
+        const endCoords = getCoords(angle, outerRadius, cx, cy);
+
+        // 主轴（ASC/IC/DSC/MC）使用更粗的线条
+        const isAxis = i === 0 || i === 3 || i === 6 || i === 9;
+
+        ctx.strokeStyle = isAxis ? 'rgba(180, 180, 180, 0.7)' : 'rgba(128, 128, 128, 0.25)';
+        ctx.lineWidth = isAxis ? 1 : 0.5;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
         ctx.lineTo(endCoords.x, endCoords.y);
         ctx.stroke();
+      });
 
-        // 绘制宫位数字 - 纸感深灰色
-        const labelRadius = outerRadius * 0.68;
-        const labelCoords = getCoords(cuspLongitude - rotation, labelRadius, cx, cy);
+      // 绘制宫位数字 - 位于两个宫头之间的中点
+      for (let i = 0; i < 12; i++) {
+        const midAngle = normalizeAngle(ascLongitude + (i + 0.5) * 30);
+        const angle = midAngle - rotation;
+        const pos = getCoords(angle, houseNumRadius, cx, cy);
 
-        ctx.fillStyle = '#7A746B';
-        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = '#9F7645'; // 暖棕色
+        ctx.font = `600 ${layout.fontSize.houseNum}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText((i + 1).toString(), labelCoords.x, labelCoords.y);
+        ctx.fillText((i + 1).toString(), pos.x, pos.y);
+      }
+    },
+
+    /**
+     * 绘制宫头标注（参考 oracle_CN/components/AstroChart.tsx 布局）
+     * 格式：度数 [星座icon] 分钟，沿切线方向排列在星座环内
+     */
+    drawHouseCuspLabels(ctx, cx, cy, baseRadius, houseCusps, rotation, layout) {
+      if (!houseCusps || houseCusps.length !== 12) return;
+
+      const zodiacInner = baseRadius * layout.zodiacInner;
+      const zodiacBandWidth = baseRadius * (layout.outerRim - layout.zodiacInner);
+      // 星座icon位置 - 在星座环中间，对齐宫位线
+      const iconRadius = zodiacInner + (zodiacBandWidth / 2);
+      const ascLongitude = houseCusps[0];
+      const equalAngles = houseCusps.map((_, i) => normalizeAngle(ascLongitude + i * 30));
+
+      houseCusps.forEach((cuspLongitude, index) => {
+        const normalizedLongitude = normalizeAngle(cuspLongitude);
+        let signIndex = Math.floor(normalizedLongitude / 30);
+        const degreeFloat = normalizedLongitude % 30;
+        let degreeInSign = Math.floor(degreeFloat);
+        let minute = Math.round((degreeFloat - degreeInSign) * 60);
+
+        // 处理进位
+        if (minute === 60) {
+          minute = 0;
+          degreeInSign += 1;
+          if (degreeInSign >= 30) {
+            degreeInSign = 0;
+            signIndex = (signIndex + 1) % 12;
+          }
+        }
+
+        const signName = SIGN_NAMES[signIndex];
+        const signMeta = SIGN_META[signName];
+        const labelAngle = equalAngles[index];
+        const angle = labelAngle - rotation;
+        const normalizedAngle = normalizeAngle(angle);
+
+        // 星座icon位置 - 对齐宫位线
+        const iconPos = getCoords(angle, iconRadius, cx, cy);
+
+        // 判断位置区域（用于确定度数和分钟的排列方向）
+        const isLeftSide = normalizedAngle > 135 && normalizedAngle < 225;
+        const isRightSide = normalizedAngle > 315 || normalizedAngle < 45;
+        const isSideArea = isLeftSide || isRightSide;
+
+        // 度数和分钟沿切线方向环绕 icon
+        const labelOffset = 18;  // 增加偏移量避免重叠（原12px）
+        const tangentAngle = angle + 90;
+        const firstPos = getCoords(tangentAngle, labelOffset, iconPos.x, iconPos.y);
+        const secondPos = getCoords(tangentAngle + 180, labelOffset, iconPos.x, iconPos.y);
+
+        // 根据位置决定度数和分钟的排列
+        let degreePos, minutePos;
+        if (isSideArea) {
+          // 左右两侧：上方是度数，下方是分钟
+          [degreePos, minutePos] = firstPos.y <= secondPos.y ? [firstPos, secondPos] : [secondPos, firstPos];
+        } else {
+          // 上下两侧：左边是度数，右边是分钟
+          [degreePos, minutePos] = firstPos.x <= secondPos.x ? [firstPos, secondPos] : [secondPos, firstPos];
+        }
+
+        // 绘制度数
+        ctx.fillStyle = '#1e293b';
+        ctx.font = `600 ${layout.fontSize.cuspDegree}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(degreeInSign), degreePos.x, degreePos.y);
+
+        // 绘制星座符号 - 优先使用 PNG 图片
+        const cuspSignSize = layout.fontSize.cuspSign;
+        const cuspSignDrawn = this.drawImageSymbol(ctx, `sign_${signName}`, iconPos.x, iconPos.y, cuspSignSize, signMeta.color);
+
+        // 如果 PNG 不支持，尝试使用 SVG Path2D（不使用文本后备）
+        if (!cuspSignDrawn) {
+          const signPathData = SIGN_SVG_PATHS[signName];
+          this.drawSvgPath(ctx, signPathData, iconPos.x, iconPos.y, cuspSignSize, signMeta.color);
+        }
+
+        // 绘制分钟
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `${layout.fontSize.cuspMinute}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(minute).padStart(2, '0'), minutePos.x, minutePos.y);
       });
+    },
+
+    /**
+     * 绘制内外环分隔线（双盘专用）
+     */
+    drawSeparator(ctx, cx, cy, baseRadius, layout) {
+      const separatorRadius = baseRadius * layout.separator;
+
+      ctx.strokeStyle = 'rgba(216, 209, 197, 0.6)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(cx, cy, separatorRadius, 0, 2 * Math.PI);
+      ctx.stroke();
     },
 
     /**
      * 绘制相位线
      */
-    drawAspects(ctx, cx, cy, aspects, innerPlanets, outerPlanets, rotation, config) {
-      const innerRadius = Math.min(cx, cy) * 0.85 * 0.75;
-      const outerRadius = Math.min(cx, cy) * 0.85 * 0.55;
+    drawAspects(ctx, cx, cy, baseRadius, aspects, innerPlanets, outerPlanets, rotation, config, layout) {
+      const aspectLineRadius = baseRadius * layout.aspectLine;
 
       // 按层级分组
       const layers = { foreground: [], midground: [], background: [] };
@@ -324,7 +706,7 @@ Component({
       // 按层级绘制（背景 -> 中景 -> 前景）
       ['background', 'midground', 'foreground'].forEach(layer => {
         layers[layer].forEach(aspect => {
-          this.drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, innerRadius, outerRadius);
+          this.drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, aspectLineRadius);
         });
       });
     },
@@ -332,7 +714,7 @@ Component({
     /**
      * 绘制单条相位线
      */
-    drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, innerRadius, outerRadius) {
+    drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, radius) {
       // 跳过合相（不绘制）
       if (aspect.type === 'conjunction') return;
 
@@ -343,16 +725,9 @@ Component({
 
       if (!p1 || !p2) return;
 
-      // 判断是否为跨盘相位
-      const isCrossAspect = (innerPlanets.includes(p1) && outerPlanets.includes(p2)) ||
-                           (innerPlanets.includes(p2) && outerPlanets.includes(p1));
-
-      // 确定半径
-      const radius = isCrossAspect ? outerRadius : innerRadius;
-
-      // 计算坐标
-      const coords1 = getCoords(p1.visualAngle - rotation, radius, cx, cy);
-      const coords2 = getCoords(p2.visualAngle - rotation, radius, cx, cy);
+      // 计算坐标（使用实际角度 absAngle，而非视觉角度）
+      const coords1 = getCoords(p1.absAngle - rotation, radius, cx, cy);
+      const coords2 = getCoords(p2.absAngle - rotation, radius, cx, cy);
 
       // 获取样式
       const color = ASPECT_COLORS[aspect.type];
@@ -370,92 +745,377 @@ Component({
     },
 
     /**
-     * 绘制行星
+     * 绘制行星位置信息（参考专业星盘软件布局）
+     * 格式：行星符号 + 度数° + 星座符号 + 分' + 逆行R
      */
-    drawPlanets(ctx, cx, cy, planets, rotation, isOuter) {
-      const baseRadius = Math.min(cx, cy) * 0.85;
-      const radius = isOuter ? baseRadius * 0.95 : baseRadius * 0.65;
+    drawPlanetInfo(ctx, cx, cy, baseRadius, planets, rotation, layout, isOuter) {
+      // 确定行星环半径
+      let planetRingRadius;
+      if (isOuter) {
+        planetRingRadius = baseRadius * layout.outerPlanetRing;
+      } else if (layout.innerPlanetRing) {
+        // 双盘内环
+        planetRingRadius = baseRadius * layout.innerPlanetRing;
+      } else {
+        // 单盘
+        planetRingRadius = baseRadius * layout.planetRing;
+      }
+
+      const fontSize = layout.fontSize;
+      const spacing = isOuter && layout.outerSpacing ? layout.outerSpacing : layout.spacing;
 
       planets.forEach(planet => {
         const baseName = stripOuterPrefix(planet.name);
+        
+        const isAngle = /^(Ascendant|Rising|Midheaven|MC|Descendant|IC)$/i.test(baseName);
+        if (isAngle) return;
+
         const meta = PLANET_META[baseName];
         if (!meta) return;
 
-        const coords = getCoords(planet.visualAngle - rotation, radius, cx, cy);
+        const signMeta = SIGN_META[planet.sign];
+        if (!signMeta) return;
 
-        // 绘制符号
+        const displayAngle = planet.visualAngle - rotation;
+        const actualAngle = planet.absAngle - rotation;
+
+        const deg = Math.floor(planet.degree);
+        const min = planet.minute ?? Math.round((planet.degree - deg) * 60);
+
+        const pos = getCoords(displayAngle, planetRingRadius, cx, cy);
+
+        const angleDifference = Math.abs(normalizeAngle(planet.visualAngle - planet.absAngle));
+        if (angleDifference > 2 && angleDifference < 358) {
+          const shouldUseInnerHelper = !isOuter && this.data.type === 'transit';
+          const helperRadius = shouldUseInnerHelper
+            ? baseRadius * layout.houseNumbers
+            : baseRadius * layout.zodiacInner;
+          const zodiacPos = getCoords(actualAngle, helperRadius, cx, cy);
+          ctx.strokeStyle = meta.color;
+          ctx.lineWidth = 0.5;
+          ctx.globalAlpha = 0.3;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(zodiacPos.x, zodiacPos.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1.0;
+        }
+
+        const planetGlyph = meta.glyph || '?';
         ctx.fillStyle = meta.color;
-        ctx.font = 'bold 16px Arial';
+        ctx.font = `${fontSize.planet}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(meta.glyph, coords.x, coords.y);
+        ctx.fillText(planetGlyph, pos.x, pos.y);
 
-        // 保存点击区域（用于交互）
         if (!this.clickAreas) this.clickAreas = [];
+
+        const isAxisPoint = /^(Ascendant|Rising|Midheaven|MC|Descendant|IC)$/i.test(baseName);
+        if (isAxisPoint) return;
+
+        const degRadius = planetRingRadius - spacing.planetInfo;
+        const degPos = getCoords(displayAngle, degRadius, cx, cy);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = `600 ${fontSize.degree}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${deg}°`, degPos.x, degPos.y);
+
+        const signRadius = degRadius - spacing.smallInfo;
+        const signPos = getCoords(displayAngle, signRadius, cx, cy);
+
+        const signImageDrawn = this.drawImageSymbol(ctx, `sign_${planet.sign}`, signPos.x, signPos.y, fontSize.sign, signMeta.color);
+        if (!signImageDrawn) {
+          const signPathData = SIGN_SVG_PATHS[planet.sign];
+          this.drawSvgPath(ctx, signPathData, signPos.x, signPos.y, fontSize.sign, signMeta.color);
+        }
+
+        const minRadius = signRadius - spacing.smallInfo;
+        const minPos = getCoords(displayAngle, minRadius, cx, cy);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `${fontSize.minute}px sans-serif`;
+        ctx.fillText(`${min}'`, minPos.x, minPos.y);
+
+        let retroPos = null;
+        if (planet.isRetrograde) {
+          const retroRadius = minRadius - spacing.smallInfo;
+          retroPos = getCoords(displayAngle, retroRadius, cx, cy);
+          ctx.fillStyle = '#CD5C5C';
+          ctx.font = `bold ${fontSize.retro}px sans-serif`;
+          ctx.fillText('R', retroPos.x, retroPos.y);
+        }
+
+        const endPos = retroPos || minPos;
         this.clickAreas.push({
-          x: coords.x,
-          y: coords.y,
-          radius: 10,
+          type: 'segment',
+          x1: pos.x,
+          y1: pos.y,
+          x2: endPos.x,
+          y2: endPos.y,
+          radius: isOuter ? 22 : 20,
           planet: {
             ...planet,
             glyph: meta.glyph,
             color: meta.color,
             name: baseName,
+            isOuter: isOuter,
           },
         });
       });
+    },
+
+    distanceToSegment(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (dx === 0 && dy === 0) {
+        return Math.hypot(px - x1, py - y1);
+      }
+      const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+      const clamped = Math.max(0, Math.min(1, t));
+      const cx = x1 + clamped * dx;
+      const cy = y1 + clamped * dy;
+      return Math.hypot(px - cx, py - cy);
     },
 
     /**
      * 处理画布点击事件
      */
     onCanvasTap(e) {
-      if (!this.clickAreas) return;
-
-      const { x, y } = e.detail;
-
-      // 查找点击的行星
-      for (const area of this.clickAreas) {
-        const distance = Math.sqrt(Math.pow(x - area.x, 2) + Math.pow(y - area.y, 2));
-        if (distance <= area.radius) {
-          this.showPlanetDetail(area.planet, x, y);
-          return;
-        }
+      if (!this.clickAreas) {
+        console.log('[Canvas Tap] No click areas defined');
+        return;
       }
 
-      // 点击空白处关闭详情卡片
-      this.closePlanetDetail();
+      // 获取 canvas 元素位置
+      const query = this.createSelectorQuery();
+      query.select('#astro-chart-canvas')
+        .boundingClientRect((rect) => {
+          if (!rect) {
+            console.log('[Canvas Tap] Canvas rect not found');
+            return;
+          }
+
+          // 计算相对于 canvas 的坐标（处理 DPR 缩放）
+          const scaleX = this.canvas ? this.canvas.width / rect.width : 1;
+          const scaleY = this.canvas ? this.canvas.height / rect.height : 1;
+
+          let x = typeof e.detail.x === 'number' ? e.detail.x : undefined;
+          let y = typeof e.detail.y === 'number' ? e.detail.y : undefined;
+
+          if (typeof x !== 'number' || typeof y !== 'number') {
+            x = typeof e.detail.clientX === 'number' ? e.detail.clientX - rect.left : 0;
+            y = typeof e.detail.clientY === 'number' ? e.detail.clientY - rect.top : 0;
+          }
+
+          if (scaleX > 1.5 || scaleY > 1.5) {
+            x = x / scaleX;
+            y = y / scaleY;
+          }
+
+          if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+            if (typeof e.detail.clientX === 'number' && typeof e.detail.clientY === 'number') {
+              x = (e.detail.clientX - rect.left) / (scaleX > 1.5 ? scaleX : 1);
+              y = (e.detail.clientY - rect.top) / (scaleY > 1.5 ? scaleY : 1);
+            }
+          }
+
+          console.log(`[Canvas Tap] Click at (${x.toFixed(1)}, ${y.toFixed(1)})`);
+          console.log(`[Canvas Tap] ${this.clickAreas.length} click areas available`);
+
+          // 查找点击的行星
+          for (const area of this.clickAreas) {
+            let hit = false;
+            let distance = 0;
+
+            if (area.type === 'segment') {
+              distance = this.distanceToSegment(x, y, area.x1, area.y1, area.x2, area.y2);
+              hit = distance <= area.radius;
+            } else {
+              distance = Math.sqrt(Math.pow(x - area.x, 2) + Math.pow(y - area.y, 2));
+              hit = distance <= area.radius;
+            }
+
+            console.log(`[Canvas Tap] Distance to ${area.planet.name}: ${distance.toFixed(1)}px (radius: ${area.radius})`);
+
+            if (hit) {
+              console.log(`[Canvas Tap] Hit planet: ${area.planet.name}`);
+              this.showPlanetDetail(area.planet, x, y, rect);
+              return;
+            }
+          }
+
+          console.log('[Canvas Tap] No planet hit, closing detail');
+          // 点击空白处关闭详情卡片
+          this.closePlanetDetail();
+        })
+        .exec();
     },
 
     /**
      * 显示行星详情卡片
      */
-    showPlanetDetail(planet, x, y) {
-      // 调整卡片位置，避免超出屏幕
-      let cardX = x + 10;
+    showPlanetDetail(planet, x, y, rect) {
+      const baseName = stripOuterPrefix(planet.name);
+      const signMeta = SIGN_META[planet.sign];
+
+      // 获取相关相位
+      const relevantAspects = this.getRelevantAspects(planet);
+
+      // 获取守护宫位
+      const ruledHouses = this.getRuledHouses(baseName);
+
+      // 计算卡片位置（避免超出屏幕）
+      const systemInfo = wx.getSystemInfoSync();
+      const cardWidth = 280;
+      const cardHeight = 300;
+
+      let cardX = x + 15;
       let cardY = y - 50;
 
-      if (cardX + 150 > this.data.width) {
-        cardX = x - 160;
+      if (cardX + cardWidth > systemInfo.windowWidth) {
+        cardX = x - cardWidth - 15;
       }
-      if (cardY < 0) {
-        cardY = 10;
+      if (cardY + cardHeight > systemInfo.windowHeight) {
+        cardY = systemInfo.windowHeight - cardHeight - 20;
+      }
+      if (cardY < 10) cardY = 10;
+      if (cardX < 10) cardX = 10;
+
+      // 计算度数和分钟
+      const deg = Math.floor(planet.degree);
+      const min = planet.minute ?? Math.round((planet.degree - deg) * 60);
+
+      const detail = {
+        ...planet,
+        x: cardX,
+        y: cardY,
+        baseName: baseName,
+        displayName: PLANET_NAMES_ZH[baseName] || baseName,
+        keywords: PLANET_KEYWORDS[baseName] || '',
+        signName: SIGN_NAMES_ZH[planet.sign] || planet.sign,
+        signGlyph: signMeta?.glyph || '',
+        signColor: signMeta?.color || '#888',
+        degree: deg,
+        minute: min,
+        ruledHouses: ruledHouses.join(', '),
+        aspects: relevantAspects.slice(0, 5).map(a => {
+          const otherBaseName = stripOuterPrefix(a.otherPlanet);
+          const otherMeta = PLANET_META[otherBaseName];
+          return {
+            otherName: PLANET_NAMES_ZH[otherBaseName] || otherBaseName,
+            otherGlyph: otherMeta?.glyph || '',
+            otherColor: otherMeta?.color || '#888',
+            angle: ASPECT_ANGLES[a.type],
+            aspectSymbol: ASPECT_SYMBOLS[a.type],
+            aspectColor: ASPECT_COLORS[a.type],
+            orb: Math.abs(a.orb).toFixed(0),
+            isCross: a.isCross || false,
+          };
+        }),
+      };
+
+      if (this.data.useExternalDetail) {
+        const eventDetail = {
+          ...detail,
+          x: cardX, // Pass calculated card position
+          y: cardY
+        };
+        // If rect is available, provide absolute coordinates for fixed positioning
+        if (rect) {
+          eventDetail.clientX = cardX + rect.left;
+          eventDetail.clientY = cardY + rect.top;
+        }
+        this.triggerEvent('planetdetail', eventDetail);
+        return;
       }
 
       this.setData({
-        selectedPlanet: planet,
+        selectedPlanet: detail,
         detailCardX: cardX,
         detailCardY: cardY,
       });
     },
 
     /**
+     * 获取相关相位
+     */
+    getRelevantAspects(planet) {
+      if (!this.chartData || !this.chartData.aspects) return [];
+
+      const aspects = this.chartData.aspects;
+      const { innerPlanets } = this.chartData;
+
+      return aspects
+        .filter(a => a.planet1 === planet.name || a.planet2 === planet.name)
+        .map(a => {
+          const otherPlanet = a.planet1 === planet.name ? a.planet2 : a.planet1;
+
+          // 判断是否为跨盘相位
+          const planetInInner = innerPlanets.some(p => p.name === planet.name);
+          const otherInInner = innerPlanets.some(p => p.name === otherPlanet);
+          const isCross = planetInInner !== otherInInner;
+
+          return {
+            ...a,
+            otherPlanet,
+            isCross,
+          };
+        })
+        .filter(a => this.data.type !== 'transit' || a.isCross)
+        .sort((a, b) => {
+          // 跨盘相位优先
+          if (a.isCross !== b.isCross) return a.isCross ? -1 : 1;
+          // 然后按 orb 排序
+          return Math.abs(a.orb) - Math.abs(b.orb);
+        });
+    },
+
+    /**
+     * 获取行星守护的宫位
+     */
+    getRuledHouses(planetName) {
+      if (!this.chartData || !this.data.houseCusps) return [];
+
+      const houseCusps = this.data.houseCusps;
+      const ruledHouses = [];
+
+      houseCusps.forEach((cuspLongitude, i) => {
+        const normalizedLongitude = normalizeAngle(cuspLongitude);
+        const signIndex = Math.floor(normalizedLongitude / 30);
+        const signName = SIGN_NAMES[signIndex];
+        const ruler = SIGN_RULERS[signName];
+
+        if (ruler === planetName) {
+          ruledHouses.push(i + 1);
+        }
+      });
+
+      return ruledHouses;
+    },
+
+    /**
      * 关闭行星详情卡片
      */
     closePlanetDetail() {
+      if (this.data.useExternalDetail) {
+        this.triggerEvent('planetdetailclose');
+        return;
+      }
+
       this.setData({
         selectedPlanet: null,
       });
+    },
+
+    /**
+     * 阻止事件冒泡
+     */
+    stopPropagation() {
+      // 空函数，仅用于阻止事件冒泡
     },
   },
 });
