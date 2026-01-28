@@ -1,3 +1,13 @@
+const { request } = require('../../utils/request');
+const { API_ENDPOINTS } = require('../../services/api');
+
+const LoadingState = {
+  IDLE: 'IDLE',
+  LOADING: 'LOADING',
+  SUCCESS: 'SUCCESS',
+  ERROR: 'ERROR'
+};
+
 const PLANETS = [
   { id: 'sun', name: '太阳', symbol: '☉', angle: 230, sign: '天蝎座', house: 2, color: '#F59E0B', description: '你的核心自我。拥有深刻的洞察力。', degree: "15°20'" },
   { id: 'moon', name: '月亮', symbol: '☽', angle: 340, sign: '双鱼座', house: 6, color: '#9CA3AF', description: '你的情感需求。极强的同理心。', degree: "08°45'" },
@@ -15,24 +25,88 @@ const ASPECTS = [
   { id: 'a3', from: 'venus', to: 'jupiter', type: 'trine', angle: 120, description: '金木拱：极佳的财运与人缘。' },
 ];
 
+const SIGN_ELEMENT_MAP = {
+  '白羊座': 'fire',
+  '狮子座': 'fire',
+  '射手座': 'fire',
+  '金牛座': 'earth',
+  '处女座': 'earth',
+  '摩羯座': 'earth',
+  '双子座': 'air',
+  '天秤座': 'air',
+  '水瓶座': 'air',
+  '巨蟹座': 'water',
+  '天蝎座': 'water',
+  '双鱼座': 'water',
+};
+
+const DEFAULT_ELEMENT_MATRIX = {
+  fire: { count: 0, percent: 0 },
+  earth: { count: 0, percent: 0 },
+  air: { count: 0, percent: 0 },
+  water: { count: 0, percent: 0 },
+};
+
+const DIMENSION_ITEMS = [
+  { key: 'emotion', label: '情绪模式' },
+  { key: 'boundary', label: '人际边界' },
+  { key: 'security', label: '安全感来源' },
+  { key: 'expression', label: '表达方式' },
+  { key: 'decision', label: '决策模式' },
+  { key: 'stress', label: '压力应对' },
+  { key: 'love_language', label: '爱的语言' },
+  { key: 'money', label: '金钱观' },
+  { key: 'growth', label: '成长课题' },
+  { key: 'creativity', label: '创造力源泉' },
+  { key: 'intimacy', label: '亲密关系模式' },
+  { key: 'role', label: '社会角色' },
+];
+
+const buildElementMatrix = (planets) => {
+  const counts = { fire: 0, earth: 0, air: 0, water: 0 };
+  (planets || []).forEach((planet) => {
+    const element = SIGN_ELEMENT_MAP[planet.sign];
+    if (element) counts[element] += 1;
+  });
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0) || 1;
+  return {
+    fire: { count: counts.fire, percent: Math.round((counts.fire / total) * 100) },
+    earth: { count: counts.earth, percent: Math.round((counts.earth / total) * 100) },
+    air: { count: counts.air, percent: Math.round((counts.air / total) * 100) },
+    water: { count: counts.water, percent: Math.round((counts.water / total) * 100) },
+  };
+};
+
 Page({
   data: {
+    LoadingState,
     planets: [],
     aspects: [],
     big3: [],
     lifeDomains: [
-      { id: 'career', title: '财运事业', desc: '二宫主星飞星良好' },
-      { id: 'marriage', title: '婚恋关系', desc: '七宫落双鱼座' },
-      { id: 'health', title: '身体健康', desc: '六宫群星汇聚' },
-      { id: 'relations', title: '人际交往', desc: '十一宫贵人运' },
-      { id: 'study', title: '学业考试', desc: '水星相位极佳' },
-      { id: 'love', title: '恋爱桃花', desc: '金星入庙天秤' },
+      { id: 'career', title: '事业发展', desc: '职业DNA与发展路径' },
+      { id: 'wealth', title: '财富金钱', desc: '财富体质与增长策略' },
+      { id: 'love', title: '爱情婚姻', desc: '恋爱模式与长期指南' },
+      { id: 'relations', title: '人际关系', desc: '社交人设与边界策略' },
+      { id: 'health', title: '健康养生', desc: '体质档案与生活处方' },
+      { id: 'growth', title: '自我成长', desc: '灵魂剧本与实现路线' },
     ],
-    selectedItem: null,
+    dimensionItems: DIMENSION_ITEMS,
+    elementMatrix: DEFAULT_ELEMENT_MATRIX,
     isZoomed: false,
     showPayment: false,
     paymentLoading: false,
     expandedSection: null,
+    detailModal: {
+      visible: false,
+      title: '',
+      subtitle: '',
+      status: LoadingState.IDLE,
+      content: '',
+      error: '',
+      type: '',
+      retryPayload: null,
+    },
 
     chartSize: 350,
     fullChartSize: 400,
@@ -70,6 +144,7 @@ Page({
       const chartPositions = this.convertToChartPositions(planets);
       const chartAspects = this.convertToChartAspects(aspects, planets);
       const chartHouseCusps = this.generateMockHouseCusps();
+      const elementMatrix = buildElementMatrix(planets);
 
       this.setData({
         planets,
@@ -78,6 +153,7 @@ Page({
         chartPositions,
         chartAspects,
         chartHouseCusps,
+        elementMatrix,
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
       });
@@ -98,6 +174,7 @@ Page({
         chartPositions: this.convertToChartPositions(planets),
         chartAspects: this.convertToChartAspects(aspects, planets),
         chartHouseCusps: this.generateMockHouseCusps(),
+        elementMatrix: buildElementMatrix(PLANETS),
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
       });
@@ -241,7 +318,24 @@ Page({
 
   onSelectPlanet(e) {
     const item = e.currentTarget.dataset.item;
-    this.setData({ selectedItem: item });
+    if (!item) return;
+    const target = item.id === 'asc' ? 'rising' : item.id;
+    this.openDetailModal({
+      type: 'big3',
+      context: 'natal',
+      lang: 'zh',
+      chartData: {
+        target,
+        name: item.name,
+        sign: item.sign,
+        house: item.house,
+        degree: item.degree,
+        aspects: this.data.aspects,
+      },
+    }, {
+      title: `${item.name}解读`,
+      subtitle: `${item.sign} ${item.house}宫`,
+    });
   },
 
   showPaymentModal() {
@@ -260,8 +354,155 @@ Page({
     }, 1500);
   },
 
-  closeDetail() {
-    this.setData({ selectedItem: null });
+  onDimensionTap(e) {
+    const { key, label } = e.currentTarget.dataset;
+    if (!key) return;
+    this.openDetailModal({
+      type: 'dimension',
+      context: 'natal',
+      lang: 'zh',
+      chartData: {
+        dimensionKey: key,
+        dimensionLabel: label,
+      },
+    }, {
+      title: label || '12维心理解读',
+      subtitle: '12维心理解读',
+    });
+  },
+
+  onDomainClick(e) {
+    const { id } = e.currentTarget.dataset;
+    const domain = this.data.lifeDomains.find(item => item.id === id);
+    if (!domain) return;
+    this.openDetailModal({
+      type: 'deep',
+      context: 'natal',
+      lang: 'zh',
+      chartData: {
+        domainKey: id,
+        domainLabel: domain.title,
+      },
+    }, {
+      title: domain.title,
+      subtitle: '深度解析6大维度',
+    });
+  },
+
+  onAppendixDetail(e) {
+    const { type } = e.currentTarget.dataset;
+    if (!type) return;
+    const titleMap = {
+      planets: '行星列表解读',
+      elements: '元素矩阵解读',
+      aspects: '相位表解读',
+      asteroids: '小行星解读',
+      rulers: '宫主星解读',
+    };
+    this.openDetailModal({
+      type,
+      context: 'natal',
+      lang: 'zh',
+      chartData: this.buildAppendixPayload(type),
+    }, {
+      title: titleMap[type] || '专业星象数据附录',
+      subtitle: '专业星象数据附录',
+    });
+  },
+
+  buildAppendixPayload(type) {
+    if (type === 'planets') {
+      return { planets: this.data.planets };
+    }
+    if (type === 'elements') {
+      return { elements: this.data.elementMatrix };
+    }
+    if (type === 'aspects') {
+      return { aspects: this.data.aspects };
+    }
+    if (type === 'asteroids') {
+      return { asteroids: [] };
+    }
+    if (type === 'rulers') {
+      return { rulers: [] };
+    }
+    return {};
+  },
+
+  openDetailModal(payload, meta = {}) {
+    const title = meta.title || '详情解读';
+    const subtitle = meta.subtitle || '';
+    this.setData({
+      detailModal: {
+        visible: true,
+        title,
+        subtitle,
+        status: LoadingState.LOADING,
+        content: '',
+        error: '',
+        type: payload ? payload.type : '',
+        retryPayload: payload || null,
+      },
+    });
+
+    if (payload) {
+      this.fetchDetail(payload);
+    } else {
+      this.setData({
+        'detailModal.status': LoadingState.ERROR,
+        'detailModal.error': '缺少必要参数，无法生成解读。',
+      });
+    }
+  },
+
+  closeDetailModal() {
+    this.setData({ 'detailModal.visible': false });
+  },
+
+  retryDetail() {
+    const payload = this.data.detailModal.retryPayload;
+    if (payload) {
+      this.fetchDetail(payload);
+    }
+  },
+
+  normalizeDetailContent(content) {
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    if (typeof content === 'object') {
+      if (content.text) return content.text;
+      if (content.summary && content.interpretation) {
+        return `${content.summary}\n${content.interpretation}`;
+      }
+      if (content.summary) return content.summary;
+      return JSON.stringify(content);
+    }
+    return String(content);
+  },
+
+  async fetchDetail(payload) {
+    this.setData({
+      'detailModal.status': LoadingState.LOADING,
+      'detailModal.error': '',
+      'detailModal.content': '',
+    });
+    try {
+      const response = await request({
+        url: API_ENDPOINTS.DETAIL,
+        method: 'POST',
+        data: payload,
+      });
+      const content = response && response.content ? response.content : response;
+      this.setData({
+        'detailModal.status': LoadingState.SUCCESS,
+        'detailModal.content': this.normalizeDetailContent(content),
+      });
+    } catch (error) {
+      this.setData({
+        'detailModal.status': LoadingState.ERROR,
+        'detailModal.error': '内容生成失败，请稍后重试。',
+      });
+    }
   },
 
   toggleZoom() {
@@ -282,7 +523,5 @@ Page({
     });
   },
   
-  onDomainClick() {},
-
   stopProp() {}
 })

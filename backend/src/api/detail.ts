@@ -9,7 +9,7 @@ import { AIUnavailableError, generateAIContent } from '../services/ai.js';
 
 export const detailRouter = Router();
 
-type DetailType = 'elements' | 'aspects' | 'planets' | 'asteroids' | 'rulers' | 'synthesis';
+type DetailType = 'elements' | 'aspects' | 'planets' | 'asteroids' | 'rulers' | 'synthesis' | 'big3' | 'dimension' | 'deep';
 type DetailContext = 'natal' | 'transit' | 'synastry' | 'composite';
 
 interface DetailRequest {
@@ -43,7 +43,7 @@ detailRouter.post('/', async (req, res) => {
       return;
     }
 
-    const validTypes: DetailType[] = ['elements', 'aspects', 'planets', 'asteroids', 'rulers', 'synthesis'];
+    const validTypes: DetailType[] = ['elements', 'aspects', 'planets', 'asteroids', 'rulers', 'synthesis', 'big3', 'dimension', 'deep'];
     const validContexts: DetailContext[] = ['natal', 'transit', 'synastry', 'composite'];
 
     if (!validTypes.includes(type)) {

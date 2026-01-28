@@ -36,6 +36,10 @@ import {
   DETAIL_INTERPRETATION_FORMAT_EN,
   DETAIL_OUTPUT_INSTRUCTION,
 } from './common.js';
+import { big3Prompts } from './self-page/big3-prompts.js';
+import { dimensionPrompts } from './self-page/dimension-prompts.js';
+import { deepAnalysisPrompts } from './self-page/deep-analysis-prompts.js';
+import { appendixPrompts } from './self-page/appendix-prompts.js';
 
 /**
  * Prompt 管理策略：
@@ -447,6 +451,9 @@ ${SINGLE_LANGUAGE_INSTRUCTION}`,
     return `${base}\n${namesLine}`;
   },
 });
+
+// Self page prompts (override or extend default detail prompts)
+[...big3Prompts, ...dimensionPrompts, ...deepAnalysisPrompts, ...appendixPrompts].forEach(registerPrompt);
 
 registerPrompt({
   meta: { id: 'synastry-highlights', version: '1.0', scenario: 'synastry' },

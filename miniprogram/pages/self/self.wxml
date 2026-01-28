@@ -50,17 +50,9 @@
     </block>
   </view>
 
-  <view class="premium-banner" bindtap="showPaymentModal">
-    <view class="premium-info">
-      <text class="premium-title">2026 流年大运报告</text>
-      <text class="premium-desc">解锁全年运势指南</text>
-    </view>
-    <view class="premium-btn">立即解锁</view>
-  </view>
-
   <view class="card-base section">
     <view class="section-header">
-      <text class="section-title">心理维度分析 (12维度)</text>
+      <text class="section-title">12维心理解读</text>
     </view>
     <view class="chart-box" style="height: 400rpx;">
       <canvas type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
@@ -69,10 +61,17 @@
       <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。</text>
       <text class="link-btn">查看详情 ></text>
     </view>
+    <view class="dimension-grid">
+      <block wx:for="{{dimensionItems}}" wx:key="key">
+        <view class="dimension-chip" bindtap="onDimensionTap" data-key="{{item.key}}" data-label="{{item.label}}">
+          <text class="dimension-label">{{item.label}}</text>
+        </view>
+      </block>
+    </view>
   </view>
 
   <view class="section">
-    <text class="section-title" style="margin-bottom: 24rpx; display: block;">深度解析</text>
+    <text class="section-title" style="margin-bottom: 24rpx; display: block;">深度解析6大维度</text>
     <view class="domain-grid">
       <block wx:for="{{lifeDomains}}" wx:key="id">
         <view class="domain-item" bindtap="onDomainClick" data-id="{{item.id}}">
@@ -85,11 +84,14 @@
   </view>
 
   <view class="section">
-    <text class="section-title" style="margin-bottom: 24rpx; display: block;">专业技术附录</text>
+    <text class="section-title" style="margin-bottom: 24rpx; display: block;">专业星象数据附录</text>
     <view class="accordion-item">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="planets">
         <text class="accordion-label">行星列表</text>
-        <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
+        <view class="accordion-actions">
+          <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="planets">查看详情</view>
+          <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
+        </view>
       </view>
       <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}">
         <view class="data-table">
@@ -114,25 +116,28 @@
     <view class="accordion-item">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="elements">
         <text class="accordion-label">元素矩阵</text>
-        <text class="accordion-icon">{{expandedSection === 'elements' ? '-' : '+'}}</text>
+        <view class="accordion-actions">
+          <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="elements">查看详情</view>
+          <text class="accordion-icon">{{expandedSection === 'elements' ? '-' : '+'}}</text>
+        </view>
       </view>
       <view class="accordion-body" wx:if="{{expandedSection === 'elements'}}">
         <view class="matrix-grid">
           <view class="matrix-item">
              <text class="matrix-label">火</text>
-             <text class="matrix-val" style="color: var(--danger)">3</text>
+             <text class="matrix-val" style="color: var(--danger)">{{elementMatrix.fire.count}}</text>
           </view>
           <view class="matrix-item">
              <text class="matrix-label">土</text>
-             <text class="matrix-val" style="color: var(--success)">4</text>
+             <text class="matrix-val" style="color: var(--success)">{{elementMatrix.earth.count}}</text>
           </view>
           <view class="matrix-item">
              <text class="matrix-label">风</text>
-             <text class="matrix-val" style="color: var(--warning)">2</text>
+             <text class="matrix-val" style="color: var(--warning)">{{elementMatrix.air.count}}</text>
           </view>
           <view class="matrix-item">
              <text class="matrix-label">水</text>
-             <text class="matrix-val" style="color: var(--info)">1</text>
+             <text class="matrix-val" style="color: var(--info)">{{elementMatrix.water.count}}</text>
           </view>
         </view>
         <text class="summary-text" style="font-size: 20rpx; margin-top: 16rpx; display: block; opacity: 0.6;">* 基本: 4 / 固定: 3 / 变动: 3</text>
@@ -142,7 +147,10 @@
     <view class="accordion-item">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
         <text class="accordion-label">相位表</text>
-        <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
+        <view class="accordion-actions">
+          <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="aspects">查看详情</view>
+          <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
+        </view>
       </view>
       <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}">
         <block wx:for="{{aspects}}" wx:key="id">
@@ -159,13 +167,38 @@
     </view>
   </view>
 
-  <view class="modal-mask" wx:if="{{selectedItem}}" bindtap="closeDetail">
-    <view class="modal-panel" catchtap="stopProp">
-      <view class="close-btn" bindtap="closeDetail">X</view>
-      <text class="modal-title">{{selectedItem.name || (selectedItem.type + ' 相位')}}</text>
-      <text class="modal-text" style="opacity: 0.7; margin-bottom: 16rpx;">{{selectedItem.sign ? (selectedItem.sign + ' ' + selectedItem.house + '宫') : '能量交织'}}</text>
-      <text class="modal-text">{{selectedItem.description}}</text>
-      <button class="action-btn" style="width: 100%; border: none;">查看完整深度解读 (解锁 VIP)</button>
+  <view class="premium-banner" bindtap="showPaymentModal">
+    <view class="premium-info">
+      <text class="premium-title">2026 流年大运报告</text>
+      <text class="premium-desc">解锁全年运势指南</text>
+    </view>
+    <view class="premium-btn">立即解锁</view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{detailModal.visible}}" bindtap="closeDetailModal">
+    <view class="detail-modal" catchtap="stopProp">
+      <view class="detail-modal-header">
+        <text class="detail-modal-title">{{detailModal.title}}</text>
+        <view class="detail-modal-close" bindtap="closeDetailModal">×</view>
+      </view>
+      <text class="detail-modal-subtitle">{{detailModal.subtitle}}</text>
+      <view class="detail-modal-divider"></view>
+
+      <view class="detail-modal-state" wx:if="{{detailModal.status === LoadingState.LOADING}}">
+        <view class="detail-spinner"></view>
+        <text class="detail-state-text">正在生成解读内容...</text>
+      </view>
+      <view class="detail-modal-state" wx:elif="{{detailModal.status === LoadingState.ERROR}}">
+        <text class="detail-state-text error">{{detailModal.error || '内容生成失败，请稍后重试。'}}</text>
+        <button class="detail-btn primary" bindtap="retryDetail">重试</button>
+      </view>
+      <view class="detail-modal-content" wx:else>
+        <text class="detail-modal-text">{{detailModal.content}}</text>
+      </view>
+
+      <view class="detail-modal-actions">
+        <button class="detail-btn ghost" bindtap="closeDetailModal">关闭</button>
+      </view>
     </view>
   </view>
 

@@ -3,6 +3,7 @@ const API_ENDPOINTS = {
   NATAL_OVERVIEW: '/api/natal/overview',
   NATAL_CORE_THEMES: '/api/natal/core-themes',
   NATAL_DIMENSION: '/api/natal/dimension',
+  DETAIL: '/api/detail',
   DAILY_FORECAST: '/api/daily',
   DAILY_DETAIL: '/api/daily/detail',
   ASK: '/api/ask',

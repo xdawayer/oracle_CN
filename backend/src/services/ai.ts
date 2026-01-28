@@ -67,6 +67,9 @@ const TEMPERATURE_MAP: Record<string, number> = {
   'natal-overview': 0.5,
   'natal-core-themes': 0.5,
   'natal-dimension': 0.5,
+  'detail-big3-natal': 0.5,
+  'detail-dimension-natal': 0.5,
+  'detail-deep-natal': 0.5,
   'cycle-naming': 0.5,
   // 合盘 - 综述/核心分析
   'synastry-overview': 0.5,
