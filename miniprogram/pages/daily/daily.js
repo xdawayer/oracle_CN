@@ -65,11 +65,11 @@ const ASTRO_DICTIONARY = {
 };
 
 const ASPECT_CONFIG = {
-  conjunction: { symbol: '☌', color: 'var(--paper-400)' },
-  opposition: { symbol: '☍', color: 'var(--warm-brown)' },
-  square: { symbol: '□', color: 'var(--danger)' },
-  trine: { symbol: '△', color: 'var(--success)' },
-  sextile: { symbol: '✱', color: 'var(--accent)' },
+  conjunction: { symbol: '☌', color: '#FF4D4F' },
+  opposition: { symbol: '☍', color: '#FF4D4F' },
+  square: { symbol: '□', color: '#FF4D4F' },
+  trine: { symbol: '△', color: '#52C41A' },
+  sextile: { symbol: '✱', color: '#40A9FF' },
 };
 
 const ASPECT_MATRIX_CONFIG = {
@@ -81,46 +81,46 @@ const ASPECT_MATRIX_CONFIG = {
 };
 
 const PLANET_META = {
-  Sun: { glyph: '☉', color: 'var(--accent)' },
-  Moon: { glyph: '☽', color: 'var(--paper-400)' },
-  Mercury: { glyph: '☿', color: 'var(--warm-brown)' },
-  Venus: { glyph: '♀', color: 'var(--accent)' },
-  Mars: { glyph: '♂', color: 'var(--danger)' },
-  Jupiter: { glyph: '♃', color: 'var(--accent)' },
-  Saturn: { glyph: '♄', color: 'var(--paper-600)' },
-  Uranus: { glyph: '♅', color: 'var(--paper-400)' },
-  Neptune: { glyph: '♆', color: 'var(--paper-400)' },
-  Pluto: { glyph: '♇', color: 'var(--warm-brown)' },
-  Chiron: { glyph: '⚷', color: 'var(--paper-600)' },
-  Ceres: { glyph: '⚳', color: 'var(--success)' },
-  Pallas: { glyph: '⚴', color: 'var(--paper-400)' },
-  Juno: { glyph: '⚵', color: 'var(--warm-brown)' },
-  Vesta: { glyph: '⚶', color: 'var(--accent)' },
-  'North Node': { glyph: '☊', color: 'var(--warm-brown)' },
-  'South Node': { glyph: '☋', color: 'var(--warm-brown)' },
-  Lilith: { glyph: '⚸', color: 'var(--danger)' },
-  Fortune: { glyph: '⊗', color: 'var(--accent)' },
-  Vertex: { glyph: 'Vx', color: 'var(--paper-400)' },
-  'East Point': { glyph: 'EA', color: 'var(--paper-400)' },
-  Ascendant: { glyph: 'Asc', color: 'var(--paper-600)' },
-  Midheaven: { glyph: 'MC', color: 'var(--paper-600)' },
-  Descendant: { glyph: 'Dsc', color: 'var(--paper-600)' },
-  IC: { glyph: 'IC', color: 'var(--paper-600)' },
+  Sun: { glyph: '☉', color: '#8B0000' },
+  Moon: { glyph: '☽', color: '#0000CD' },
+  Mercury: { glyph: '☿', color: '#0000CD' },
+  Venus: { glyph: '♀', color: '#0000CD' },
+  Mars: { glyph: '♂', color: '#8B0000' },
+  Jupiter: { glyph: '♃', color: '#006400' },
+  Saturn: { glyph: '♄', color: '#006400' },
+  Uranus: { glyph: '♅', color: '#006400' },
+  Neptune: { glyph: '♆', color: '#006400' },
+  Pluto: { glyph: '♇', color: '#006400' },
+  Chiron: { glyph: '⚷', color: '#006400' },
+  Ceres: { glyph: '⚳', color: '#006400' },
+  Pallas: { glyph: '⚴', color: '#006400' },
+  Juno: { glyph: '⚵', color: '#006400' },
+  Vesta: { glyph: '⚶', color: '#006400' },
+  'North Node': { glyph: '☊', color: '#006400' },
+  'South Node': { glyph: '☋', color: '#006400' },
+  Lilith: { glyph: '⚸', color: '#8B0000' },
+  Fortune: { glyph: '⊗', color: '#006400' },
+  Vertex: { glyph: 'Vx', color: '#006400' },
+  'East Point': { glyph: 'EA', color: '#006400' },
+  Ascendant: { glyph: 'Asc', color: '#3A3A3A' },
+  Midheaven: { glyph: 'MC', color: '#3A3A3A' },
+  Descendant: { glyph: 'Dsc', color: '#3A3A3A' },
+  IC: { glyph: 'IC', color: '#3A3A3A' },
 };
 
 const SIGN_META = {
-  Aries: { color: 'var(--warm-brown)' },
-  Taurus: { color: 'var(--accent)' },
-  Gemini: { color: 'var(--paper-400)' },
-  Cancer: { color: 'var(--paper-400)' },
-  Leo: { color: 'var(--accent)' },
-  Virgo: { color: 'var(--paper-600)' },
-  Libra: { color: 'var(--paper-400)' },
-  Scorpio: { color: 'var(--warm-brown)' },
-  Sagittarius: { color: 'var(--accent)' },
-  Capricorn: { color: 'var(--paper-600)' },
-  Aquarius: { color: 'var(--paper-400)' },
-  Pisces: { color: 'var(--paper-400)' },
+  Aries: { color: '#E74C3C' },
+  Leo: { color: '#E74C3C' },
+  Sagittarius: { color: '#E74C3C' },
+  Taurus: { color: '#27AE60' },
+  Virgo: { color: '#27AE60' },
+  Capricorn: { color: '#27AE60' },
+  Gemini: { color: '#3498DB' },
+  Libra: { color: '#3498DB' },
+  Aquarius: { color: '#3498DB' },
+  Cancer: { color: '#8E44AD' },
+  Scorpio: { color: '#8E44AD' },
+  Pisces: { color: '#8E44AD' },
 };
 
 const CROSS_ASPECT_PLANETS = [
@@ -201,7 +201,11 @@ Page({
       aspects: [],
       houseCusps: []
     },
-    technical: null
+    technical: null,
+    selectedPlanet: null,
+    detailContent: null,
+    detailContentDate: '',
+    detailCard: null
   },
 
   onLoad() {
@@ -267,7 +271,9 @@ Page({
     const index = e.currentTarget.dataset.index;
     this.setData({
       selectedDateIndex: index,
-      technical: null
+      technical: null,
+      selectedPlanet: null,
+      detailCard: null
     });
     this.handleGenerate();
   },
@@ -520,11 +526,202 @@ Page({
     }));
   },
 
-  onViewDetail(e) {
+  onPlanetDetail(e) {
+    const detail = e?.detail;
+    if (!detail) return;
+    this.setData({ selectedPlanet: detail });
+  },
+
+  closePlanetDetail() {
+    this.setData({ selectedPlanet: null });
+  },
+
+  stopProp() {},
+
+  closeDetailCard() {
+    this.setData({ detailCard: null });
+  },
+
+  async onViewDetail(e) {
     const type = e?.currentTarget?.dataset?.type || 'detail';
-    wx.showToast({
-      title: `正在生成${this.translateDetailType(type)}解读...`,
-      icon: 'loading'
+    await this.openDetailCard(type);
+  },
+
+  async openDetailCard(type) {
+    const { dates, selectedDateIndex } = this.data;
+    const selected = dates[selectedDateIndex];
+    const dateStr = selected ? selected.fullDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const needsDetail = ['career', 'wealth', 'love', 'health', 'chart', 'aspects'].includes(type);
+
+    let detailContent = this.data.detailContent;
+    if (needsDetail) {
+      wx.showLoading({ title: '加载解读...' });
+      detailContent = await this.ensureDetailContent(dateStr);
+      wx.hideLoading();
+    }
+
+    const detailCard = this.buildDetailCard(type, detailContent);
+    if (detailCard) {
+      this.setData({ detailCard });
+    }
+  },
+
+  getDetailCacheKey(dateStr) {
+    if (!this.userProfile) return null;
+    const { birthDate, birthTime, birthCity } = this.userProfile;
+    return `daily_detail_cache_${birthDate}_${birthTime}_${birthCity}_${dateStr}_zh`;
+  },
+
+  async ensureDetailContent(dateStr) {
+    if (this.data.detailContent && this.data.detailContentDate === dateStr) {
+      return this.data.detailContent;
+    }
+
+    const cacheKey = this.getDetailCacheKey(dateStr);
+    const cached = cacheKey ? storage.get(cacheKey) : null;
+    if (cached?.content) {
+      this.setData({ detailContent: cached.content, detailContentDate: dateStr });
+      return cached.content;
+    }
+
+    try {
+      const query = this.buildDailyParams(dateStr);
+      const result = await request({ url: `${API_ENDPOINTS.DAILY_DETAIL}?${query}`, method: 'GET' });
+      const content = result?.content || null;
+      if (content && cacheKey) {
+        storage.set(cacheKey, { content });
+      }
+      this.setData({ detailContent: content, detailContentDate: dateStr });
+      return content;
+    } catch (e) {
+      console.error('Fetch daily detail failed', e);
+      wx.showToast({ title: '解读加载失败', icon: 'none' });
+      return null;
+    }
+  },
+
+  buildDetailCard(type, detail) {
+    const forecast = this.data.forecast || {};
+    const dimensions = forecast.dimensions || {};
+    const titleBase = this.translateDetailType(type);
+    const score = Number.isFinite(dimensions[type]) ? dimensions[type] : null;
+
+    const buildSections = (...items) => items.filter(item => item && item.text);
+    const safeText = (val) => (val ? String(val).trim() : '');
+    const listFrom = (arr) => Array.isArray(arr) ? arr.filter(Boolean).map(String) : [];
+
+    if (['career', 'wealth', 'love', 'health'].includes(type)) {
+      const how = detail?.how_it_shows_up || {};
+      const practice = detail?.one_practice || {};
+      const challenge = detail?.one_challenge || {};
+      const question = detail?.one_question || '';
+
+      const sections = buildSections(
+        { label: '今日表现', text: safeText(type === 'career' ? how.work : type === 'love' ? how.relationships : type === 'health' ? how.emotions : detail?.theme_elaborated) },
+        { label: practice.title || '行动建议', text: safeText(practice.action || forecast.strategy?.best_use) },
+        { label: challenge.pattern_name ? `注意${challenge.pattern_name}` : '注意事项', text: safeText(challenge.description || forecast.strategy?.avoid) }
+      );
+
+      const list = listFrom(question ? [question] : []);
+
+      return {
+        title: `${titleBase}解读`,
+        subtitle: score !== null ? `今日评分：${score}` : '',
+        sections,
+        listTitle: list.length ? '自问提示' : '',
+        list
+      };
+    }
+
+    if (type === 'chart') {
+      const under = detail?.under_the_hood || {};
+      const sections = buildSections(
+        { label: '主题脉络', text: safeText(detail?.theme_elaborated) },
+        { label: '月相', text: safeText(under.moon_phase_sign) }
+      );
+      const list = listFrom(under.key_aspects);
+      return {
+        title: `${titleBase}解读`,
+        subtitle: '',
+        sections,
+        listTitle: list.length ? '关键相位' : '',
+        list
+      };
+    }
+
+    if (type === 'aspects') {
+      const under = detail?.under_the_hood || {};
+      const list = listFrom(under.key_aspects);
+      const fallback = list.length ? list : this.buildAspectSummaryList();
+      return {
+        title: `${titleBase}解读`,
+        subtitle: '',
+        sections: [],
+        listTitle: '关键相位',
+        list: fallback
+      };
+    }
+
+    if (type === 'planets') {
+      return {
+        title: `${titleBase}详情`,
+        subtitle: '',
+        sections: [],
+        listTitle: '行运行星',
+        list: this.buildTransitList(this.data.technical?.transitPlanets)
+      };
+    }
+
+    if (type === 'asteroids') {
+      return {
+        title: `${titleBase}详情`,
+        subtitle: '',
+        sections: [],
+        listTitle: '行运小行星',
+        list: this.buildTransitList(this.data.technical?.transitAsteroids)
+      };
+    }
+
+    if (type === 'rulers') {
+      return {
+        title: `${titleBase}详情`,
+        subtitle: '',
+        sections: [],
+        listTitle: '宫主星路径',
+        list: this.buildHouseRulerList(this.data.technical?.houseRulers)
+      };
+    }
+
+    return null;
+  },
+
+  buildAspectSummaryList() {
+    const aspects = this.data.technical?.crossAspects || [];
+    if (!Array.isArray(aspects) || aspects.length === 0) return [];
+    return aspects.slice(0, 6).map((a) => {
+      const p1 = a.planet1?.startsWith('T-') ? a.planet1.slice(2) : a.planet1;
+      const p2 = a.planet2?.startsWith('N-') ? a.planet2.slice(2) : a.planet2;
+      const name1 = this.translate(p1);
+      const name2 = this.translate(p2);
+      const symbol = ASPECT_CONFIG[a.type]?.symbol || '';
+      const orbText = this.formatOrb(a.orb);
+      return `行运${name1} ${symbol} 本命${name2}（orb ${orbText}）`;
+    });
+  },
+
+  buildTransitList(list) {
+    if (!Array.isArray(list)) return [];
+    return list.slice(0, 10).map((p) => {
+      const retro = p.isRetrograde ? '· 逆行' : '';
+      const houseText = Number.isFinite(p.house) ? `· ${p.house}宫` : '';
+      return `${p.zhName} ${p.zhSign} ${p.degreeText} ${houseText} ${retro}`.trim();
+    });
+  },
+
+  buildHouseRulerList(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map((r) => {
+      return `第${r.house}宫 ${r.zhSign}｜${r.zhRuler} → 第${r.fliesTo}宫 ${r.zhFliesToSign}`;
     });
   },
 
@@ -633,7 +830,8 @@ Page({
         signIcon: `/images/astro-symbols/${(r.sign || 'aries').toLowerCase()}.png`,
         fliesToSignIcon: `/images/astro-symbols/${(r.fliesToSign || 'aries').toLowerCase()}.png`
       })),
-      aspectMatrix: this.buildAspectMatrix(tech.cross_aspects)
+      aspectMatrix: this.buildAspectMatrix(tech.cross_aspects),
+      crossAspects: tech.cross_aspects || []
     };
   },
 

@@ -171,12 +171,12 @@ export const PLANET_META = {
   'Pallas': { glyph: '⚴', color: '#006400' },   // 深绿 - 小行星
   'Vertex': { glyph: 'Vx', color: '#006400' },  // 深绿 - 虚点
   'Fortune': { glyph: '⊗', color: '#006400' },  // 深绿 - 虚点
-  'Ascendant': { glyph: 'Asc', color: '#000000' }, // 黑色 - 轴点
-  'Rising': { glyph: 'Asc', color: '#000000' },    // 黑色 - 轴点
-  'Midheaven': { glyph: 'MC', color: '#000000' },  // 黑色 - 轴点
-  'MC': { glyph: 'MC', color: '#000000' },         // 黑色 - 轴点
-  'Descendant': { glyph: 'Dsc', color: '#000000' }, // 黑色 - 轴点
-  'IC': { glyph: 'IC', color: '#000000' },         // 黑色 - 轴点
+  'Ascendant': { glyph: 'Asc', color: '#3A3A3A' }, // 深灰 - 轴点
+  'Rising': { glyph: 'Asc', color: '#3A3A3A' },    // 深灰 - 轴点
+  'Midheaven': { glyph: 'MC', color: '#3A3A3A' },  // 深灰 - 轴点
+  'MC': { glyph: 'MC', color: '#3A3A3A' },         // 深灰 - 轴点
+  'Descendant': { glyph: 'Dsc', color: '#3A3A3A' }, // 深灰 - 轴点
+  'IC': { glyph: 'IC', color: '#3A3A3A' },         // 深灰 - 轴点
 };
 
 // 行星 SVG 路径数据 (24x24 viewBox)

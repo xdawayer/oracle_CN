@@ -998,6 +998,7 @@ Component({
         keywords: PLANET_KEYWORDS[baseName] || '',
         signName: SIGN_NAMES_ZH[planet.sign] || planet.sign,
         signGlyph: signMeta?.glyph || '',
+        signIcon: `/images/astro-symbols/${(planet.sign || 'aries').toLowerCase()}.png`,
         signColor: signMeta?.color || '#888',
         degree: deg,
         minute: min,

@@ -176,6 +176,9 @@
               houseCusps="{{transitChartData.houseCusps}}"
               width="350"
               height="350"
+              useExternalDetail="{{true}}"
+              bind:planetdetail="onPlanetDetail"
+              bind:planetdetailclose="closePlanetDetail"
             ></astro-chart>
           </view>
           <text class="chart-desc">内环：本命盘 | 外环：今日行运</text>
@@ -366,6 +369,83 @@
       </view>
     </view>
       
+  </view>
+
+  <!-- 行星详情卡片 -->
+  <view class="planet-detail-mask" wx:if="{{selectedPlanet}}" bindtap="closePlanetDetail"></view>
+  <view class="planet-detail-card" wx:if="{{selectedPlanet}}" catchtap="stopProp">
+    <view class="card-close" bindtap="closePlanetDetail">×</view>
+    <view class="card-header">
+      <view class="planet-glyph" style="color: {{selectedPlanet.color}};">{{selectedPlanet.glyph}}</view>
+      <view class="planet-info">
+        <view class="planet-name-row">
+          <view class="planet-name" style="color: {{selectedPlanet.color}};">{{selectedPlanet.displayName}}</view>
+          <view class="planet-badge">{{selectedPlanet.isRetrograde ? '逆行' : '顺行'}}</view>
+        </view>
+        <view class="planet-keywords" wx:if="{{selectedPlanet.keywords}}">{{selectedPlanet.keywords}}</view>
+      </view>
+    </view>
+
+    <view class="card-section">
+      <view class="section-label">星座位置</view>
+      <view class="section-row">
+        <view class="section-text">位于</view>
+        <view class="sign-name" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signName}}</view>
+        <image class="sign-icon" src="{{selectedPlanet.signIcon}}" mode="aspectFit"></image>
+        <view class="section-text">{{selectedPlanet.degree}}°{{selectedPlanet.minute}}'</view>
+      </view>
+    </view>
+
+    <view class="card-section" wx:if="{{selectedPlanet.house}}">
+      <view class="section-label">宫位信息</view>
+      <view class="section-row">
+        <view class="section-text">位于</view>
+        <view class="house-num">{{selectedPlanet.house}}</view>
+        <view class="section-text">宫</view>
+        <block wx:if="{{selectedPlanet.ruledHouses}}">
+          <view class="divider">|</view>
+          <view class="section-text">守护</view>
+          <view class="house-num">{{selectedPlanet.ruledHouses}}</view>
+          <view class="section-text">宫</view>
+        </block>
+      </view>
+    </view>
+
+    <view class="card-section" wx:if="{{selectedPlanet.aspects && selectedPlanet.aspects.length > 0}}">
+      <view class="section-label">主要相位</view>
+      <view class="aspect-list">
+        <view class="aspect-row" wx:for="{{selectedPlanet.aspects}}" wx:key="index">
+          <view class="section-text">与</view>
+          <view class="other-planet" style="color: {{item.otherColor}};">{{item.otherName}}</view>
+          <view class="other-glyph" style="color: {{item.otherColor}};">{{item.otherGlyph}}</view>
+          <view class="section-text">成</view>
+          <view class="aspect-angle" style="color: {{item.aspectColor}};">{{item.angle}}°</view>
+          <view class="aspect-symbol" style="color: {{item.aspectColor}};">{{item.aspectSymbol}}</view>
+          <view class="aspect-orb">{{item.orb}}°</view>
+          <view class="cross-badge" wx:if="{{item.isCross}}">跨盘</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 解读详情卡片 -->
+  <view class="modal-mask" wx:if="{{detailCard}}" bindtap="closeDetailCard">
+    <view class="modal-panel" catchtap="stopProp">
+      <view class="close-btn" bindtap="closeDetailCard">×</view>
+      <text class="modal-title">{{detailCard.title}}</text>
+      <text class="modal-text" wx:if="{{detailCard.subtitle}}">{{detailCard.subtitle}}</text>
+      <view class="detail-section" wx:for="{{detailCard.sections}}" wx:key="label">
+        <text class="detail-label">{{item.label}}</text>
+        <text class="detail-body">{{item.text}}</text>
+      </view>
+      <view class="detail-list" wx:if="{{detailCard.list && detailCard.list.length > 0}}">
+        <text class="detail-label" wx:if="{{detailCard.listTitle}}">{{detailCard.listTitle}}</text>
+        <view class="detail-list-item" wx:for="{{detailCard.list}}" wx:key="*this">
+          <text class="detail-dot">·</text>
+          <text class="detail-item-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.LOADING}}">

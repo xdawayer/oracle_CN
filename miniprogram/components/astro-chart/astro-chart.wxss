@@ -116,6 +116,12 @@
   margin-right: 4px;
 }
 
+.sign-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
 .house-num {
   font-size: 14px;
   font-weight: 600;

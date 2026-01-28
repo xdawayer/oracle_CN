@@ -42,7 +42,8 @@
       <cover-view class="section-row">
         <cover-view class="section-text">位于</cover-view>
         <cover-view class="sign-name" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signName}}</cover-view>
-        <cover-view class="sign-glyph" style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signGlyph}}</cover-view>
+        <cover-image class="sign-icon" wx:if="{{selectedPlanet.signIcon}}" src="{{selectedPlanet.signIcon}}" mode="aspectFit"></cover-image>
+        <cover-view class="sign-glyph" wx:else style="color: {{selectedPlanet.signColor}};">{{selectedPlanet.signGlyph}}</cover-view>
         <cover-view class="section-text">{{selectedPlanet.degree}}°{{selectedPlanet.minute}}'</cover-view>
       </cover-view>
     </cover-view>
