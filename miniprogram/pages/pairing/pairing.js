@@ -52,14 +52,18 @@ Page({
     loading: false,
     loadingText: '同步星盘数据...',
     showResult: false,
-    finalData: null
+    finalData: null,
+    dimensionLabels: [
+      { key: 'emotional', label: '情感' },
+      { key: 'personality', label: '性格' },
+      { key: 'communication', label: '沟通' },
+      { key: 'potential', label: '潜力' }
+    ],
+    iconErrorA: false,
+    iconErrorB: false
   },
 
   onLoad() {
-  },
-
-  onBack() {
-    wx.navigateBack();
   },
 
   bindSignAChange(e) {
@@ -73,6 +77,14 @@ Page({
   },
   bindAnimalBChange(e) {
     this.setData({ animalBIndex: parseInt(e.detail.value) });
+  },
+
+  onIconErrorA() {
+    this.setData({ iconErrorA: true });
+  },
+
+  onIconErrorB() {
+    this.setData({ iconErrorB: true });
   },
 
   calculateResult() {

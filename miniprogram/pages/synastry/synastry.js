@@ -1,13 +1,13 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const { searchCities, formatCityDisplay, autoMatchCity, getCityCoordinates } = require('../../utils/city-search');
 
 const SELF_PROFILE_ID = 'self_profile';
+const CITY_SEARCH_DEBOUNCE = 300;
 
 Page({
   data: {
-    statusBarHeight: 0,
-    navBarHeight: 44,
     step: 1,
     nameA: '',
     nameB: '',
@@ -66,26 +66,24 @@ Page({
       outerPositions: [],
       aspects: [],
       houseCusps: []
-    }
+    },
+
+    // 城市搜索相关
+    birthCitySuggestions: [],
+    currentCitySuggestions: [],
+    showBirthCitySuggestions: false,
+    showCurrentCitySuggestions: false
   },
+
+  // 防抖定时器
+  birthCitySearchTimer: null,
+  currentCitySearchTimer: null,
+  // 选中的城市对象
+  selectedBirthCity: null,
+  selectedCurrentCity: null,
 
   onLoad() {
-    const sysInfo = wx.getSystemInfoSync();
-    const statusBarHeight = sysInfo.statusBarHeight || 0;
-    let navBarHeight = 44;
-    if (wx.getMenuButtonBoundingClientRect) {
-      const menuButton = wx.getMenuButtonBoundingClientRect();
-      if (menuButton && menuButton.top) {
-        const topGap = menuButton.top - statusBarHeight;
-        navBarHeight = menuButton.height + topGap * 2;
-      }
-    }
-    this.setData({ statusBarHeight, navBarHeight });
     this.loadProfiles();
-  },
-
-  onBack() {
-    wx.navigateBack();
   },
 
   loadProfiles() {
@@ -152,17 +150,29 @@ Page({
   },
 
   startCreate() {
+    this.selectedBirthCity = null;
+    this.selectedCurrentCity = null;
     this.setData({
       managerMode: 'form',
-      formData: { id: '', name: '', birthDate: '', birthTime: '', birthCity: '', currentCity: '', timezone: '', accuracy: '' }
+      formData: { id: '', name: '', birthDate: '', birthTime: '', birthCity: '', currentCity: '', timezone: '', accuracy: '', lat: undefined, lon: undefined },
+      birthCitySuggestions: [],
+      currentCitySuggestions: [],
+      showBirthCitySuggestions: false,
+      showCurrentCitySuggestions: false
     });
   },
 
   startEdit(e) {
     const profile = e.currentTarget.dataset.profile;
+    this.selectedBirthCity = null;
+    this.selectedCurrentCity = null;
     this.setData({
       managerMode: 'form',
-      formData: { ...profile }
+      formData: { ...profile },
+      birthCitySuggestions: [],
+      currentCitySuggestions: [],
+      showBirthCitySuggestions: false,
+      showCurrentCitySuggestions: false
     });
   },
 
@@ -184,8 +194,158 @@ Page({
   onFormName(e) { this.setData({ 'formData.name': e.detail.value }); },
   onFormDate(e) { this.setData({ 'formData.birthDate': e.detail.value }); },
   onFormTime(e) { this.setData({ 'formData.birthTime': e.detail.value }); },
-  onFormCity(e) { this.setData({ 'formData.birthCity': e.detail.value }); },
-  onFormCurrentCity(e) { this.setData({ 'formData.currentCity': e.detail.value }); },
+
+  // 出生城市输入处理（带防抖搜索）
+  onFormCityInput(e) {
+    const value = e.detail.value;
+    this.setData({ 'formData.birthCity': value });
+    this.selectedBirthCity = null;
+
+    // 防抖处理
+    if (this.birthCitySearchTimer) {
+      clearTimeout(this.birthCitySearchTimer);
+    }
+
+    if (!value || !value.trim()) {
+      this.setData({
+        birthCitySuggestions: [],
+        showBirthCitySuggestions: false
+      });
+      return;
+    }
+
+    this.birthCitySearchTimer = setTimeout(() => {
+      const results = searchCities(value, 5);
+      this.setData({
+        birthCitySuggestions: results,
+        showBirthCitySuggestions: true
+      });
+    }, CITY_SEARCH_DEBOUNCE);
+  },
+
+  // 出生城市输入框获得焦点
+  onBirthCityFocus() {
+    const { birthCity } = this.data.formData;
+    if (birthCity && birthCity.trim()) {
+      const results = searchCities(birthCity, 5);
+      this.setData({
+        birthCitySuggestions: results,
+        showBirthCitySuggestions: true
+      });
+    }
+  },
+
+  // 出生城市输入框失去焦点
+  onBirthCityBlur() {
+    // 延迟关闭，以便点击事件能够触发
+    setTimeout(() => {
+      // 如果没有选中城市，尝试自动匹配
+      if (!this.selectedBirthCity && this.data.formData.birthCity) {
+        const { city, displayText } = autoMatchCity(this.data.formData.birthCity);
+        if (city) {
+          this.selectedBirthCity = city;
+          const coords = getCityCoordinates(city);
+          this.setData({
+            'formData.birthCity': displayText,
+            'formData.lat': coords.lat,
+            'formData.lon': coords.lon,
+            'formData.timezone': coords.timezone
+          });
+        }
+      }
+      this.setData({ showBirthCitySuggestions: false });
+    }, 200);
+  },
+
+  // 选择出生城市
+  selectBirthCity(e) {
+    const city = e.currentTarget.dataset.city;
+    if (!city) return;
+
+    this.selectedBirthCity = city;
+    const displayText = formatCityDisplay(city);
+    const coords = getCityCoordinates(city);
+
+    this.setData({
+      'formData.birthCity': displayText,
+      'formData.lat': coords.lat,
+      'formData.lon': coords.lon,
+      'formData.timezone': coords.timezone,
+      birthCitySuggestions: [],
+      showBirthCitySuggestions: false
+    });
+  },
+
+  // 当前城市输入处理（带防抖搜索）
+  onFormCurrentCityInput(e) {
+    const value = e.detail.value;
+    this.setData({ 'formData.currentCity': value });
+    this.selectedCurrentCity = null;
+
+    // 防抖处理
+    if (this.currentCitySearchTimer) {
+      clearTimeout(this.currentCitySearchTimer);
+    }
+
+    if (!value || !value.trim()) {
+      this.setData({
+        currentCitySuggestions: [],
+        showCurrentCitySuggestions: false
+      });
+      return;
+    }
+
+    this.currentCitySearchTimer = setTimeout(() => {
+      const results = searchCities(value, 5);
+      this.setData({
+        currentCitySuggestions: results,
+        showCurrentCitySuggestions: true
+      });
+    }, CITY_SEARCH_DEBOUNCE);
+  },
+
+  // 当前城市输入框获得焦点
+  onCurrentCityFocus() {
+    const { currentCity } = this.data.formData;
+    if (currentCity && currentCity.trim()) {
+      const results = searchCities(currentCity, 5);
+      this.setData({
+        currentCitySuggestions: results,
+        showCurrentCitySuggestions: true
+      });
+    }
+  },
+
+  // 当前城市输入框失去焦点
+  onCurrentCityBlur() {
+    // 延迟关闭，以便点击事件能够触发
+    setTimeout(() => {
+      // 如果没有选中城市，尝试自动匹配
+      if (!this.selectedCurrentCity && this.data.formData.currentCity) {
+        const { city, displayText } = autoMatchCity(this.data.formData.currentCity);
+        if (city) {
+          this.selectedCurrentCity = city;
+          this.setData({ 'formData.currentCity': displayText });
+        }
+      }
+      this.setData({ showCurrentCitySuggestions: false });
+    }, 200);
+  },
+
+  // 选择当前城市
+  selectCurrentCity(e) {
+    const city = e.currentTarget.dataset.city;
+    if (!city) return;
+
+    this.selectedCurrentCity = city;
+    const displayText = formatCityDisplay(city);
+
+    this.setData({
+      'formData.currentCity': displayText,
+      currentCitySuggestions: [],
+      showCurrentCitySuggestions: false
+    });
+  },
 
   saveProfile() {
     const { formData, profiles, nameA, nameB } = this.data;
@@ -293,6 +453,22 @@ Page({
     return params.join('&');
   },
 
+  buildTechnicalQuery() {
+    const { nameA, nameB } = this.data;
+    const profileA = this.resolveProfileByName(nameA) || this.profileA;
+    const profileB = this.resolveProfileByName(nameB) || this.profileB;
+
+    if (!profileA || !profileB) {
+      return null;
+    }
+
+    const params = [
+      ...this.buildBirthParams(profileA, 'a'),
+      ...this.buildBirthParams(profileB, 'b')
+    ];
+    return params.join('&');
+  },
+
   ensureProfilesReady() {
     const { nameA, nameB } = this.data;
     const profileA = this.resolveProfileByName(nameA) || this.profileA;
@@ -326,6 +502,59 @@ Page({
 
   // 准备对比盘数据
   prepareSynastryChartData(result) {
+    // 处理 technical API 返回的数据格式
+    const technical = result?.technical;
+    if (technical) {
+      const natalA = technical.natal_a || {};
+      const natalB = technical.natal_b || {};
+      const synAB = technical.syn_ab || {};
+
+      // 内环：A的行星位置
+      const innerPositions = natalA.planets || [];
+
+      // 外环：B的行星位置（添加 B- 前缀）
+      const outerPositionsRaw = natalB.planets || [];
+      const outerPositions = outerPositionsRaw.map(p => ({
+        ...p,
+        name: p.name && !p.name.startsWith('B-') ? `B-${p.name}` : p.name
+      }));
+
+      // 相位：跨盘相位
+      const aspectsRaw = synAB.aspects || [];
+      const aspects = aspectsRaw.map(a => ({
+        ...a,
+        planet2: a.planet2 && !a.planet2.startsWith('B-') ? `B-${a.planet2}` : a.planet2
+      }));
+
+      // 宫位：从 A 的上升点计算
+      let houseCusps = [];
+      const ascendant = innerPositions.find(p => p.name === 'Ascendant');
+      if (ascendant && ascendant.sign) {
+        const signIndex = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+          'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'].indexOf(ascendant.sign);
+        if (signIndex >= 0) {
+          const ascLongitude = signIndex * 30 + (ascendant.degree || 0) + (ascendant.minute || 0) / 60;
+          houseCusps = Array.from({ length: 12 }, (_, i) => ((ascLongitude + i * 30) % 360 + 360) % 360);
+        }
+      }
+
+      console.log('[Synastry] Technical data parsed:', {
+        innerPositions: innerPositions.length,
+        outerPositions: outerPositions.length,
+        aspects: aspects.length,
+        houseCusps: houseCusps.length,
+        ascendant: ascendant ? `${ascendant.sign} ${ascendant.degree}°` : 'not found'
+      });
+
+      return {
+        innerPositions,
+        outerPositions,
+        aspects,
+        houseCusps
+      };
+    }
+
+    // 兼容旧的数据格式
     if (!result || !result.natal_a || !result.natal_b) {
       return {
         innerPositions: [],
@@ -428,11 +657,25 @@ Page({
         wx.showToast({ title: '请先选择双方档案', icon: 'none' });
         return;
       }
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
+
+      // 并行获取 AI 内容和技术数据
+      const technicalQuery = this.buildTechnicalQuery();
+      const [res, technicalRes] = await Promise.all([
+        request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` }),
+        technicalQuery ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}` }) : Promise.resolve(null)
+      ]);
+
       const overviewData = this.parseOverview(res.content || {});
 
-      // 准备星盘数据
-      const synastryChartData = this.prepareSynastryChartData(res);
+      // 准备星盘数据（优先使用 technical 数据）
+      const synastryChartData = this.prepareSynastryChartData(technicalRes || res);
+
+      console.log('[Synastry] Chart data prepared:', {
+        innerCount: synastryChartData.innerPositions.length,
+        outerCount: synastryChartData.outerPositions.length,
+        aspectCount: synastryChartData.aspects.length,
+        houseCuspsCount: synastryChartData.houseCusps.length
+      });
 
       this.setData({
         resultReady: true,

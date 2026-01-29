@@ -1,108 +1,329 @@
 page {
-  /* Light mode colors - 暖灰米色系 + 琥珀金 */
-  --space-950: #FAF9F6;
-  --space-900: #F6F4F0;
-  --space-800: #EFEAE2;
-  --space-700: #E5DFD5;
-  --space-600: #D8D1C5;
+  /* Ink Wash (Shui-mo) Palette & Design Tokens */
+  
+  /* Paper (Backgrounds) */
+  --paper-50: #FFFFFF;
+  --paper-100: #FDFBF7; /* Xuan Paper White */
+  --paper-200: #F8F5F0;
+  --paper-300: #F2EEE6;
+  --paper-400: #E6E0D4;
+  --paper-600: #807A70;
+  --paper-900: #1F1F1F; /* Nong Mo (Heavy Ink) */
 
-  --paper-50: #FAF9F6;
-  --paper-100: #F6F4F0;
-  --paper-200: #EFEAE2;
-  --paper-300: #D8D1C5;
-  --paper-400: #7A746B;
-  --paper-600: #4A4540;
-  --paper-900: #0A0B0D;
+  /* Ink Colors */
+  --ink-deep: #1A1A1A;    /* Jiao Mo (Scorched Ink) - Not pure #000 */
+  --ink-dark: #2D2D2D;    /* Nong Mo (Heavy Ink) */
+  --ink-medium: #5C5C5C;  /* Zhong Mo (Medium Ink) */
+  --ink-light: #919191;   /* Dan Mo (Light Ink) */
+  --ink-water: #E0E0E0;   /* Qing Mo (Clear/Watery Ink) */
 
-  /* Light mode text colors */
-  --star-50: #1A1A1A;
-  --star-200: #4A4540;
-  --star-400: #7A746B;
+  /* Star & Space (For dark elements or specific highlights) */
+  --star-50: #FDFBF7;
+  --star-100: #F2F2F2;
+  --star-200: #D9D9D9;
+  --star-400: #8C8C8C;
+  --space-900: #1A1A1A;
+  --space-950: #121212;
 
-  /* 主色调：琥珀金系 */
-  --accent: #C6A062;
-  --accent-hover: #D4B47A;
-  --accent-light: #E8D4B0;
+  /* Theme Mapping */
+  --bg-color: var(--paper-100);
+  --card-bg: var(--paper-50);
+  --text-primary: var(--paper-900);
+  --text-secondary: var(--paper-600);
+  --text-muted: var(--paper-400);
+  --accent: var(--ink-deep);
+  --accent-red: #B22222; /* Seal Red */
 
-  /* 功能域色（与 UI 规范一致） */
-  --mystic-500: #A855F7;
-  --psycho-500: #3B82F6;
+  /* Functional Colors (Muted/Ink style) */
+  --success: #2E8B57;
+  --warning: #CD853F;
+  --danger: #8B0000;
+  --info: #4682B4;
 
-  /* 辅助色：暖棕色系（替代紫色） */
-  --warm-brown: #8B7355;
-  --warm-brown-light: #A68968;
+  /* Love Theme (For pairing/romance features) */
+  --love-pink: #FF6B8A;
+  --love-light: #FFE4E8;
 
-  /* 深色：深空黑系 */
-  --deep-black: #1A1A1A;
-  --deep-black-light: #2D2D2D;
-
-  /* 语义色：避免蓝紫色 */
-  --success: #6B8E23;      /* 橄榄绿 - 替代亮绿 */
-  --warning: #D2691E;      /* 巧克力橙 - 替代橙色 */
-  --danger: #8B4513;       /* 马鞍棕 - 替代红色 */
-  --info: #8B7355;         /* 暖棕 - 替代蓝色 */
-
-  /* 运势维度色彩：暖色调系统 */
-  --career-color: #8B7355;    /* 事业：暖棕 */
-  --wealth-color: #C6A062;    /* 财运：琥珀金 */
-  --love-color: #CD5C5C;      /* 爱情：印度红 */
-  --health-color: #6B8E23;    /* 健康：橄榄绿 */
-
-  --bg-color: var(--space-950);
-  --text-primary: var(--star-50);
-  --text-secondary: var(--star-200);
-  --text-muted: var(--star-400);
+  /* Structure */
+  --border-color: rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 12rpx 32rpx rgba(0, 0, 0, 0.05);
+  
+  /* Whitespace */
+  --spacing-xs: 8rpx;
+  --spacing-sm: 16rpx;
+  --spacing-md: 32rpx;
+  --spacing-lg: 48rpx;
+  --spacing-xl: 64rpx;
+  --spacing-xxl: 80rpx;
 }
 
 page {
   background-color: var(--bg-color);
   color: var(--text-primary);
-  /* 优化字体栈：优先使用更精致的字体 */
-  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'WenQuanYi Micro Hei', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  /* Typography: Ancient Style (Songti/Serif priority) */
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", "SimSun", serif;
+  font-size: 28rpx;
+  line-height: 1.8; /* More breathing room (Liubai) */
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Paper Texture Effect - Subtle grain overlay */
+page::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.015;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  ),
+  repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* Typography Utility */
+.font-ancient {
+  font-family: "AncientFont", "SourceHanSerifSC", "Songti SC", "STSong", serif;
+}
+
+.font-serif {
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+}
+
+.text-ink-deep { color: var(--ink-deep); }
+.text-ink-medium { color: var(--ink-medium); }
+.text-ink-light { color: var(--ink-light); }
+
+/* Ink Wash Utilities */
+.ink-splash-bg {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(40rpx);
+  opacity: 0.05;
+  background: var(--ink-deep);
+  border-radius: 50%;
+}
+
+.ink-border {
+  border: 1rpx solid var(--border-color);
+  position: relative;
+}
+
+.ink-border::after {
+  content: "";
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  right: 4rpx;
+  bottom: 4rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.02);
+  pointer-events: none;
+}
+
+/* Layout Utilities */
+.p-6 { padding: 48rpx; }
+.p-8 { padding: 64rpx; }
+.m-6 { margin: 48rpx; }
+.m-8 { margin: 64rpx; }
+.space-y-8 > view, .space-y-8 > text { margin-bottom: 64rpx; }
+.space-y-8 > view:last-child { margin-bottom: 0; }
 
 view, text, image, navigator {
   box-sizing: border-box;
 }
 
 .container {
-  padding: 24rpx;
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .card {
-  background-color: rgba(10, 11, 13, 0.6);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 32rpx;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(198, 160, 98, 0.1);
+  background-color: var(--card-bg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  border: 1rpx solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  transition: all 0.3s ease;
 }
 
 .title {
-  font-size: 36rpx;
+  font-family: "AncientFont", "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-size: 44rpx;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16rpx;
+  color: var(--ink-deep);
+  margin-bottom: var(--spacing-md);
+  letter-spacing: 4rpx;
 }
 
 .subtitle {
-  font-size: 28rpx;
-  color: var(--text-secondary);
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-size: 26rpx;
+  color: var(--ink-light);
+  letter-spacing: 2rpx;
 }
 
-/* 全局动画关键帧 */
+/* Button Styles - Ink Blocks */
+.btn-primary {
+  background-color: var(--ink-deep);
+  color: var(--paper-50);
+  padding: 24rpx 48rpx;
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  text-align: center;
+  border: 1rpx solid var(--ink-deep);
+  letter-spacing: 4rpx;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--ink-deep);
+  border: 1rpx solid var(--ink-deep);
+  padding: 24rpx 48rpx;
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  text-align: center;
+  letter-spacing: 4rpx;
+}
+
+.btn-outline:active {
+  background: var(--paper-200);
+}
+
+/* Global Modal/Popup Styles - Ink Wash Theme */
+.modal-overlay, .overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(26, 26, 26, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4rpx);
+}
+
+.modal-content, .popup-content {
+  background: var(--paper-100);
+  border: 1rpx solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-header, .popup-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1rpx solid var(--border-color);
+  background: var(--paper-50);
+}
+
+.modal-title, .popup-title {
+  font-size: 36rpx;
+  color: var(--ink-deep);
+  font-family: "AncientFont", "SourceHanSerifSC", "Songti SC", serif;
+}
+
+.modal-body, .popup-body {
+  padding: var(--spacing-lg);
+}
+
+.modal-footer, .popup-footer {
+  padding: var(--spacing-lg);
+  border-top: 1rpx solid var(--border-color);
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* Form Input Styles - Ink Wash */
+.input-field {
+  background: var(--paper-100);
+  border: 1rpx solid var(--border-color);
+  padding: var(--spacing-md);
+  color: var(--ink-deep);
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-size: 28rpx;
+  transition: border-color 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--ink-medium);
+}
+
+.input-label {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  margin-bottom: var(--spacing-xs);
+  display: block;
+  letter-spacing: 2rpx;
+}
+
+/* Tag/Badge Styles */
+.tag {
+  font-size: 18rpx;
+  padding: 4rpx 12rpx;
+  background: var(--paper-200);
+  color: var(--ink-medium);
+  letter-spacing: 1rpx;
+}
+
+.tag-accent {
+  background: var(--ink-deep);
+  color: var(--paper-50);
+}
+
+/* Panel/Section Styles */
+.panel {
+  background: var(--paper-50);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1rpx solid var(--border-color);
+}
+
+.panel-header {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.panel-title {
+  font-size: 32rpx;
+  color: var(--ink-deep);
+  font-weight: 600;
+}
+
+
+/* 全局动画关键帧 - Keeping these but making them subtle */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20rpx);
+    transform: translateY(30rpx);
   }
   to {
     opacity: 1;
@@ -116,16 +337,5 @@ view, text, image, navigator {
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }

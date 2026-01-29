@@ -1,511 +1,352 @@
-page {
-  background-color: var(--space-950);
-  color: var(--star-50);
-}
+/* pages/pairing/pairing.wxss - Ink Wash Love Theme */
 
-.container {
-  display: flex;
-  flex-direction: column;
+.page {
   min-height: 100vh;
-  padding: 0;
-  position: relative;
-  overflow: hidden;
-}
-
-.header {
-  padding: 44rpx 32rpx 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: var(--space-900);
-  border-bottom: 1px solid var(--space-800);
-}
-
-.back-btn {
-  padding: 16rpx 24rpx 16rpx 0;
-}
-
-.back-text {
-  font-size: 28rpx;
-  color: var(--text-muted);
-}
-
-.header-title-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.header-title {
-  font-size: 32rpx;
-  font-weight: 900;
-  color: var(--star-50);
-  letter-spacing: -0.5px;
-}
-
-.header-subtitle {
-  font-size: 18rpx;
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-top: 4rpx;
-}
-
-.placeholder-box {
-  width: 60rpx;
-}
-
-.content {
-  flex: 1;
-  padding: 48rpx 32rpx;
-  overflow-y: auto;
+  background: var(--paper-100);
   padding-bottom: 120rpx;
 }
 
-.intro-section {
-  text-align: center;
-  margin-bottom: 64rpx;
+/* Header - 与 daily/self 页面一致 */
+.header {
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  animation: fadeInUp 0.6s ease-out;
 }
 
-.intro-title {
+.title {
+  font-size: 64rpx;
+  color: var(--ink-deep);
   display: block;
-  font-size: 40rpx;
-  font-weight: 900;
-  color: var(--star-50);
-  letter-spacing: -1px;
 }
 
-.intro-subtitle {
+.subtitle {
+  font-size: 24rpx;
+  color: var(--ink-light);
+  margin-top: var(--spacing-xs);
   display: block;
-  font-size: 20rpx;
-  color: var(--text-muted);
-  font-weight: 700;
-  margin-top: 8rpx;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  letter-spacing: 2rpx;
 }
 
+/* Content */
+.content {
+  padding: var(--spacing-lg);
+}
+
+/* Selection Area */
 .selection-area {
   display: flex;
   justify-content: space-between;
-  position: relative;
-  margin-bottom: 64rpx;
-}
-
-.center-decoration {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.vertical-line {
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(to bottom, transparent, var(--space-700), transparent);
-}
-
-.heart-icon {
-  position: absolute;
-  font-size: 32rpx;
-  font-weight: 900;
-  color: var(--danger);
-  opacity: 0.8;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-xxl);
 }
 
 .user-column {
-  width: 45%;
-  z-index: 1;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  align-items: center;
 }
 
 .column-label {
   font-size: 20rpx;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  text-align: center;
-  display: block;
-  margin-bottom: 8rpx;
+  color: var(--ink-light);
+  margin-bottom: var(--spacing-sm);
 }
 
-.user-a-label {
-  color: var(--info);
-}
-
-.user-b-label {
-  color: var(--danger);
-}
-
+/* Avatar Card - 增强版 */
 .avatar-card {
-  aspect-ratio: 1;
-  border-radius: 64rpx;
-  background-color: var(--space-800);
-  border: 1px solid var(--space-700);
+  width: 180rpx;
+  height: 200rpx;
+  background: var(--paper-50);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: none;
+  margin-bottom: var(--spacing-md);
+  border-color: var(--accent-red);
+  gap: var(--spacing-xs);
 }
 
-.avatar-card-a {
-  box-shadow: none;
-  border-color: var(--info);
-}
-
-.avatar-card-b {
-  box-shadow: none;
-  border-color: var(--danger);
+.zodiac-icon {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .avatar-name {
-  font-size: 32rpx;
-  font-weight: 900;
-  color: var(--star-50);
+  font-size: 48rpx;
+  color: var(--ink-deep);
+  line-height: 1.2;
 }
 
+.avatar-animal {
+  font-size: 16rpx;
+  color: var(--ink-light);
+}
+
+/* Picker Group */
 .picker-group {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: var(--spacing-xs);
+  width: 100%;
 }
 
 .picker-item {
-  height: 88rpx;
-  line-height: 88rpx;
-  background-color: var(--space-800);
-  border: 1px solid var(--space-700);
-  border-radius: 24rpx;
-  text-align: center;
+  background: var(--paper-50);
+  padding: 8rpx 16rpx;
   font-size: 24rpx;
-  font-weight: 700;
-  color: var(--star-200);
+  color: var(--ink-medium);
+  text-align: center;
 }
 
-.match-btn {
-  width: 100%;
-  height: 112rpx;
-  background-color: var(--star-50);
-  color: var(--space-950);
-  border-radius: 56rpx;
+/* Center Decoration - 爱心动画 */
+.center-decoration {
+  width: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  font-weight: 900;
-  letter-spacing: 2px;
-  box-shadow: none;
-  margin-bottom: 48rpx;
-  gap: 16rpx;
+  padding-top: 60rpx;
 }
 
-.btn-icon {
-  font-size: 24rpx;
-  font-weight: 900;
+.heart-icon {
+  font-size: 48rpx;
+  animation: heartbeat 1.5s ease-in-out infinite;
 }
 
-.spinner {
-  width: 32rpx;
-  height: 32rpx;
-  border: 4rpx solid var(--space-600);
-  border-top-color: var(--space-950);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 16rpx;
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.15);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.15);
+  }
+  56% {
+    transform: scale(1);
+  }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* Match Button - 爱情主题 */
+.match-btn {
+  width: 100%;
+  height: 100rpx;
+  margin-bottom: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--accent-red) 0%, var(--love-pink) 100%);
+  border: none;
 }
 
-.loading-text {
-  font-size: 28rpx;
-  letter-spacing: 1px;
+.match-btn::after {
+  border: none;
 }
 
+/* Info Card */
 .info-card {
-  background-color: var(--space-900);
-  border-radius: 48rpx;
-  padding: 32rpx;
-  border: 1px solid var(--space-800);
-  display: flex;
-  align-items: flex-start;
-  gap: 24rpx;
-}
-
-.info-icon-box {
-  background-color: var(--space-800);
-  padding: 16rpx;
-  border-radius: 24rpx;
-  color: var(--warning);
-  font-size: 20rpx;
-  font-weight: 900;
-}
-
-.info-content {
-  flex: 1;
+  background: var(--paper-200);
+  padding: var(--spacing-md);
 }
 
 .info-title {
-  display: block;
   font-size: 24rpx;
-  font-weight: 900;
-  color: var(--star-50);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 600;
+  color: var(--ink-dark);
   margin-bottom: 8rpx;
+  display: block;
 }
 
 .info-desc {
-  font-size: 22rpx;
-  color: var(--text-muted);
+  font-size: 20rpx;
+  color: var(--ink-light);
   line-height: 1.6;
-  font-weight: 500;
 }
 
+/* Result Modal Overlay */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32rpx;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4rpx);
 }
 
 .overlay-bg {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--space-950);
-  opacity: 0.95;
-  backdrop-filter: blur(8px);
+  inset: 0;
 }
 
+/* Result Card */
 .result-card {
-  width: 100%;
-  max-height: 90vh;
-  background-color: var(--space-900);
-  border-radius: 48rpx;
-  padding: 48rpx 32rpx;
   position: relative;
   z-index: 101;
+  background-color: var(--paper-100);
+  padding: var(--spacing-xl);
+  width: 650rpx;
+  max-height: 85vh;
   overflow-y: auto;
-  border: 1px solid var(--space-700);
-  box-shadow: none;
 }
 
 .close-btn {
   position: absolute;
-  top: 24rpx;
-  right: 24rpx;
-  padding: 16rpx;
-  background-color: var(--space-800);
-  border-radius: 32rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  color: var(--text-muted);
-  font-weight: 800;
+  top: 20rpx;
+  right: 20rpx;
+  padding: 10rpx;
+  font-size: 32rpx;
+  color: var(--ink-light);
 }
 
-.result-header {
+/* Result Heart Decoration */
+.result-heart-decoration {
   text-align: center;
-  margin-bottom: 48rpx;
+  margin-bottom: var(--spacing-md);
 }
 
-.match-avatars {
+.result-heart {
+  font-size: 64rpx;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Result Pairing Info */
+.result-pairing-info {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 32rpx;
-  margin-bottom: 24rpx;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .mini-avatar {
-  width: 96rpx;
-  height: 96rpx;
-  background-color: var(--space-800);
-  border-radius: 32rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  text-align: center;
+}
+
+.mini-sign {
   font-size: 32rpx;
-  font-weight: 900;
-}
-.mini-text {
-  font-size: 24rpx;
+  color: var(--ink-deep);
+  display: block;
 }
 
-.match-heart-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.mini-animal {
+  font-size: 18rpx;
+  color: var(--ink-light);
 }
 
-.fate-score-label {
-  font-size: 16rpx;
-  color: var(--danger);
-  font-weight: 900;
-  letter-spacing: 1px;
+.pairing-connector {
+  font-size: 28rpx;
+  color: var(--accent-red);
+}
+
+/* Result Header */
+.result-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
 }
 
 .score-label {
-  display: block;
-  font-size: 20rpx;
-  color: var(--text-muted);
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 8rpx;
+  font-size: 24rpx;
+  color: var(--ink-light);
 }
 
 .score-value {
-  font-size: 96rpx;
-  font-weight: 900;
-  color: var(--mystic-500);
-  letter-spacing: -4px;
-  line-height: 1;
-  text-shadow: none;
+  font-size: 110rpx;
+  color: var(--accent-red);
+  display: block;
 }
 
+/* Dimensions Grid */
 .dimensions-grid {
+  margin-bottom: var(--spacing-xl);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24rpx;
-  margin-bottom: 48rpx;
+  gap: var(--spacing-md);
 }
 
 .dim-item {
-  background-color: var(--space-800);
-  padding: 24rpx;
-  border-radius: 32rpx;
-  border: 1px solid var(--space-700);
+  background: var(--paper-50);
+  padding: var(--spacing-md);
 }
 
 .dim-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12rpx;
+  margin-bottom: 4rpx;
 }
 
 .dim-label {
   font-size: 20rpx;
-  font-weight: 900;
-  color: var(--text-muted);
+  color: var(--ink-medium);
 }
 
 .dim-val {
-  font-size: 20rpx;
-  font-weight: 900;
-  color: var(--mystic-500);
-}
-
-.analysis-box {
-  background-color: var(--space-800);
-  border: 1px solid var(--mystic-500);
-  padding: 32rpx;
-  border-radius: 32rpx;
-  margin-bottom: 32rpx;
-}
-
-.analysis-title-row {
-  margin-bottom: 16rpx;
-}
-
-.analysis-title-row text {
   font-size: 24rpx;
-  font-weight: 900;
-  color: var(--mystic-500);
+  color: var(--ink-deep);
+}
+
+.progress-bar-wrap {
+  height: 4rpx;
+  background: var(--paper-200);
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-red) 0%, #FF6B8A 100%);
+}
+
+/* Analysis Box */
+.analysis-box {
+  background: var(--paper-50);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .analysis-text {
-  font-size: 26rpx;
-  color: var(--star-200);
-  line-height: 1.6;
-  font-weight: 500;
+  font-size: 24rpx;
+  color: var(--ink-dark);
+  line-height: 1.8;
+  font-style: italic;
 }
 
+/* Tips Section */
 .tips-section {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-  margin-bottom: 48rpx;
-}
-
-.tip-box {
-  padding: 24rpx;
-  border-radius: 24rpx;
-  display: flex;
-  gap: 24rpx;
-}
-
-.tip-todo {
-  background-color: var(--space-800);
-  border: 1px solid var(--success);
-}
-
-.tip-warn {
-  background-color: var(--space-800);
-  border: 1px solid var(--warning);
-}
-
-.tip-icon {
-  font-size: 20rpx;
-  font-weight: 900;
-}
-
-.tip-content {
-  flex: 1;
+  margin-bottom: var(--spacing-lg);
 }
 
 .tip-title {
+  font-size: 24rpx;
+  color: var(--accent-red);
+  margin-bottom: 8rpx;
   display: block;
-  font-size: 20rpx;
-  font-weight: 900;
-  text-transform: uppercase;
-  margin-bottom: 4rpx;
 }
-
-.tip-todo .tip-title { color: var(--success); }
-.tip-warn .tip-title { color: var(--warning); }
 
 .tip-text {
   font-size: 22rpx;
-  line-height: 1.5;
-  font-weight: 500;
+  color: var(--ink-medium);
+  line-height: 1.6;
 }
 
-.tip-todo .tip-text { color: var(--star-200); }
-.tip-warn .tip-text { color: var(--star-200); }
-
+/* Confirm Button */
 .confirm-btn {
   width: 100%;
-  height: 96rpx;
-  background-color: var(--star-50);
-  color: var(--space-950);
-  border-radius: 48rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30rpx;
-  font-weight: 900;
-  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--accent-red) 0%, var(--love-pink) 100%);
+  border: none;
+}
+
+.confirm-btn::after {
+  border: none;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

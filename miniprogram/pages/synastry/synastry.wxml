@@ -1,22 +1,19 @@
-<view class="container">
-  <view class="nav-placeholder" style="height: {{statusBarHeight + navBarHeight}}px"></view>
-  <!-- Header -->
+<view class="page">
   <view class="header">
-    <view class="header-left" bindtap="onBack">
-      <text class="btn-text">返回</text>
-    </view>
-    <text class="header-title">双人合盘</text>
-    <view class="header-right" wx:if="{{step === 1}}" bindtap="openManager">
-      <text class="btn-text-accent">档案</text>
-    </view>
-    <view class="header-right" wx:else></view>
+    <text class="title font-ancient">双人合盘</text>
+    <text class="subtitle">探索两颗星的引力法则</text>
   </view>
 
   <!-- Step 1: Input Form -->
   <view class="content" wx:if="{{step === 1}}">
-    <!-- Intro Card -->
-    <view class="card intro-card">
-      <text class="intro-text">分析两人星盘的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
+    <!-- Intro Card with Profile Manager -->
+    <view class="card intro-card ink-border">
+      <view class="intro-row">
+        <text class="intro-text">分析两人星盘的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
+        <view class="profile-manager-btn" bindtap="openManager">
+          <text class="manager-btn-text">档案管理</text>
+        </view>
+      </view>
     </view>
 
     <!-- Form Card -->
@@ -145,9 +142,9 @@
 
     <!-- Overview Content -->
     <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab === 'overview'}}">
-      <view class="score-card">
+      <view class="score-card ink-border">
         <text class="score-label">关系评分</text>
-        <text class="score-value">{{overviewData.score || '--'}}</text>
+        <text class="score-value font-ancient">{{overviewData.score || '--'}}</text>
         <view class="score-names">
           <text>{{nameA}}</text>
           <text class="score-divider">与</text>
@@ -155,8 +152,8 @@
         </view>
       </view>
 
-      <view class="card" wx:if="{{synastryChartData.innerPositions.length > 0}}">
-        <text class="section-title">对比盘</text>
+      <view class="card ink-border" wx:if="{{synastryChartData.innerPositions.length > 0}}">
+        <text class="section-title font-ancient">对比盘</text>
         <view class="chart-container">
           <astro-chart
             type="synastry"
@@ -171,8 +168,8 @@
         <text class="chart-desc">内环：{{nameA}} | 外环：{{nameB}}</text>
       </view>
 
-      <view class="card">
-        <text class="section-title">关系关键词</text>
+      <view class="card ink-border">
+        <text class="section-title font-ancient">关系关键词</text>
         <view class="keyword-list">
           <view wx:for="{{overviewData.keywords}}" wx:key="word" class="keyword-item">
             <text class="keyword-word">{{item.word}}</text>
@@ -181,13 +178,13 @@
         </view>
       </view>
 
-      <view class="card">
-        <text class="section-title">五维关系模型</text>
+      <view class="card ink-border">
+        <text class="section-title font-ancient">五维关系模型</text>
         <view class="dimension-list">
           <view class="dimension-item" wx:for="{{overviewData.scores}}" wx:key="dim">
             <view class="dim-header">
               <text class="dim-label">{{item.dim}}</text>
-              <text class="dim-score">{{item.score}}</text>
+              <text class="dim-score font-ancient">{{item.score}}</text>
             </view>
             <view class="progress-bg">
               <view class="progress-bar" style="width: {{item.score}}%"></view>
@@ -197,19 +194,19 @@
         </view>
       </view>
 
-      <view class="card" wx:if="{{overviewData.growthTask}}">
-        <text class="section-title">成长任务</text>
+      <view class="card ink-border" wx:if="{{overviewData.growthTask}}">
+        <text class="section-title font-ancient">成长任务</text>
         <text class="body-text">{{overviewData.growthTask.task}}</text>
         <text class="body-subtext">{{overviewData.growthTask.evidence}}</text>
       </view>
 
-      <view class="card">
-        <text class="section-title">综合评语</text>
+      <view class="card ink-border">
+        <text class="section-title font-ancient">综合评语</text>
         <text class="body-text">{{overviewData.summary}}</text>
         <text class="body-subtext">{{overviewData.disclaimer}}</text>
       </view>
 
-      <button class="reset-btn" bindtap="reset">测试下一对</button>
+      <button class="reset-btn btn-outline" bindtap="reset">测试下一对</button>
     </scroll-view>
 
     <!-- Other Sections -->
@@ -292,14 +289,62 @@
             </view>
           </view>
 
-          <view class="form-group">
+          <view class="form-group city-input-group">
             <text class="form-label">出生城市</text>
-            <input class="form-input" value="{{formData.birthCity}}" bindinput="onFormCity" placeholder="例如：上海" />
+            <view class="city-input-wrapper">
+              <input
+                class="form-input"
+                value="{{formData.birthCity}}"
+                bindinput="onFormCityInput"
+                bindfocus="onBirthCityFocus"
+                bindblur="onBirthCityBlur"
+                placeholder="输入城市名、拼音或首字母"
+              />
+              <view class="city-dropdown" wx:if="{{showBirthCitySuggestions && birthCitySuggestions.length > 0}}">
+                <view
+                  class="city-dropdown-item"
+                  wx:for="{{birthCitySuggestions}}"
+                  wx:key="id"
+                  bindtap="selectBirthCity"
+                  data-city="{{item}}"
+                >
+                  <text class="city-name">{{item.name}}</text>
+                  <text class="city-region">{{item.province}}, {{item.country}}</text>
+                </view>
+              </view>
+              <view class="city-dropdown city-no-result" wx:if="{{showBirthCitySuggestions && birthCitySuggestions.length === 0 && formData.birthCity}}">
+                <text>未找到匹配城市</text>
+              </view>
+            </view>
           </view>
 
-          <view class="form-group">
+          <view class="form-group city-input-group">
             <text class="form-label">当前居住地 (可选)</text>
-            <input class="form-input" value="{{formData.currentCity}}" bindinput="onFormCurrentCity" placeholder="例如：北京" />
+            <view class="city-input-wrapper">
+              <input
+                class="form-input"
+                value="{{formData.currentCity}}"
+                bindinput="onFormCurrentCityInput"
+                bindfocus="onCurrentCityFocus"
+                bindblur="onCurrentCityBlur"
+                placeholder="输入城市名、拼音或首字母"
+              />
+              <view class="city-dropdown" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length > 0}}">
+                <view
+                  class="city-dropdown-item"
+                  wx:for="{{currentCitySuggestions}}"
+                  wx:key="id"
+                  bindtap="selectCurrentCity"
+                  data-city="{{item}}"
+                >
+                  <text class="city-name">{{item.name}}</text>
+                  <text class="city-region">{{item.province}}, {{item.country}}</text>
+                </view>
+              </view>
+              <view class="city-dropdown city-no-result" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length === 0 && formData.currentCity}}">
+                <text>未找到匹配城市</text>
+              </view>
+            </view>
           </view>
         </scroll-view>
 
@@ -312,6 +357,15 @@
         </button>
       </view>
 
+    </view>
+  </view>
+
+  <!-- 全屏加载遮罩 -->
+  <view class="loading-overlay" wx:if="{{loading}}">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">正在分析合盘...</text>
+      <text class="loading-hint">计算双人星盘相位与宫位关系</text>
     </view>
   </view>
 </view>

@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "Astro Chart"
+  "navigationBarTitleText": "专业排盘",
+  "navigationBarBackgroundColor": "#FDFBF7",
+  "navigationBarTextStyle": "black"
 }

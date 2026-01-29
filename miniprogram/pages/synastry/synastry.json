@@ -1,4 +1,5 @@
 {
-  "navigationStyle": "custom",
-  "navigationBarTextStyle": "white"
+  "navigationBarTitleText": "双人合盘",
+  "navigationBarBackgroundColor": "#FDFBF7",
+  "navigationBarTextStyle": "black"
 }

@@ -65,11 +65,73 @@ const MODE_MAP = {
   Gemini: 'mutable', Virgo: 'mutable', Sagittarius: 'mutable', Pisces: 'mutable'
 };
 
+// 水墨风格配色
 const CANVAS_COLORS = {
-  grid: '#EFEAE2',
-  text: '#7A746B',
-  fill: 'rgba(198, 160, 98, 0.25)',
-  stroke: '#C6A062',
+  grid: '#E8E4DC',
+  text: '#6B6560',
+  fill: 'rgba(60, 56, 50, 0.12)',
+  stroke: '#3C3832',
+};
+
+const DIMENSION_LIST = [
+  { key: 'emotion', label: '情绪模式' },
+  { key: 'boundary', label: '人际边界' },
+  { key: 'security', label: '安全感来源' },
+  { key: 'expression', label: '表达方式' },
+  { key: 'decision', label: '决策模式' },
+  { key: 'stress', label: '压力应对' },
+  { key: 'love_language', label: '爱的语言' },
+  { key: 'money', label: '金钱观' },
+  { key: 'growth', label: '成长课题' },
+  { key: 'creativity', label: '创造力源泉' },
+  { key: 'intimacy', label: '亲密关系模式' },
+  { key: 'role', label: '社会角色' },
+];
+
+const DEEP_DOMAIN_LIST = [
+  { id: 'career', title: '事业发展', desc: '职业DNA与赛道选择', icon: '/images/icons/career.svg', iconColor: 'var(--domain-career-fg)', iconBg: 'var(--domain-career-bg)' },
+  { id: 'wealth', title: '财富金钱', desc: '财富体质与增长策略', icon: '/images/icons/career.svg', iconColor: 'var(--domain-wealth-fg)', iconBg: 'var(--domain-wealth-bg)' },
+  { id: 'love', title: '爱情婚姻', desc: '恋爱模式与长期指南', icon: '/images/icons/love.svg', iconColor: 'var(--domain-love-fg)', iconBg: 'var(--domain-love-bg)' },
+  { id: 'relations', title: '人际关系', desc: '社交人设与边界设定', icon: '/images/icons/relations.svg', iconColor: 'var(--domain-relations-fg)', iconBg: 'var(--domain-relations-bg)' },
+  { id: 'health', title: '健康养生', desc: '体质档案与作息建议', icon: '/images/icons/health.svg', iconColor: 'var(--domain-health-fg)', iconBg: 'var(--domain-health-bg)' },
+  { id: 'growth', title: '自我成长', desc: '灵魂剧本与成长路线', icon: '/images/icons/study.svg', iconColor: 'var(--domain-growth-fg)', iconBg: 'var(--domain-growth-bg)' },
+];
+
+const APPENDIX_LABELS = {
+  elements: '元素矩阵',
+  aspects: '相位矩阵',
+  planets: '行星信息',
+  asteroids: '小行星信息',
+  rulers: '宫主星信息',
+};
+
+const DETAIL_SECTION_LABELS = {
+  summary: '概览',
+  overview: '概览',
+  highlight: '亮点',
+  highlights: '亮点',
+  strength: '优势',
+  strengths: '优势',
+  challenge: '挑战',
+  challenges: '挑战',
+  advice: '建议',
+  suggestions: '建议',
+  actions: '行动建议',
+  opportunities: '机会',
+  warnings: '提醒',
+  focus: '重点关注',
+  theme: '主题',
+  background: '背景',
+  conclusion: '结论',
+  analysis: '分析',
+  keywords: '关键词',
+  details: '详情',
+  positions: '星体位置',
+  aspects: '相位',
+  planets: '行星',
+  asteroids: '小行星',
+  rulers: '宫主星',
+  elements: '元素',
 };
 
 Page({
@@ -77,19 +139,15 @@ Page({
     planets: [],
     aspects: [],
     big3: [],
-    lifeDomains: [
-      { id: 'career', title: '财运事业', desc: '二宫主星飞星良好', icon: '/images/icons/career.svg', iconColor: 'var(--domain-career-fg)', iconBg: 'var(--domain-career-bg)' },
-      { id: 'marriage', title: '婚恋关系', desc: '七宫落双鱼座', icon: '/images/icons/marriage.svg', iconColor: 'var(--domain-marriage-fg)', iconBg: 'var(--domain-marriage-bg)' },
-      { id: 'health', title: '身体健康', desc: '六宫群星汇聚', icon: '/images/icons/health.svg', iconColor: 'var(--domain-health-fg)', iconBg: 'var(--domain-health-bg)' },
-      { id: 'relations', title: '人际交往', desc: '十一宫贵人运', icon: '/images/icons/relations.svg', iconColor: 'var(--domain-relations-fg)', iconBg: 'var(--domain-relations-bg)' },
-      { id: 'study', title: '学业考试', desc: '水星相位极佳', icon: '/images/icons/study.svg', iconColor: 'var(--domain-study-fg)', iconBg: 'var(--domain-study-bg)' },
-      { id: 'love', title: '恋爱桃花', desc: '金星入庙天秤', icon: '/images/icons/love.svg', iconColor: 'var(--domain-love-fg)', iconBg: 'var(--domain-love-bg)' },
-    ],
-    selectedItem: null,
+    lifeDomains: DEEP_DOMAIN_LIST,
+    dimensionList: DIMENSION_LIST,
     isZoomed: false,
     showPayment: false,
     paymentLoading: false,
     expandedSection: null,
+    showDetailReport: false,
+    detailReportData: null,
+    detailContentCache: {},
 
     chartSize: 300,
     fullChartSize: 400,
@@ -428,7 +486,7 @@ Page({
         const r = Math.min(width, height) / 2 - 45;
         ctx.clearRect(0, 0, width, height);
         const data = [85, 78, 90, 72, 60, 88, 65, 75, 95, 70, 80, 85];
-        const labels = ['自我', '情感', '沟通', '关系', '行动', '成长', '责任', '创新', '灵性', '转化', '疗愈', '命运'];
+        const labels = (this.data.dimensionList || DIMENSION_LIST).map(item => item.label);
         const total = 12;
         ctx.strokeStyle = CANVAS_COLORS.grid;
         ctx.fillStyle = CANVAS_COLORS.text;
@@ -478,29 +536,48 @@ Page({
       });
   },
 
-  onSelectPlanet(e) {
+  async onBig3Click(e) {
     const item = e.currentTarget.dataset.item;
-    this.setData({ selectedItem: item });
+    if (!item) return;
+    const target = item.id === 'ascendant' ? 'rising' : item.id;
+    const chartData = this.buildBig3ChartData(target);
+    const subtitle = item.sign ? `${item.sign}${item.house ? `${item.house}宫` : ''}` : '';
+    await this.openDetailReport({
+      type: 'big3',
+      key: target,
+      title: `${item.name}解读`,
+      subtitle,
+      chartData,
+    });
   },
 
   showPaymentModal() {
+    if (wx.hideTabBar) {
+      wx.hideTabBar({ animation: false });
+    }
     this.setData({ showPayment: true });
   },
 
   closePayment() {
+    if (wx.showTabBar) {
+      wx.showTabBar({ animation: false });
+    }
     this.setData({ showPayment: false });
   },
 
   handlePay() {
     this.setData({ paymentLoading: true });
     setTimeout(() => {
+      if (wx.showTabBar) {
+        wx.showTabBar({ animation: false });
+      }
       this.setData({ paymentLoading: false, showPayment: false });
       wx.showToast({ title: 'Payment logic', icon: 'none' });
     }, 1500);
   },
 
-  closeDetail() {
-    this.setData({ selectedItem: null });
+  closeDetailReport() {
+    this.setData({ showDetailReport: false, detailReportData: null });
   },
 
   toggleZoom() {
@@ -515,6 +592,316 @@ Page({
     });
   },
   
-  onDomainClick() {},
+  async onDimensionClick(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item) return;
+    const chartData = this.buildDimensionChartData(item.key);
+    await this.openDetailReport({
+      type: 'dimension',
+      key: item.key,
+      title: `${item.label}解读`,
+      subtitle: '12维心理解读',
+      chartData,
+    });
+  },
+
+  async onDimensionOverview() {
+    const first = (this.data.dimensionList || [])[0];
+    if (!first) return;
+    await this.onDimensionClick({ currentTarget: { dataset: { item: first } } });
+  },
+
+  async onDomainClick(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    const domain = (this.data.lifeDomains || []).find(item => item.id === id);
+    if (!domain) return;
+    const chartData = this.buildDeepChartData(id);
+    await this.openDetailReport({
+      type: 'deep',
+      key: id,
+      title: `${domain.title}深度解析`,
+      subtitle: domain.desc || '',
+      chartData,
+    });
+  },
+
+  async onAppendixDetail(e) {
+    const type = e.currentTarget.dataset.type;
+    const label = APPENDIX_LABELS[type];
+    if (!type || !label) return;
+    const chartData = this.buildAppendixChartData(type);
+    await this.openDetailReport({
+      type,
+      key: type,
+      title: `${label}解读`,
+      subtitle: '专业星象数据附录',
+      chartData,
+    });
+  },
+
+  buildBig3ChartData(target) {
+    const nameMap = { sun: 'Sun', moon: 'Moon', rising: 'Ascendant' };
+    const planetName = nameMap[target];
+    if (!planetName) return null;
+    const position = (this.data.chartPositions || []).find(p => p.name === planetName);
+    if (!position) return null;
+    const aspects = (this.data.chartAspects || []).filter(
+      a => a.planet1 === planetName || a.planet2 === planetName
+    );
+    return {
+      target,
+      sign: position.sign,
+      house: position.house,
+      degree: position.degree,
+      minute: position.minute,
+      aspects,
+      positions: this.data.chartPositions,
+      houseCusps: this.data.chartHouseCusps,
+    };
+  },
+
+  buildDimensionChartData(dimensionKey) {
+    if (!this.data.chartPositions || this.data.chartPositions.length === 0) return null;
+    return {
+      dimensionKey,
+      positions: this.data.chartPositions,
+      aspects: this.data.chartAspects,
+      houseCusps: this.data.chartHouseCusps,
+    };
+  },
+
+  buildDeepChartData(domainKey) {
+    if (!this.data.chartPositions || this.data.chartPositions.length === 0) return null;
+    return {
+      domainKey,
+      positions: this.data.chartPositions,
+      aspects: this.data.chartAspects,
+      houseCusps: this.data.chartHouseCusps,
+    };
+  },
+
+  buildAppendixChartData(type) {
+    if (!this.data.chartPositions || this.data.chartPositions.length === 0) return null;
+    const base = {
+      positions: this.data.chartPositions,
+      aspects: this.data.chartAspects,
+      houseCusps: this.data.chartHouseCusps,
+    };
+    if (type === 'elements') return { ...base, elementMatrix: this.data.elementMatrix };
+    if (type === 'aspects') return { ...base, aspects: this.data.chartAspects };
+    if (type === 'planets') return { ...base, planets: this.data.planets };
+    if (type === 'asteroids') return { ...base, asteroids: this.data.asteroids };
+    if (type === 'rulers') return { ...base, houseRulers: this.data.houseRulers };
+    return null;
+  },
+
+  getSelfDetailCacheKey(type, key) {
+    const profile = this.userProfile || DEFAULT_PROFILE;
+    const birthDate = profile.birthDate || '';
+    const birthTime = profile.birthTime || '';
+    const birthCity = profile.birthCity || '';
+    const safeKey = `${birthDate}_${birthTime}_${birthCity}_${type}_${key}_zh`.replace(/\s+/g, '_');
+    return `self_detail_${safeKey}`;
+  },
+
+  normalizeDetailContent(value) {
+    if (!value) return '';
+    if (typeof value === 'string') return value.trim();
+    if (Array.isArray(value)) return value.map(item => String(item)).join('\n');
+    if (typeof value === 'object') {
+      if (typeof value.text === 'string') return value.text.trim();
+      return JSON.stringify(value, null, 2);
+    }
+    return String(value);
+  },
+
+  async fetchDetailContent(type, chartData, cacheKey) {
+    if (cacheKey && this.data.detailContentCache?.[cacheKey]) {
+      return this.data.detailContentCache[cacheKey];
+    }
+    const cached = cacheKey ? storage.get(cacheKey) : null;
+    if (cached?.content) {
+      if (cacheKey) {
+        this.setData({ [`detailContentCache.${cacheKey}`]: cached.content });
+      }
+      return cached.content;
+    }
+
+    const payload = {
+      type,
+      context: 'natal',
+      lang: 'zh',
+      chartData,
+    };
+    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload });
+    const content = result?.content ?? null;
+    if (cacheKey) {
+      storage.set(cacheKey, { content });
+      this.setData({ [`detailContentCache.${cacheKey}`]: content });
+    }
+    return content;
+  },
+
+  formatSectionTitle(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '';
+    let title = trimmed;
+    title = title.replace(/^[一二三四五六七八九十]、\s*/, '');
+    title = title.replace(/^【/, '').replace(/】$/, '');
+    if (/[\u4e00-\u9fa5]/.test(title)) return title;
+    const key = title.toLowerCase().replace(/[\s\-]+/g, '_');
+    if (DETAIL_SECTION_LABELS[key]) return DETAIL_SECTION_LABELS[key];
+    return title;
+  },
+
+  formatSectionValue(value) {
+    if (value === null || value === undefined) return { text: '', list: [] };
+    if (Array.isArray(value)) {
+      const list = value.map(item => String(item).trim()).filter(Boolean);
+      return { text: '', list };
+    }
+    if (typeof value === 'string') {
+      return { text: value.trim(), list: [] };
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return { text: String(value), list: [] };
+    }
+    if (typeof value === 'object') {
+      if (typeof value.text === 'string') return { text: value.text.trim(), list: [] };
+      if (typeof value.content === 'string') return { text: value.content.trim(), list: [] };
+      if (typeof value.description === 'string') return { text: value.description.trim(), list: [] };
+      if (Array.isArray(value.items)) {
+        return { text: '', list: value.items.map(item => String(item).trim()).filter(Boolean) };
+      }
+      if (Array.isArray(value.list)) {
+        return { text: '', list: value.list.map(item => String(item).trim()).filter(Boolean) };
+      }
+      const primitiveEntries = Object.entries(value).filter(([, v]) =>
+        typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+      );
+      if (primitiveEntries.length) {
+        const lines = primitiveEntries.map(([k, v]) => `${this.formatSectionTitle(k)}：${String(v)}`);
+        return { text: lines.join('\n'), list: [] };
+      }
+    }
+    return { text: '', list: [] };
+  },
+
+  normalizeDetailContent(value) {
+    if (!value) return { text: '', sections: [] };
+    if (typeof value === 'string') return { text: value.trim(), sections: [] };
+    if (Array.isArray(value)) {
+      const list = value.map(item => String(item).trim()).filter(Boolean);
+      return { text: '', sections: list.length ? [{ title: '重点内容', list }] : [] };
+    }
+    if (typeof value === 'object') {
+      if (Array.isArray(value.sections)) {
+        const sections = value.sections
+          .map(section => {
+            const title = this.formatSectionTitle(section.title || section.label || '解读内容');
+            const payload = this.formatSectionValue(section.text || section.content || section.description || section.list || section.items);
+            if (!payload.text && (!payload.list || payload.list.length === 0)) return null;
+            return { title, ...payload };
+          })
+          .filter(Boolean);
+        if (sections.length) return { text: '', sections };
+      }
+      if (typeof value.text === 'string') return { text: value.text.trim(), sections: [] };
+      const entries = Object.entries(value).filter(([, v]) => v !== null && v !== undefined && v !== '');
+      const sections = entries
+        .map(([key, val]) => {
+          const payload = this.formatSectionValue(val);
+          if (!payload.text && (!payload.list || payload.list.length === 0)) return null;
+          return { title: this.formatSectionTitle(key), ...payload };
+        })
+        .filter(Boolean);
+      if (sections.length) return { text: '', sections };
+    }
+    return { text: String(value), sections: [] };
+  },
+
+  buildDetailSections(text) {
+    if (!text) return [];
+    const lines = String(text).split(/\n+/).map(line => line.trim()).filter(Boolean);
+    const sections = [];
+    let current = null;
+
+    const pushCurrent = () => {
+      if (current && current.text) {
+        sections.push(current);
+      }
+    };
+
+    lines.forEach((line) => {
+      const isNumbered = /^[一二三四五六七八九十]、/.test(line);
+      const isBracket = /^【.+】$/.test(line);
+      if (isNumbered || isBracket) {
+        pushCurrent();
+        current = { title: this.formatSectionTitle(line), text: '' };
+        return;
+      }
+
+      const focusMatch = line.match(/^重点关注[:：]\s*(.+)$/);
+      if (focusMatch) {
+        if (!current) {
+          current = { title: '重点关注', text: '' };
+        }
+        current.text += (current.text ? '\n' : '') + focusMatch[1];
+        return;
+      }
+
+      if (!current) {
+        current = { title: '解读内容', text: '' };
+      }
+      current.text += (current.text ? '\n' : '') + line;
+    });
+
+    pushCurrent();
+    if (!sections.length) {
+      return [{ title: '解读内容', text }];
+    }
+    return sections;
+  },
+
+  buildDetailReportData(title, subtitle, content) {
+    const normalized = this.normalizeDetailContent(content);
+    const sections = normalized.sections && normalized.sections.length
+      ? normalized.sections
+      : this.buildDetailSections(normalized.text || '');
+    if (!sections.length) return null;
+    return {
+      title: title || '解读详情',
+      subtitle: subtitle || '',
+      sections
+    };
+  },
+
+  async openDetailReport({ type, key, title, subtitle, chartData }) {
+    if (!chartData) {
+      wx.showToast({ title: '星盘数据未就绪，请稍后重试', icon: 'none' });
+      return;
+    }
+    const cacheKey = this.getSelfDetailCacheKey(type, key);
+    wx.showLoading({ title: '加载解读...' });
+    try {
+      const content = await this.fetchDetailContent(type, chartData, cacheKey);
+      const reportData = this.buildDetailReportData(title, subtitle, content);
+      if (!reportData) {
+        wx.showToast({ title: '暂无解读内容', icon: 'none' });
+        return;
+      }
+      this.setData({
+        detailReportData: reportData,
+        showDetailReport: true
+      });
+    } catch (err) {
+      console.error('Fetch self detail failed', err);
+      wx.showToast({ title: '内容加载失败，请稍后重试', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
   stopProp() {}
 })
