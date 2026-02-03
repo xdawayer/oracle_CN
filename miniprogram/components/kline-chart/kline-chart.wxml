@@ -1,0 +1,18 @@
+<scroll-view
+  scroll-x
+  class="chart-scroll"
+  enhanced
+  enable-flex
+  show-scrollbar="{{false}}"
+  scroll-with-animation
+>
+  <view class="canvas-wrap" style="width: {{canvasWrapWidth}}px; height: {{canvasStyleHeight}}px;">
+    <canvas
+      type="2d"
+      id="klineCanvas"
+      class="kline-canvas"
+      style="width: {{canvasStyleWidth}}px; height: {{canvasStyleHeight}}px;"
+      bindtap="onTap"
+    ></canvas>
+  </view>
+</scroll-view>

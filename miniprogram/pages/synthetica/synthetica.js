@@ -84,8 +84,9 @@ Page({
       aspects: [],
     },
 
-    result: '',
-    loading: false
+    viewState: 'idle',
+    result: null,
+    error: ''
   },
 
   onLoad() {
@@ -163,9 +164,9 @@ Page({
   },
 
   async handleGenerate() {
-    if (this.data.loading) return;
+    if (this.data.viewState === 'loading') return;
 
-    this.setData({ loading: true, result: '' });
+    this.setData({ viewState: 'loading', result: null, error: '' });
 
     const { params } = this.data;
     try {
@@ -187,18 +188,61 @@ Page({
         data: payload
       });
 
-      if (res && res.content) {
-        this.setData({ result: res.content });
+      const content = res && res.content ? res.content : res;
+
+      // 兼容新旧两种数据格式
+      let result = null;
+      if (content && (content.report_title || content.synthesis || content.modules)) {
+        // 新格式：直接使用
+        result = content;
+      } else if (content && (content.overview || content.planet_analysis)) {
+        // 旧格式：转换为新格式
+        const modules = [];
+        if (content.planet_analysis) {
+          modules.push({
+            headline: '行星落座解读',
+            analysis: content.planet_analysis.interpretation || '',
+            shadow_side: '',
+            actionable_advice: ''
+          });
+        }
+        if (content.life_theme) {
+          modules.push({
+            headline: content.life_theme.title || '人生主题',
+            analysis: content.life_theme.description || '',
+            shadow_side: '',
+            actionable_advice: ''
+          });
+        }
+        if (content.practical_guidance) {
+          modules.push({
+            headline: '实用指南',
+            analysis: (content.practical_guidance.strengths || []).join('；'),
+            shadow_side: (content.practical_guidance.challenges || []).join('；'),
+            actionable_advice: content.practical_guidance.advice || ''
+          });
+        }
+        result = {
+          report_title: content.overview?.title || '星象解析',
+          synthesis: content.overview?.summary || '',
+          modules
+        };
+      }
+
+      if (result) {
+        this.setData({ result, viewState: 'report' });
       } else {
         throw new Error('No content');
       }
 
     } catch (err) {
       console.error(err);
-      this.setData({ result: '解析失败，请稍后重试。' });
+      this.setData({ error: '解析失败，请稍后重试。', viewState: 'error' });
       wx.showToast({ title: '连接中断', icon: 'none' });
-    } finally {
-      this.setData({ loading: false });
     }
+  },
+
+  closeReport() {
+    this.setData({ viewState: 'idle' });
   }
 });

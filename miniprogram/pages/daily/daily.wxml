@@ -1,7 +1,7 @@
 <view class="page">
   <view class="header">
-    <text class="title">运势</text>
-    <text class="subtitle">星辰指引与每日能量解析</text>
+    <text class="title font-ancient">运势</text>
+    <text class="subtitle font-body">星辰指引与每日运势洞察</text>
   </view>
 
   <view class="date-nav">
@@ -14,6 +14,7 @@
         data-index="{{index}}"
       >
         <text class="date-weekday">{{item.weekday}}</text>
+        <text class="date-month" wx:if="{{item.monthPrefix}}">{{item.monthPrefix}}</text>
         <text class="date-day">{{item.day}}</text>
         <view wx:if="{{item.isToday && selectedDateIndex !== index}}" class="today-dot"></view>
       </view>
@@ -22,24 +23,16 @@
 
   <view class="section" wx:if="{{status === LoadingState.SUCCESS && forecast}}">
     
-    <!-- ========== 快速浏览层 ========== -->
-    
-    <!-- 1. 今日运势概览卡片 -->
-    <view class="overview-card">
+    <view class="overview-card ink-border">
       <view class="overview-header">
         <view class="overview-date">
-          <text class="date-label">今日运势</text>
-          <text class="date-value">{{currentDateStr}}</text>
+          <text class="date-label font-body">今日运势</text>
+          <text class="date-value font-ancient">{{currentDateStr}}</text>
         </view>
         
-        <!-- Ring Progress Score -->
-        <view class="score-ring-container">
-          <view class="score-ring" style="background: conic-gradient(var(--accent) {{forecast.overall_score * 3.6}}deg, var(--paper-200) 0deg);">
-            <view class="score-ring-inner">
-              <text class="score-number">{{forecast.overall_score || 0}}</text>
-              <text class="score-suffix">分</text>
-            </view>
-          </view>
+        <view class="score-display">
+          <text class="score-number font-data">{{forecast.overall_score || 0}}</text>
+          <text class="score-suffix font-body">分</text>
         </view>
       </view>
       
@@ -50,13 +43,12 @@
       <view class="lucky-row">
         <view class="lucky-chip">
           <text class="lucky-label">幸运色</text>
-          <view class="lucky-color-dot" style="background: {{luckyColorToken || 'var(--accent)'}}"></view>
           <text class="lucky-value">{{forecast.lucky_color || '深蓝'}}</text>
         </view>
         <view class="lucky-divider"></view>
         <view class="lucky-chip">
           <text class="lucky-label">幸运数</text>
-          <text class="lucky-value lucky-number">{{forecast.lucky_number || '7'}}</text>
+          <text class="lucky-value">{{forecast.lucky_number || '7'}}</text>
         </view>
         <view class="lucky-divider"></view>
         <view class="lucky-chip">
@@ -66,51 +58,42 @@
       </view>
     </view>
 
-    <!-- 2. 四维度评分 -->
     <view class="dimensions-section">
-      <text class="section-title">四维运势</text>
-      
+      <text class="section-title font-ancient">四维运势</text>
+
       <view class="dimension-list">
-      <view class="dimension-item" wx:for="{{dimensionItems}}" wx:key="key" bindtap="onViewDetail" data-type="{{item.key}}">
+        <view class="dimension-item" wx:for="{{dimensionItems}}" wx:key="key" bindtap="onViewDetail" data-type="{{item.key}}">
           <view class="dimension-header">
-            <view class="dimension-icon" style="background: var(--paper-200); color: {{item.color}}">
-              <view class="dimension-icon-inner icon-{{item.key}}"></view>
-            </view>
-            <text class="dimension-name">{{item.label}}</text>
-            <text class="dimension-score" style="color: {{item.color}}">{{item.score || '-'}}</text>
+            <text class="dimension-name font-body">{{item.label}}</text>
           </view>
-          <view class="dimension-score-ring" style="background: conic-gradient({{item.color}} {{(item.score || 0) * 3.6}}deg, var(--paper-200) 0deg);">
-            <view class="dimension-score-inner">
-              <text class="dimension-score-text">{{item.score || '-'}}</text>
-            </view>
+          <view class="dimension-bar-container">
+            <view class="dimension-bar dimension-bar--{{item.key}}" style="width: {{item.score || 0}}%"></view>
           </view>
+          <text class="dimension-score font-data">{{item.score || '-'}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 3. 今日宜忌 -->
     <view class="advice-section">
-      <view class="advice-card advice-do">
+      <view class="advice-card advice-do ink-border">
         <view class="advice-header">
           <view class="advice-badge do-badge">宜</view>
-          <text class="advice-title-text">{{advice.do.title || forecast.strategy.best_use || '积极行动'}}</text>
+          <text class="advice-title-text">{{advice.do.title || (forecast.strategy && forecast.strategy.best_use) || '积极行动'}}</text>
         </view>
         <view class="advice-list" wx:if="{{advice.do.details && advice.do.details.length > 0}}">
           <view class="advice-item" wx:for="{{advice.do.details}}" wx:key="*this">
-            <text class="advice-dot do-dot">·</text>
             <text class="advice-text">{{item}}</text>
           </view>
         </view>
       </view>
       
-      <view class="advice-card advice-dont">
+      <view class="advice-card advice-dont ink-border">
         <view class="advice-header">
           <view class="advice-badge dont-badge">忌</view>
-          <text class="advice-title-text">{{advice.dont.title || forecast.strategy.avoid || '盲目冒险'}}</text>
+          <text class="advice-title-text">{{advice.dont.title || (forecast.strategy && forecast.strategy.avoid) || '盲目冒险'}}</text>
         </view>
         <view class="advice-list" wx:if="{{advice.dont.details && advice.dont.details.length > 0}}">
           <view class="advice-item" wx:for="{{advice.dont.details}}" wx:key="*this">
-            <text class="advice-dot dont-dot">·</text>
             <text class="advice-text">{{item}}</text>
           </view>
         </view>
@@ -153,10 +136,10 @@
     <!-- ========== 深度解读层 ========== -->
     
     <!-- 5. 今日行运星象 -->
-    <view class="card technical-card">
-      <view class="card-header-row">
+    <view class="card technical-card ink-border">
+      <view class="card-header-row font-ancient">
         <text class="card-title">今日行运星象</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="chart">查看详情</view>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="chart">全屏阅读</view>
       </view>
         
         <view class="chart-content">
@@ -167,7 +150,7 @@
             <view class="legend-item"><view class="dot aspect-opposition"></view><text>冲</text></view>
           </view>
           
-          <view class="chart-wrapper" wx:if="{{transitChartData.innerPositions.length > 0}}">
+          <view class="chart-wrapper ink-chart" wx:if="{{transitChartData.innerPositions.length > 0 && !showReport && !selectedPlanet}}">
             <astro-chart
               type="transit"
               positions="{{transitChartData.innerPositions}}"
@@ -186,16 +169,16 @@
       </view>
 
     <!-- 6. 相位矩阵 -->
-    <view class="card technical-card" wx:if="{{technical.aspectMatrix}}">
-      <view class="card-header-row">
+    <view class="card technical-card ink-border" wx:if="{{technical.aspectMatrix}}">
+      <view class="card-header-row font-ancient">
         <text class="card-title">星象详情：相位矩阵</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="aspects">查看详情</view>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="aspects">全屏阅读</view>
       </view>
       <view class="technical-body">
         <view class="aspect-matrix-container">
           <view class="aspect-matrix">
             <view wx:for="{{technical.aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i" class="matrix-row">
-              <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" class="matrix-cell {{cell.isHeader ? 'cell-header' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
+              <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" class="matrix-cell {{cell.isHeader ? 'cell-header font-ancient' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
                 <text wx:if="{{cell.isHeader}}" class="p-symbol">{{cell.symbol}}</text>
                 <view wx:elif="{{cell.aspect}}" class="a-info">
                   <text class="a-symbol" style="color: {{cell.aspect.color}}">{{cell.aspect.symbol}}</text>
@@ -209,15 +192,15 @@
     </view>
 
     <!-- 7. 行运行星 -->
-    <view class="card technical-card" wx:if="{{technical.transitPlanets}}">
-      <view class="card-header-row">
+    <view class="card technical-card ink-border" wx:if="{{technical.transitPlanets}}">
+      <view class="card-header-row font-ancient">
         <text class="card-title">行运行星</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="planets">查看详情</view>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="planets">全屏阅读</view>
       </view>
         
         <view class="technical-body">
           <view class="planet-info-table">
-            <view class="pi-row pi-head">
+            <view class="pi-row pi-head font-ancient">
               <view class="pi-cell pi-planet">星体</view>
               <view class="pi-cell pi-sign">星座</view>
               <view class="pi-cell pi-house">宫位</view>
@@ -250,14 +233,14 @@
     </view>
 
     <!-- 8. 行运小行星 -->
-    <view class="card technical-card" wx:if="{{technical.transitAsteroids}}">
-      <view class="card-header-row">
+    <view class="card technical-card ink-border" wx:if="{{technical.transitAsteroids}}">
+      <view class="card-header-row font-ancient">
         <text class="card-title">行运小行星</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="asteroids">查看详情</view>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="asteroids">全屏阅读</view>
       </view>
       <view class="technical-body">
         <view class="planet-info-table">
-          <view class="pi-row pi-head">
+          <view class="pi-row pi-head font-ancient">
             <view class="pi-cell pi-planet">星体</view>
             <view class="pi-cell pi-sign">星座</view>
             <view class="pi-cell pi-house">宫位</view>
@@ -290,14 +273,14 @@
     </view>
 
     <!-- 9. 宫主星 -->
-    <view class="card technical-card" wx:if="{{technical.houseRulers}}">
-      <view class="card-header-row">
+    <view class="card technical-card ink-border" wx:if="{{technical.houseRulers}}">
+      <view class="card-header-row font-ancient">
         <text class="card-title">宫主星</text>
-        <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">查看详情</view>
+        <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">全屏阅读</view>
       </view>
       <view class="technical-body">
         <view class="planet-info-table">
-          <view class="pi-row pi-head">
+          <view class="pi-row pi-head font-ancient">
             <view class="pi-cell pi-hr-house">宫位</view>
             <view class="pi-cell pi-hr-sign">星座</view>
             <view class="pi-cell pi-hr-ruler">宫主星</view>
@@ -320,7 +303,7 @@
             </view>
             <view class="pi-cell pi-hr-arrow"></view>
             <view class="pi-cell pi-hr-fly">
-              <view class="fly-capsule">
+              <view class="fly-capsule ink-border">
                 <text class="fly-arrow">→</text>
                 <image class="pi-icon mini-fly" src="{{item.fliesToSignIcon}}" mode="aspectFit"></image>
                 <text class="fly-text" style="color: {{item.fliesToSignMeta.color}}">{{item.zhFliesToSign}}</text>
@@ -335,40 +318,64 @@
     <!-- ========== 趋势预览层 ========== -->
 
     <!-- 8. 本周运势趋势 -->
-    <view class="weekly-section card">
-      <view class="card-header-row">
-        <text class="card-title">本周趋势</text>
-        <text class="card-subtitle">{{weekRange}}</text>
-      </view>
-      
+    <view class="weekly-section card ink-border">
+      <text class="card-title weekly-title font-ancient">本周趋势 ({{weekRangeTitle}})</text>
+
       <!-- 柱状图 -->
       <view class="weekly-chart" wx:if="{{weeklyScores.length > 0}}">
         <view class="chart-bar-group" wx:for="{{weeklyScores}}" wx:key="date">
+          <text class="bar-score-top">{{item.score}}</text>
           <view class="chart-bar-wrapper">
-          <view class="chart-bar" style="height: {{item.score}}%; background: {{item.barColor}}">
-            <text class="bar-score" wx:if="{{item.score >= 60}}">{{item.score}}</text>
-          </view>
-            <text class="bar-score-below" wx:if="{{item.score < 60}}">{{item.score}}</text>
+            <view class="chart-bar {{item.isToday ? 'today-bar' : ''}}" style="height: {{item.score || 5}}%;"></view>
           </view>
           <text class="chart-day {{item.isToday ? 'today' : ''}}">{{item.day}}</text>
-          <view class="chart-label" wx:if="{{item.label}}">
-            <text class="label-icon">{{item.label}}</text>
+        </view>
+      </view>
+
+      <!-- 一周7天解读 -->
+      <view class="weekly-desc-list" wx:if="{{weeklyDescriptions.length > 0}}">
+        <view class="weekly-desc-item {{item.isSpecial ? 'special' : ''}}" wx:for="{{weeklyDescriptions}}" wx:key="index">
+          <text class="weekly-desc-date">{{item.dateLabel}}</text>
+          <view class="weekly-desc-content">
+            <text class="weekly-desc-title font-ancient">{{item.title}}</text>
+            <text class="weekly-desc-detail">{{item.description}}</text>
           </view>
         </view>
       </view>
-      
-      <!-- 关键日期 -->
-      <view class="key-dates" wx:if="{{weeklyEvents.length > 0}}">
-        <view class="key-date-item" wx:for="{{weeklyEvents}}" wx:key="date">
-          <view class="key-date-badge">
-            <text class="key-date-icon">{{item.label || '重点'}}</text>
-            <text class="key-date-day">{{item.date}}</text>
-          </view>
-          <text class="key-date-reason">{{item.description}}</text>
-        </view>
+
+      <!-- 空状态提示 -->
+      <view class="weekly-empty" wx:if="{{weeklyScores.length === 0 && weeklyDescriptions.length === 0}}">
+        <text class="weekly-empty-text">本周趋势数据生成中，请稍后刷新</text>
       </view>
     </view>
-      
+
+    <!-- 月度运势深度解读入口 -->
+    <view class="premium-banner monthly-banner {{monthlyColorClass}} {{monthlyReportStatus === 'processing' ? 'processing' : monthlyReportStatus === 'completed' ? 'completed' : ''}}" bindtap="onOpenMonthlyReport">
+      <view class="premium-info">
+        <text class="premium-title">{{monthlyEntryTitle}}</text>
+        <text class="premium-desc">
+          {{monthlyReportStatus === 'none' ? '解锁当月运势深度指南' :
+            monthlyReportStatus === 'pending' ? '任务排队中，请稍候...' :
+            monthlyReportStatus === 'processing' ? '正在为你生成专属报告...' :
+            monthlyReportStatus === 'completed' ? '查看你的专属月度运势' :
+            monthlyReportStatus === 'failed' ? '生成失败，点击重试' : '解锁当月运势深度指南'}}
+        </text>
+        <view wx:if="{{monthlyReportStatus === 'processing' || monthlyReportStatus === 'pending'}}" class="banner-progress">
+          <view class="banner-progress-bar">
+            <view class="banner-progress-fill" style="width: {{monthlyReportProgress || 0}}%"></view>
+          </view>
+          <text class="banner-progress-text">{{monthlyReportProgress || 0}}%</text>
+        </view>
+      </view>
+      <view class="premium-btn {{monthlyReportStatus === 'processing' || monthlyReportStatus === 'pending' ? 'btn-processing' : ''}}">
+        {{monthlyReportStatus === 'none' ? '立即解锁' :
+          monthlyReportStatus === 'pending' ? '排队中' :
+          monthlyReportStatus === 'processing' ? '生成中' :
+          monthlyReportStatus === 'completed' ? '查看报告' :
+          monthlyReportStatus === 'failed' ? '重试' : '立即解锁'}}
+      </view>
+    </view>
+
   </view>
 
   <!-- 行星详情卡片 -->
@@ -428,24 +435,36 @@
     </view>
   </view>
 
-  <!-- 解读详情卡片 -->
-  <view class="modal-mask" wx:if="{{detailCard}}" bindtap="closeDetailCard">
-    <view class="modal-panel" catchtap="stopProp">
-      <view class="close-btn" bindtap="closeDetailCard">×</view>
-      <text class="modal-title">{{detailCard.title}}</text>
-      <text class="modal-text" wx:if="{{detailCard.subtitle}}">{{detailCard.subtitle}}</text>
-      <view class="detail-section" wx:for="{{detailCard.sections}}" wx:key="label">
-        <text class="detail-label">{{item.label}}</text>
-        <text class="detail-body">{{item.text}}</text>
+  <!-- 全屏解读报告 -->
+  <view class="daily-report-overlay" wx:if="{{showReport && reportData}}">
+    <view class="daily-report-topbar">
+      <view class="daily-report-back" bindtap="closeReport">
+        <view class="daily-report-back-icon"></view>
       </view>
-      <view class="detail-list" wx:if="{{detailCard.list && detailCard.list.length > 0}}">
-        <text class="detail-label" wx:if="{{detailCard.listTitle}}">{{detailCard.listTitle}}</text>
-        <view class="detail-list-item" wx:for="{{detailCard.list}}" wx:key="*this">
-          <text class="detail-dot">·</text>
-          <text class="detail-item-text">{{item}}</text>
+      <text class="daily-report-top-title font-ancient">{{reportData.title}}</text>
+      <view class="daily-report-top-placeholder"></view>
+    </view>
+    <scroll-view scroll-y class="daily-report-scroll" show-scrollbar="false">
+      <view class="daily-report-header" wx:if="{{reportData.subtitle}}">
+        <text class="daily-report-subtitle">{{reportData.subtitle}}</text>
+      </view>
+
+      <view class="detail-card detail-card--{{item.cardColor || 'default'}}"
+            wx:for="{{reportData.sections}}" wx:key="title">
+        <view class="detail-card__accent"></view>
+        <view class="detail-card__body">
+          <text class="detail-card__title">{{item.title}}</text>
+          <text class="detail-card__text" wx:if="{{item.text}}">{{item.text}}</text>
+          <view class="detail-card__list" wx:if="{{item.list && item.list.length > 0}}">
+            <view class="detail-card__list-item" wx:for="{{item.list}}" wx:for-item="listItem" wx:for-index="idx" wx:key="idx">
+              <text class="detail-card__list-num">{{idx + 1}}.</text>
+              <text class="detail-card__list-text">{{listItem}}</text>
+            </view>
+          </view>
         </view>
       </view>
-    </view>
+
+    </scroll-view>
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.LOADING}}">
@@ -457,6 +476,49 @@
   <view class="section" wx:if="{{status === LoadingState.ERROR}}">
     <view class="card">
       <text class="error-text">无法获取今日运势，请先完善出生信息。</text>
+    </view>
+  </view>
+
+  <!-- 支付弹窗 -->
+  <view class="payment-mask" wx:if="{{showPayment}}" bindtap="closePayment" catchtouchmove="true"></view>
+  <view class="payment-sheet {{showPayment ? 'show' : ''}}" wx:if="{{showPayment}}">
+    <view class="payment-body">
+      <view class="payment-handle"></view>
+
+      <view class="payment-header">
+        <text class="payment-title font-ancient">{{paymentMeta.title}}</text>
+        <text class="payment-subtitle">{{paymentMeta.subtitle}}</text>
+      </view>
+
+      <view class="payment-features">
+        <block wx:for="{{paymentMeta.features}}" wx:key="title">
+          <view class="payment-feature-item">
+            <view class="feature-icon">◈</view>
+            <view class="feature-content">
+              <text class="feature-title">{{item.title}}</text>
+              <text class="feature-desc">{{item.desc}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="payment-price-section">
+        <view class="payment-price-row">
+          <text class="payment-price-label">报告价格</text>
+          <view class="payment-price-value">
+            <text class="payment-price-num">{{paymentMeta.price}}</text>
+            <text class="payment-price-unit">积分</text>
+          </view>
+        </view>
+        <text class="payment-price-note">{{paymentMeta.note}}</text>
+      </view>
+    </view>
+
+    <view class="payment-actions">
+      <button class="payment-btn-primary" bindtap="handlePay" loading="{{paymentLoading}}">
+        {{paymentLoading ? '生成中...' : '立即解锁'}}
+      </button>
+      <view class="payment-btn-cancel" bindtap="closePayment">稍后再说</view>
     </view>
   </view>
 </view>

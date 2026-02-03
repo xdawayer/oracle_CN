@@ -1,124 +1,526 @@
-<view class="container">
-  <!-- Header -->
-  <view class="header">
-    <view class="back-btn" bindtap="onBack">
-      <text class="back-text">返回</text>
+<!--
+  人生K线 - 水墨山水意境
+  将K线比作人生山峦，起伏有致，云开见月
+-->
+<view class="page-container">
+  <!-- 本命三要素 - 横向印章式布局 -->
+  <view class="natal-strip" wx:if="{{natalChart}}">
+    <view class="natal-seal">
+      <image class="seal-icon" src="{{natalChart.sunSign.icon}}" mode="aspectFit"></image>
+      <view class="seal-text">
+        <text class="seal-label">日</text>
+        <text class="seal-value">{{natalChart.sunSign.name}}</text>
+      </view>
     </view>
-    <view class="header-title">
-      <text class="title-main">人生K线</text>
-      <text class="title-sub">命运趋势分析</text>
+    <view class="natal-divider"></view>
+    <view class="natal-seal">
+      <image class="seal-icon" src="{{natalChart.moonSign.icon}}" mode="aspectFit"></image>
+      <view class="seal-text">
+        <text class="seal-label">月</text>
+        <text class="seal-value">{{natalChart.moonSign.name}}</text>
+      </view>
     </view>
-    <view class="spacer"></view>
+    <view class="natal-divider"></view>
+    <view class="natal-seal">
+      <image class="seal-icon" src="{{natalChart.ascendant.icon}}" mode="aspectFit"></image>
+      <view class="seal-text">
+        <text class="seal-label">升</text>
+        <text class="seal-value">{{natalChart.ascendant.name}}</text>
+      </view>
+    </view>
+    <text class="natal-hint" wx:if="{{loading && !isDataFromServer}}">精确计算中...</text>
   </view>
 
-  <!-- Scrollable Content -->
-  <scroll-view scroll-y class="content-scroll" enable-flex>
-    <!-- Dimensions Selector -->
-    <scroll-view scroll-x class="dims-scroll" enable-flex>
-      <view class="dims-container">
-        <view 
-          wx:for="{{dimensions}}" 
-          wx:key="id" 
-          class="dim-item {{selectedDimId === item.id ? 'active' : ''}}"
-          bindtap="onDimSelect"
-          data-id="{{item.id}}"
-        >
-          <view class="dim-icon-box">
-             <text class="dim-code">{{item.code || '总'}}</text>
-          </view>
-          <text class="dim-name">{{item.name}}</text>
-        </view>
-      </view>
-    </scroll-view>
-
-    <view class="main-content">
-      <!-- Overview Card -->
-      <view class="card overview-card">
-        <view class="card-header">
-          <view class="trend-info">
-            <view class="trend-title">
-              <text>{{currentDim.name}}趋势概览</text>
-            </view>
-            <view class="trend-score">
-              <text class="score-val">{{currentCycle.type || '分析中'}}</text>
-            </view>
-            <text class="score-label" wx:if="{{currentCycle}}">当前周期: {{currentCycle.start}} 至 {{currentCycle.end}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Cycles List -->
-      <view class="section-title-row">
-        <text class="section-title">周期列表详情</text>
-        <text class="section-subtitle">周期</text>
-      </view>
-
-      <view class="list-card">
-        <block wx:for="{{dataList}}" wx:key="id">
-          <view class="list-item" bindtap="onDetailSelect" data-item="{{item}}">
-            <view class="item-main">
-              <text class="item-planet">{{item.planet}}</text>
-              <text class="item-type">{{item.type}}</text>
-            </view>
-            
-            <view class="item-dates">
-              <text class="date-range">{{item.start}} ~ {{item.end}}</text>
-              <text class="peak-date">峰值: {{item.peak}}</text>
-            </view>
-          </view>
-        </block>
-        <view wx:if="{{dataList.length === 0}}" class="empty-state">
-           <text>暂无周期数据</text>
-        </view>
-      </view>
-
-      <!-- Advice Section -->
-      <view class="advice-card">
-         <view class="advice-header">
-            <text class="advice-title">运势锦囊</text>
-         </view>
-         <text class="advice-text">
-            {{selectedDimId === 'wealth' ? "本周期财运波动，建议审慎投资。" : ""}}
-            {{selectedDimId === 'love' ? "情感能量活跃，适合增进交流。" : ""}}
-            {{selectedDimId === 'career' ? "职场机会显现，保持专注。" : ""}}
-            {{selectedDimId === 'overall' ? "整体运势平稳，注意资源整合。" : ""}}
-            {{selectedDimId === 'health' ? "注意劳逸结合，保持身心平衡。" : ""}}
-            {{selectedDimId === 'growth' ? "适合内省与学习，提升自我认知。" : ""}}
-         </text>
-      </view>
-
-      <view class="footer-spacer"></view>
+  <!-- 视图切换 - 毛笔笔触风格 -->
+  <view class="mode-switch">
+    <view
+      class="mode-item {{viewMode === 'chart' ? 'active' : ''}}"
+      bindtap="onViewModeChange"
+      data-mode="chart"
+    >
+      <text>命运山河</text>
+      <view class="mode-brush" wx:if="{{viewMode === 'chart'}}"></view>
     </view>
+    <view
+      class="mode-item {{viewMode === 'report' ? 'active' : ''}}"
+      bindtap="onViewModeChange"
+      data-mode="report"
+    >
+      <text>人生长卷</text>
+      <view class="mode-brush" wx:if="{{viewMode === 'report'}}"></view>
+    </view>
+  </view>
+
+  <!-- 主内容区 -->
+  <scroll-view scroll-y class="main-scroll" show-scrollbar="false" enhanced>
+
+    <!-- K线图视图 -->
+    <block wx:if="{{viewMode === 'chart'}}">
+      <!-- K线图 - 山水画卷 -->
+      <view class="chart-scroll" wx:if="{{!showYearDetail}}">
+        <view class="chart-frame">
+          <kline-chart
+            id="klineChart"
+            data="{{visibleData}}"
+            bind:yearclick="onYearClick"
+          ></kline-chart>
+        </view>
+
+        <!-- 图例与滑动提示 -->
+        <view class="chart-footer">
+          <view class="chart-legend">
+            <view class="legend-group">
+              <view class="legend-mark bull"></view>
+              <text>吉</text>
+            </view>
+            <view class="legend-group">
+              <view class="legend-mark bear"></view>
+              <text>凶</text>
+            </view>
+            <view class="legend-group">
+              <view class="legend-mark node"></view>
+              <text>转折</text>
+            </view>
+          </view>
+          <text class="scroll-hint">← 左右滑动查看 →</text>
+        </view>
+      </view>
+
+      <!-- 年龄范围选择 -->
+      <view class="range-pills">
+        <view
+          wx:for="{{rangeOptions}}"
+          wx:key="label"
+          class="range-pill {{viewRange.label === item.label ? 'active' : ''}}"
+          bindtap="onRangeChange"
+          data-range="{{item}}"
+        >{{item.label}}</view>
+      </view>
+
+      <!-- 今年运势 - 大开大合的卡片 -->
+      <view class="year-hero" wx:if="{{currentYearData}}" bindtap="onCurrentYearClick">
+        <view class="hero-left">
+          <view class="hero-year">
+            <text class="year-num font-ancient">{{currentYearData.year}}</text>
+            <text class="year-unit">年</text>
+          </view>
+          <view class="hero-meta">
+            <text class="meta-ganzhi">{{currentYearData.ganzhi.full}}</text>
+            <text class="meta-dot">·</text>
+            <text class="meta-age">{{currentYearData.age}}岁</text>
+          </view>
+        </view>
+
+        <view class="hero-center">
+          <view class="score-ring {{currentYearData.trend}}">
+            <text class="score-num">{{currentYearData.score}}</text>
+          </view>
+          <text class="score-hint">综合运势</text>
+        </view>
+
+        <view class="hero-right">
+          <view class="fortune-seal {{currentYearData.trend}}">
+            <text>{{currentYearData.trend === 'bull' ? '吉' : '凶'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 人生节点 - 时间轴形式 -->
+      <view class="milestones" wx:if="{{milestones.length > 0}}">
+        <view class="section-head">
+          <text class="section-title font-ancient">命运转折</text>
+          <view class="section-line"></view>
+        </view>
+
+        <view class="timeline">
+          <view
+            wx:for="{{milestones}}"
+            wx:key="year"
+            class="timeline-item"
+            bindtap="onMilestoneClick"
+            data-year="{{item.year}}"
+          >
+            <view class="timeline-dot"></view>
+            <view class="timeline-content">
+              <text class="timeline-year">{{item.year}}年</text>
+              <text class="timeline-age">{{item.age}}岁</text>
+              <text class="timeline-event">{{item.isSaturnReturn ? (item.age < 35 ? '土星回归' : '二次土星') : '天王对分'}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 报告视图 -->
+    <block wx:if="{{viewMode === 'report'}}">
+      <!-- 报告章节 - 卷轴展开式 -->
+      <view class="scroll-section">
+        <view class="scroll-header" bindtap="toggleSection" data-section="overview">
+          <view class="scroll-icon-wrap">
+            <text class="scroll-icon">卷</text>
+          </view>
+          <text class="scroll-title">人生运势总览</text>
+          <text class="scroll-toggle">{{expandedSections.overview ? '收' : '展'}}</text>
+        </view>
+        <view class="scroll-body {{expandedSections.overview ? 'expanded' : ''}}">
+          <text class="scroll-text">{{reportContent.overview}}</text>
+        </view>
+      </view>
+
+      <view class="scroll-section">
+        <view class="scroll-header" bindtap="toggleSection" data-section="past">
+          <view class="scroll-icon-wrap past">
+            <text class="scroll-icon">昔</text>
+          </view>
+          <text class="scroll-title">往昔回溯</text>
+          <text class="scroll-toggle">{{expandedSections.past ? '收' : '展'}}</text>
+        </view>
+        <view class="scroll-body {{expandedSections.past ? 'expanded' : ''}}">
+          <text class="scroll-text">{{reportContent.past}}</text>
+        </view>
+      </view>
+
+      <view class="scroll-section">
+        <view class="scroll-header" bindtap="toggleSection" data-section="present">
+          <view class="scroll-icon-wrap present">
+            <text class="scroll-icon">今</text>
+          </view>
+          <text class="scroll-title">当下定位</text>
+          <text class="scroll-toggle">{{expandedSections.present ? '收' : '展'}}</text>
+        </view>
+        <view class="scroll-body {{expandedSections.present ? 'expanded' : ''}}">
+          <text class="scroll-text">{{reportContent.present}}</text>
+        </view>
+      </view>
+
+      <!-- 付费章节 -->
+      <view class="scroll-section {{isUnlocked ? '' : 'locked'}}">
+        <view class="scroll-header" bindtap="{{isUnlocked ? 'toggleSection' : 'onLockedSectionClick'}}" data-section="future">
+          <view class="scroll-icon-wrap future">
+            <text class="scroll-icon">来</text>
+          </view>
+          <text class="scroll-title">未来三十载</text>
+          <text class="scroll-toggle" wx:if="{{isUnlocked}}">{{expandedSections.future ? '收' : '展'}}</text>
+          <view class="lock-seal" wx:else>锁</view>
+        </view>
+        <view class="scroll-body {{expandedSections.future ? 'expanded' : ''}}" wx:if="{{isUnlocked}}">
+          <text class="scroll-text">{{reportContent.future}}</text>
+        </view>
+      </view>
+
+      <view class="scroll-section {{isUnlocked ? '' : 'locked'}}">
+        <view class="scroll-header" bindtap="{{isUnlocked ? 'toggleSection' : 'onLockedSectionClick'}}" data-section="milestone">
+          <view class="scroll-icon-wrap milestone">
+            <text class="scroll-icon">碑</text>
+          </view>
+          <text class="scroll-title">人生里程碑</text>
+          <text class="scroll-toggle" wx:if="{{isUnlocked}}">{{expandedSections.milestone ? '收' : '展'}}</text>
+          <view class="lock-seal" wx:else>锁</view>
+        </view>
+        <view class="scroll-body {{expandedSections.milestone ? 'expanded' : ''}}" wx:if="{{isUnlocked}}">
+          <text class="scroll-text">{{reportContent.milestone}}</text>
+        </view>
+      </view>
+
+      <view class="scroll-section {{isUnlocked ? '' : 'locked'}}">
+        <view class="scroll-header" bindtap="{{isUnlocked ? 'toggleSection' : 'onLockedSectionClick'}}" data-section="letter">
+          <view class="scroll-icon-wrap letter">
+            <text class="scroll-icon">书</text>
+          </view>
+          <text class="scroll-title">予未来之我</text>
+          <text class="scroll-toggle" wx:if="{{isUnlocked}}">{{expandedSections.letter ? '收' : '展'}}</text>
+          <view class="lock-seal" wx:else>锁</view>
+        </view>
+        <view class="scroll-body {{expandedSections.letter ? 'expanded' : ''}}" wx:if="{{isUnlocked}}">
+          <text class="scroll-text">{{reportContent.letter}}</text>
+        </view>
+      </view>
+
+      <!-- 解锁按钮 -->
+      <view class="unlock-area" wx:if="{{!isUnlocked}}">
+        <view class="unlock-btn" bindtap="onUnlockReport">
+          <text class="unlock-text">解锁完整命书</text>
+          <text class="unlock-price">¥29.9</text>
+        </view>
+        <text class="unlock-hint">或订阅VIP自动解锁</text>
+      </view>
+    </block>
+
+    <!-- 底部声明 -->
+    <view class="footer-note">
+      <text>命理推演，仅供参考。命运在己，行动为先。</text>
+    </view>
+
+    <view class="safe-bottom"></view>
   </scroll-view>
 
-  <!-- Modal -->
-  <view class="modal-overlay" wx:if="{{selectedDetail}}" bindtap="closeDetail">
-    <view class="modal-content" catchtap="preventBubble">
-      <view class="modal-header">
-         <text class="modal-subtitle">周期详情</text>
-         <text class="modal-title">{{selectedDetail.planet}} {{selectedDetail.type}}</text>
+  <!-- 年度详情弹窗 - 水墨卡片 -->
+  <view class="modal-mask" wx:if="{{showYearDetail}}" bindtap="closeYearDetail">
+    <view class="modal-sheet" catchtap="preventBubble">
+      <!-- 弹窗头部 -->
+      <view class="sheet-header">
+        <view class="sheet-title-group">
+          <text class="sheet-year font-ancient">{{selectedYear.year}}</text>
+          <view class="sheet-meta">
+            <text class="sheet-ganzhi">{{selectedYear.ganzhi.full}}年</text>
+            <text class="sheet-age">{{selectedYear.age}}岁</text>
+          </view>
+        </view>
+        <view class="sheet-fortune {{selectedYear.trend}}">
+          <text>{{selectedYear.trend === 'bull' ? '吉' : '凶'}}</text>
+        </view>
+        <view class="sheet-close" bindtap="closeYearDetail">
+          <text>×</text>
+        </view>
       </view>
 
-      <view class="stats-grid">
-         <view class="stat-box">
-            <text class="stat-label">开始时间</text>
-            <text class="stat-value">{{selectedDetail.start}}</text>
-         </view>
-         <view class="stat-box">
-            <text class="stat-label">结束时间</text>
-            <text class="stat-value">{{selectedDetail.end}}</text>
-         </view>
-         <view class="stat-box full-width">
-            <text class="stat-label">峰值时刻</text>
-            <text class="stat-value text-accent">{{selectedDetail.peak}}</text>
-         </view>
+      <!-- 年度主题 -->
+      <view class="sheet-theme" wx:if="{{selectedYearReport}}">
+        <text>{{selectedYearReport.theme}}</text>
       </view>
 
-      <view class="modal-desc">
-        <text>该周期由{{selectedDetail.planet}}能量主导，表现为{{selectedDetail.type}}特征。请关注峰值日期前后的重要机遇与挑战。</text>
-      </view>
+      <!-- Tab 切换 -->
+      <scroll-view scroll-x class="sheet-tabs" enhanced show-scrollbar="{{false}}">
+        <view class="tabs-inner">
+          <view
+            wx:for="{{detailTabs}}"
+            wx:key="id"
+            class="tab-item {{activeTab === item.id ? 'active' : ''}}"
+            bindtap="onDetailTabChange"
+            data-tab="{{item.id}}"
+          >
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </scroll-view>
 
-      <button class="modal-btn" bindtap="closeDetail">关闭详情</button>
+      <!-- Tab 内容 -->
+      <scroll-view scroll-y class="sheet-body" show-scrollbar="false">
+        <!-- 概览 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'overview' && selectedYearReport}}">
+          <!-- OHLC 数据 -->
+          <view class="ohlc-grid">
+            <view class="ohlc-item">
+              <text class="ohlc-label">开</text>
+              <text class="ohlc-value">{{selectedYear.open}}</text>
+            </view>
+            <view class="ohlc-item high">
+              <text class="ohlc-label">高</text>
+              <text class="ohlc-value">{{selectedYear.high}}</text>
+            </view>
+            <view class="ohlc-item low">
+              <text class="ohlc-label">低</text>
+              <text class="ohlc-value">{{selectedYear.low}}</text>
+            </view>
+            <view class="ohlc-item">
+              <text class="ohlc-label">收</text>
+              <text class="ohlc-value">{{selectedYear.close}}</text>
+            </view>
+          </view>
+
+          <!-- 四维评分 -->
+          <view class="dimensions">
+            <view class="dim-item dim-item--overall">
+              <view class="dim-accent"></view>
+              <view class="dim-body">
+                <view class="dim-head">
+                  <text class="dim-name">综合</text>
+                  <text class="dim-score {{selectedYear.score >= 50 ? 'up' : 'down'}}">{{selectedYear.score}}</text>
+                </view>
+                <view class="dim-bar">
+                  <view class="dim-fill {{selectedYear.score >= 50 ? 'up' : 'down'}}" style="width: {{selectedYear.score}}%"></view>
+                </view>
+              </view>
+            </view>
+            <view class="dim-item dim-item--career">
+              <view class="dim-accent"></view>
+              <view class="dim-body">
+                <view class="dim-head">
+                  <text class="dim-name">事业</text>
+                  <text class="dim-score career">{{selectedYearReport.dimensions.career.score}}</text>
+                </view>
+                <view class="dim-bar">
+                  <view class="dim-fill career" style="width: {{selectedYearReport.dimensions.career.score}}%"></view>
+                </view>
+              </view>
+            </view>
+            <view class="dim-item dim-item--wealth">
+              <view class="dim-accent"></view>
+              <view class="dim-body">
+                <view class="dim-head">
+                  <text class="dim-name">财运</text>
+                  <text class="dim-score wealth">{{selectedYearReport.dimensions.wealth.score}}</text>
+                </view>
+                <view class="dim-bar">
+                  <view class="dim-fill wealth" style="width: {{selectedYearReport.dimensions.wealth.score}}%"></view>
+                </view>
+              </view>
+            </view>
+            <view class="dim-item dim-item--love">
+              <view class="dim-accent"></view>
+              <view class="dim-body">
+                <view class="dim-head">
+                  <text class="dim-name">感情</text>
+                  <text class="dim-score love">{{selectedYearReport.dimensions.love.score}}</text>
+                </view>
+                <view class="dim-bar">
+                  <view class="dim-fill love" style="width: {{selectedYearReport.dimensions.love.score}}%"></view>
+                </view>
+              </view>
+            </view>
+            <view class="dim-item dim-item--health">
+              <view class="dim-accent"></view>
+              <view class="dim-body">
+                <view class="dim-head">
+                  <text class="dim-name">健康</text>
+                  <text class="dim-score health">{{selectedYearReport.dimensions.health.score}}</text>
+                </view>
+                <view class="dim-bar">
+                  <view class="dim-fill health" style="width: {{selectedYearReport.dimensions.health.score}}%"></view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 重要事件 -->
+          <view class="major-event-card" wx:if="{{selectedYearReport.majorEvent}}">
+            <view class="event-head">
+              <text class="event-name">{{selectedYearReport.majorEvent.name}}</text>
+              <text class="event-impact {{selectedYearReport.majorEvent.impact > 0 ? 'up' : 'down'}}">
+                {{selectedYearReport.majorEvent.impact > 0 ? '+' : ''}}{{selectedYearReport.majorEvent.impact}}
+              </text>
+            </view>
+            <text class="event-desc">{{selectedYearReport.majorEvent.description}}</text>
+          </view>
+
+          <!-- 视角解读 -->
+          <view class="insight-block insight-block--astro">
+            <view class="insight-accent"></view>
+            <view class="insight-body">
+              <text class="insight-title">占星视角</text>
+              <text class="insight-content">{{selectedYearReport.astroSummary}}</text>
+            </view>
+          </view>
+
+          <view class="insight-block insight-block--bazi">
+            <view class="insight-accent"></view>
+            <view class="insight-body">
+              <text class="insight-title">八字视角</text>
+              <text class="insight-content">{{selectedYearReport.baziSummary}}</text>
+            </view>
+          </view>
+
+          <!-- 行动建议 -->
+          <view class="action-block">
+            <text class="action-title">行动指南</text>
+            <view class="action-card action-card--do">
+              <view class="action-accent"></view>
+              <view class="action-body">
+                <text class="action-label">宜</text>
+                <view class="action-list">
+                  <text wx:for="{{selectedYearReport.actionAdvice.mustDo}}" wx:key="*this">{{item}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="action-card action-card--dont">
+              <view class="action-accent"></view>
+              <view class="action-body">
+                <text class="action-label">忌</text>
+                <view class="action-list">
+                  <text wx:for="{{selectedYearReport.actionAdvice.mustNot}}" wx:key="*this">{{item}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 寄语 -->
+          <view class="message-card">
+            <text>{{selectedYearReport.personalMessage}}</text>
+          </view>
+        </view>
+
+        <!-- 事业 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'career' && selectedYearReport}}">
+          <view class="single-dim single-dim--career">
+            <view class="single-accent"></view>
+            <view class="single-body">
+              <view class="single-head">
+                <text class="single-title">事业运势</text>
+                <text class="single-score career">{{selectedYearReport.dimensions.career.score}}/100</text>
+              </view>
+              <view class="single-bar">
+                <view class="single-fill career" style="width: {{selectedYearReport.dimensions.career.score}}%"></view>
+              </view>
+            </view>
+          </view>
+          <text class="analysis-content">{{selectedYearReport.dimensions.career.analysis}}</text>
+        </view>
+
+        <!-- 财运 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'wealth' && selectedYearReport}}">
+          <view class="single-dim single-dim--wealth">
+            <view class="single-accent"></view>
+            <view class="single-body">
+              <view class="single-head">
+                <text class="single-title">财运指数</text>
+                <text class="single-score wealth">{{selectedYearReport.dimensions.wealth.score}}/100</text>
+              </view>
+              <view class="single-bar">
+                <view class="single-fill wealth" style="width: {{selectedYearReport.dimensions.wealth.score}}%"></view>
+              </view>
+            </view>
+          </view>
+          <text class="analysis-content">{{selectedYearReport.dimensions.wealth.analysis}}</text>
+        </view>
+
+        <!-- 感情 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'love' && selectedYearReport}}">
+          <view class="single-dim single-dim--love">
+            <view class="single-accent"></view>
+            <view class="single-body">
+              <view class="single-head">
+                <text class="single-title">感情运势</text>
+                <text class="single-score love">{{selectedYearReport.dimensions.love.score}}/100</text>
+              </view>
+              <view class="single-bar">
+                <view class="single-fill love" style="width: {{selectedYearReport.dimensions.love.score}}%"></view>
+              </view>
+            </view>
+          </view>
+          <text class="analysis-content">{{selectedYearReport.dimensions.love.analysis}}</text>
+        </view>
+
+        <!-- 健康 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'health' && selectedYearReport}}">
+          <view class="single-dim single-dim--health">
+            <view class="single-accent"></view>
+            <view class="single-body">
+              <view class="single-head">
+                <text class="single-title">健康指数</text>
+                <text class="single-score health">{{selectedYearReport.dimensions.health.score}}/100</text>
+              </view>
+              <view class="single-bar">
+                <view class="single-fill health" style="width: {{selectedYearReport.dimensions.health.score}}%"></view>
+              </view>
+            </view>
+          </view>
+          <text class="analysis-content">{{selectedYearReport.dimensions.health.analysis}}</text>
+        </view>
+
+        <!-- 月度 -->
+        <view class="tab-panel" wx:if="{{activeTab === 'monthly' && selectedYearReport}}">
+          <view class="monthly-grid">
+            <view class="monthly-item" wx:for="{{selectedYearReport.monthly}}" wx:key="month">
+              <text class="monthly-num">{{item.month}}</text>
+              <view class="monthly-stars">
+                <text wx:for="{{item.score}}" wx:for-item="s" wx:key="*this" class="star filled">●</text>
+                <text wx:for="{{5 - item.score}}" wx:for-item="s" wx:key="*this" class="star empty">○</text>
+              </view>
+              <text class="monthly-word">{{item.keyword}}</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
     </view>
   </view>
 </view>

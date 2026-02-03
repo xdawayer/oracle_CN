@@ -224,18 +224,33 @@
             <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
           </view>
           <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}" style="padding: 0;">
-            <view class="aspect-matrix-container">
-              <view class="aspect-matrix">
-                <view wx:for="{{aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i" class="matrix-row">
-                  <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" class="matrix-cell {{cell.isHeader ? 'cell-header font-ancient' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
-                    <text wx:if="{{cell.isHeader}}" class="p-symbol">{{cell.symbol}}</text>
-                    <view wx:elif="{{cell.aspect}}" class="a-info">
-                      <text class="a-symbol" style="color: {{cell.aspect.color}}">{{cell.aspect.symbol}}</text>
-                      <text class="a-orb">{{cell.aspect.orbText}}</text>
+            <view class="aspect-matrix-container {{isDualResult ? 'dual-matrix' : ''}}">
+              <!-- 固定左侧列（行标题） -->
+              <view class="matrix-fixed-col">
+                <view wx:for="{{aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i">
+                  <view class="matrix-cell {{row[0].isHeader ? 'cell-header font-ancient' : ''}} {{row[0].isEmpty ? 'cell-empty' : ''}}">
+                    <view wx:if="{{row[0].isEmpty && isDualResult}}" class="matrix-corner">
+                      <text class="matrix-corner-a">甲→</text>
+                      <text class="matrix-corner-b">↓乙</text>
                     </view>
+                    <text wx:elif="{{row[0].isHeader}}" class="p-symbol">{{row[0].symbol}}</text>
                   </view>
                 </view>
               </view>
+              <!-- 可滚动区域 -->
+              <scroll-view scroll-x class="matrix-scroll-area" enable-flex show-scrollbar="false">
+                <view class="aspect-matrix">
+                  <view wx:for="{{aspectMatrix}}" wx:for-item="row" wx:for-index="i" wx:key="i" class="matrix-row">
+                    <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="j" wx:key="j" wx:if="{{j > 0}}" class="matrix-cell {{cell.isHeader ? 'cell-header font-ancient' : ''}} {{cell.isEmpty ? 'cell-empty' : ''}}">
+                      <text wx:if="{{cell.isHeader}}" class="p-symbol">{{cell.symbol}}</text>
+                      <view wx:elif="{{cell.aspect}}" class="a-info">
+                        <text class="a-symbol" style="color: {{cell.aspect.color}}">{{cell.aspect.symbol}}</text>
+                        <text class="a-orb">{{cell.aspect.orbText}}</text>
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </scroll-view>
             </view>
           </view>
         </view>

@@ -1,0 +1,58 @@
+<view class="page-container">
+  <!-- 余额展示 -->
+  <view class="balance-card ink-border">
+    <view class="balance-row">
+      <text class="balance-label">积分</text>
+      <text class="balance-value font-ancient">{{points}}</text>
+      <view class="refresh-btn" bindtap="onRefreshBalance">
+        <text class="refresh-icon">↻</text>
+      </view>
+    </view>
+    <text class="balance-hint">当前可用余额</text>
+  </view>
+
+  <!-- 充值档位 -->
+  <view class="packages-section">
+    <view class="packages-grid">
+      <view
+        class="package-card ink-border {{selectedIndex === index ? 'selected' : ''}}"
+        wx:for="{{packages}}"
+        wx:key="amount"
+        bindtap="onSelectPackage"
+        data-index="{{index}}"
+      >
+        <view class="package-badge" wx:if="{{item.badge}}">
+          <text>{{item.badge}}</text>
+        </view>
+        <view class="package-amount-row">
+          <text class="package-amount font-ancient">{{item.amount}}</text>
+          <text class="package-unit">积分</text>
+        </view>
+        <text class="package-price">¥{{item.priceText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付说明 -->
+  <view class="notice-section ink-border">
+    <text class="notice-title">支付说明</text>
+    <text class="notice-text">点击下方按钮将跳转至支付。充值成功后积分实时到账，如有疑问请在个人中心提交反馈。</text>
+  </view>
+
+  <!-- 底部占位 -->
+  <view style="height: 200rpx;"></view>
+
+  <!-- 底部固定 -->
+  <view class="bottom-bar">
+    <view class="pay-btn {{!agreedTerms ? 'disabled' : ''}}" bindtap="onPay">
+      <text class="pay-btn-text">立即支付 ¥{{selectedPriceText}}</text>
+    </view>
+    <view class="terms-row" bindtap="onToggleTerms">
+      <view class="checkbox {{agreedTerms ? 'checked' : ''}}">
+        <text wx:if="{{agreedTerms}}">✓</text>
+      </view>
+      <text class="terms-text">同意</text>
+      <text class="terms-link" catchtap="goToPointsAgreement">《积分服务协议》</text>
+    </view>
+  </view>
+</view>

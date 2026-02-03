@@ -1,3 +1,15 @@
+<view class="self-nav" style="padding-top: {{statusBarHeight}}px;">
+  <view class="self-nav-content">
+    <view wx:if="{{showDetailReport}}" class="self-nav-back" bindtap="closeDetailReport">
+      <view class="self-nav-back-icon"></view>
+    </view>
+    <view wx:else class="self-nav-back-placeholder"></view>
+    <text class="self-nav-title">{{navTitle}}</text>
+    <view class="self-nav-right-placeholder"></view>
+  </view>
+</view>
+<view class="self-nav-placeholder" style="height: {{statusBarHeight + 44}}px;"></view>
+
 <view class="page-container">
   <view class="header">
     <text class="header-title font-ancient">探索自我</text>
@@ -10,7 +22,7 @@
     </view>
     <view class="chart-box" style="height: {{chartSize}}px;">
       <astro-chart
-        wx:if="{{!selectedPlanet}}"
+        wx:if="{{!selectedPlanet && !showDetailReport && !showPayment && !isZoomed}}"
         type="natal"
         positions="{{chartPositions}}"
         aspects="{{chartAspects}}"
@@ -26,7 +38,7 @@
 
   <view class="triad-section">
     <view class="section-header">
-      <text class="section-title font-ancient">核心人格 (Big3)</text>
+      <text class="section-title font-ancient">核心人格</text>
     </view>
     <view class="triad-grid">
       <block wx:for="{{big3}}" wx:key="id">
@@ -53,7 +65,7 @@
       <text class="section-action" bindtap="onDimensionOverview">查看详情</text>
     </view>
     <view class="chart-box" style="height: 500rpx;">
-      <canvas type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
+      <canvas wx:if="{{!showDetailReport && !showPayment && !isZoomed && !selectedPlanet}}" type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
     </view>
     <view class="radar-summary">
       <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。</text>
@@ -66,7 +78,7 @@
     </view>
     <view class="domain-grid">
       <block wx:for="{{lifeDomains}}" wx:key="id">
-        <view class="domain-item ink-border" bindtap="onDomainClick" data-id="{{item.id}}">
+        <view class="domain-item" bindtap="onDomainClick" data-id="{{item.id}}">
            <view class="domain-icon-box">
              <view class="domain-icon colored-icon" style="-webkit-mask-image: url({{item.icon}}); mask-image: url({{item.icon}});"></view>
            </view>
@@ -332,61 +344,90 @@
     </view>
   </view>
 
-  <view class="premium-banner" bindtap="showPaymentModal">
+  <view class="premium-banner natal-report-banner {{natalReportStatus === 'processing' ? 'processing' : natalReportStatus === 'completed' ? 'completed' : ''}}" bindtap="onNatalReportTap">
     <view class="premium-info">
-      <text class="premium-title">2026 流年大运报告</text>
-      <text class="premium-desc">解锁全年运势指南</text>
+      <text class="premium-title">本命深度解读</text>
+      <text class="premium-desc">
+        {{natalReportStatus === 'none' ? '解锁你的星盘全维度解析' :
+          natalReportStatus === 'pending' ? '任务排队中，请稍候...' :
+          natalReportStatus === 'processing' ? '正在为你生成专属解读...' :
+          natalReportStatus === 'completed' ? '查看你的专属深度解读' :
+          natalReportStatus === 'failed' ? '生成失败，点击重试' : '解锁你的星盘全维度解析'}}
+      </text>
+      <!-- 生成中进度条 -->
+      <view wx:if="{{natalReportStatus === 'processing' || natalReportStatus === 'pending'}}" class="banner-progress">
+        <view class="banner-progress-bar">
+          <view class="banner-progress-fill" style="width: {{natalReportProgress || 0}}%"></view>
+        </view>
+        <text class="banner-progress-text">{{natalReportProgress || 0}}%</text>
+      </view>
     </view>
-    <view class="premium-btn">立即解锁</view>
+    <view class="premium-btn {{natalReportStatus === 'processing' || natalReportStatus === 'pending' ? 'btn-processing' : ''}}">
+      {{natalReportStatus === 'none' ? '立即解锁' :
+        natalReportStatus === 'pending' ? '排队中' :
+        natalReportStatus === 'processing' ? '生成中' :
+        natalReportStatus === 'completed' ? '查看报告' :
+        natalReportStatus === 'failed' ? '重试' : '立即解锁'}}
+    </view>
   </view>
 
-  <view class="daily-report-overlay" wx:if="{{showDetailReport && detailReportData}}">
-    <view class="daily-report-topbar">
-      <view class="daily-report-back" bindtap="closeDetailReport">
-        <view class="daily-report-back-icon"></view>
-      </view>
-      <text class="daily-report-top-title">{{detailReportData.title}}</text>
-      <view class="daily-report-top-placeholder"></view>
-    </view>
-    <scroll-view scroll-y class="daily-report-scroll">
-      <view class="daily-report-header">
-        <text class="daily-report-subtitle" wx:if="{{detailReportData.subtitle}}">{{detailReportData.subtitle}}</text>
-      </view>
-
-      <view class="daily-report-section" wx:for="{{detailReportData.sections}}" wx:key="title">
-        <text class="daily-section-title">{{item.title}}</text>
-        <text class="daily-section-text" wx:if="{{item.text}}">{{item.text}}</text>
-        <view class="daily-section-list" wx:if="{{item.list && item.list.length > 0}}">
-          <view class="daily-section-item" wx:for="{{item.list}}" wx:key="*this">
-            <text class="daily-section-dot">·</text>
-            <text class="daily-section-item-text">{{item}}</text>
+  <view class="daily-report-overlay" wx:if="{{showDetailReport && detailReportData}}" style="padding-top: {{statusBarHeight + 44}}px;">
+    <scroll-view scroll-y class="daily-report-scroll" show-scrollbar="false">
+      <view class="detail-card detail-card--{{item.cardColor || 'default'}}"
+            wx:for="{{detailReportData.sections}}" wx:key="title">
+        <view class="detail-card__accent"></view>
+        <view class="detail-card__body">
+          <text class="detail-card__title">{{item.title}}</text>
+          <text class="detail-card__text" wx:if="{{item.text}}">{{item.text}}</text>
+          <view class="detail-card__list" wx:if="{{item.list && item.list.length > 0}}">
+            <view class="detail-card__list-item" wx:for="{{item.list}}" wx:for-item="listItem" wx:for-index="idx" wx:key="idx">
+              <text class="detail-card__list-num">{{idx + 1}}.</text>
+              <text class="detail-card__list-text">{{listItem}}</text>
+            </view>
           </view>
         </view>
       </view>
     </scroll-view>
   </view>
 
-  <view class="payment-overlay" wx:if="{{showPayment}}" catchtouchmove="true">
-    <view class="detail-topbar">
-      <view class="detail-back" bindtap="closePayment">
-        <text class="detail-back-text">返回</text>
-      </view>
-      <view class="detail-topbar-title">
-        <text class="detail-title">解锁流年运势</text>
-        <text class="detail-subtitle">2026 全年深度运势报告</text>
-      </view>
-      <view class="detail-topbar-placeholder"></view>
+  <!-- 支付弹窗 -->
+  <view class="payment-mask" wx:if="{{showPayment}}" bindtap="closePayment" catchtouchmove="true"></view>
+  <view class="payment-sheet {{showPayment ? 'show' : ''}}" wx:if="{{showPayment}}">
+    <view class="payment-handle"></view>
+
+    <view class="payment-header">
+      <text class="payment-title font-ancient">{{paymentMeta.title}}</text>
+      <text class="payment-subtitle">{{paymentMeta.subtitle}}</text>
     </view>
-    <view class="payment-body">
-      <view class="payment-card">
-        <text class="payment-label">需要消耗</text>
-        <text class="payment-points">500 积分</text>
-        <text class="payment-desc">解锁全年趋势、关键转折与行动指引。</text>
-        <button class="detail-btn primary full-width" bindtap="handlePay" loading="{{paymentLoading}}">
-          {{paymentLoading ? '支付中...' : '确认支付'}}
-        </button>
-        <button class="detail-btn ghost full-width" bindtap="closePayment">暂不解锁</button>
+
+    <view class="payment-features">
+      <block wx:for="{{paymentMeta.features}}" wx:key="title">
+        <view class="payment-feature-item">
+          <view class="feature-icon">◈</view>
+          <view class="feature-content">
+            <text class="feature-title">{{item.title}}</text>
+            <text class="feature-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="payment-price-section">
+      <view class="payment-price-row">
+        <text class="payment-price-label">报告价格</text>
+        <view class="payment-price-value">
+          <text class="payment-price-num">{{paymentMeta.price}}</text>
+          <text class="payment-price-unit">积分</text>
+        </view>
       </view>
+      <text class="payment-price-note">{{paymentMeta.note}}</text>
+    </view>
+
+    <view class="payment-actions">
+      <button class="payment-btn-primary" bindtap="handlePay" loading="{{paymentLoading}}">
+        {{paymentLoading ? '生成中...' : '立即解锁'}}
+      </button>
+      <view class="payment-btn-cancel" bindtap="closePayment">稍后再说</view>
     </view>
   </view>
 

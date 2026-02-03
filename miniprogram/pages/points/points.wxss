@@ -1,0 +1,195 @@
+.page-container {
+  min-height: 100vh;
+  background-color: var(--paper-100);
+}
+
+/* 余额展示 */
+.balance-card {
+  margin: var(--spacing-lg);
+  background: var(--paper-50);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.balance-label {
+  font-size: 24rpx;
+  color: var(--ink-light);
+  background: var(--paper-200);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.balance-value {
+  font-size: 72rpx;
+  color: var(--ink-deep);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.refresh-btn {
+  padding: var(--spacing-sm);
+}
+
+.refresh-icon {
+  font-size: 32rpx;
+  color: var(--ink-light);
+}
+
+.balance-hint {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  margin-top: var(--spacing-sm);
+}
+
+/* 充值档位 */
+.packages-section {
+  padding: 0 var(--spacing-lg);
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.package-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-sm);
+  background: var(--paper-50);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.package-card.selected {
+  border: 2rpx solid var(--ink-deep);
+}
+
+.package-badge {
+  position: absolute;
+  top: -12rpx;
+  right: -4rpx;
+  background: var(--ink-deep);
+  color: var(--paper-50);
+  font-size: 16rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.package-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+
+.package-amount {
+  font-size: 48rpx;
+  color: var(--ink-deep);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.package-unit {
+  font-size: 18rpx;
+  color: var(--ink-light);
+}
+
+.package-price {
+  font-size: 22rpx;
+  color: var(--ink-dark);
+  margin-top: var(--spacing-xs);
+}
+
+/* 支付说明 */
+.notice-section {
+  margin: var(--spacing-lg);
+  background: var(--paper-50);
+  padding: var(--spacing-lg);
+}
+
+.notice-title {
+  font-size: 24rpx;
+  color: var(--ink-dark);
+  margin-bottom: var(--spacing-sm);
+  display: block;
+}
+
+.notice-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  line-height: 1.6;
+}
+
+/* 底部固定 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--paper-50);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+  border-top: 1rpx solid var(--border-color);
+}
+
+.pay-btn {
+  background: var(--ink-deep);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+}
+
+.pay-btn.disabled {
+  opacity: 0.4;
+}
+
+.pay-btn-text {
+  font-size: 32rpx;
+  color: var(--paper-50);
+  font-weight: 600;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid var(--ink-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  color: var(--paper-50);
+}
+
+.checkbox.checked {
+  background: var(--ink-deep);
+  border-color: var(--ink-deep);
+}
+
+.terms-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.terms-link {
+  font-size: 22rpx;
+  color: var(--mountain-blue);
+}

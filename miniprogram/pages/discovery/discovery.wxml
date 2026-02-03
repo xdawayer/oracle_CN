@@ -1,32 +1,31 @@
 <view class="container">
   <view class="header">
-    <text class="header-title">发现</text>
+    <text class="header-title font-ancient">发现</text>
     <text class="header-subtitle">探索与工具</text>
   </view>
 
-  <view class="hero-card" bindtap="navToSynastry">
+  <view class="hero-card ink-border" bindtap="navToSynastry">
     <view class="hero-content">
       <view class="hero-header">
         <view class="hero-icon-box">
-          <view class="icon-mask" style="color: #FFFFFF; -webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
+          <view class="icon-mask" style="color: #8B5E6B; -webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
         </view>
-        <text class="hero-title">双人合盘</text>
+        <text class="hero-title font-ancient">双人合盘</text>
       </view>
       <text class="hero-desc">解析灵魂伴侣、合作伙伴的匹配契合度。包含本命对比与组合中点盘。</text>
-      <view class="hero-btn">
-        <text>开始探索关系</text>
-        <view class="arrow-right-white"></view>
+      <view class="hero-btn btn-outline">
+        <text>开始探索</text>
       </view>
     </view>
   </view>
 
-  <view class="action-card" bindtap="navToSynthetica">
+  <view class="action-card ink-border" bindtap="navToSynthetica">
     <view class="action-left">
       <view class="action-icon-box">
-        <view class="icon-mask" style="color: var(--accent); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>
+        <view class="icon-mask" style="color: var(--ink-deep); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>
       </view>
       <view class="action-text">
-        <text class="action-title">占星实验室</text>
+        <text class="action-title font-ancient">占星实验室</text>
         <text class="action-subtitle">ASTRO LAB</text>
       </view>
     </view>
@@ -38,30 +37,141 @@
   <view class="grid">
     <block wx:for="{{features}}" wx:key="id">
       <view class="grid-item" bindtap="navToFeature" data-route="{{item.route}}">
-        <view class="grid-icon-box {{item.colorClass}}">
+        <view class="grid-icon-box">
           <view class="grid-icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
         </view>
-        <view class="grid-text">
-          <text class="grid-title">{{item.title}}</text>
-          <text class="grid-desc">{{item.desc}}</text>
-        </view>
+        <text class="grid-title">{{item.title}}</text>
+        <text class="grid-desc font-body">{{item.desc}}</text>
       </view>
     </block>
   </view>
 
-  <view class="topics-section">
-    <view class="section-header">
-      <view class="section-indicator"></view>
-      <text class="section-title">星际观察</text>
-    </view>
-    <view class="topics-list">
-      <block wx:for="{{topics}}" wx:key="title">
-        <view class="topic-card">
-          <text class="topic-tag">{{item.tag}}</text>
-          <text class="topic-title">{{item.title}}</text>
-          <view class="arrow-right-small"></view>
+  <!-- 专题深度报告 -->
+  <view class="section-header topic-report-header">
+    <text class="section-title font-ancient">专题深度报告</text>
+  </view>
+
+  <view class="topic-banner love-topic-banner {{loveTopicStatus === 'processing' ? 'processing' : loveTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="love-topic">
+    <image class="banner-icon" src="/images/astro-symbols/venus.png" mode="aspectFit" />
+    <view class="topic-banner-info">
+      <text class="topic-banner-title">爱情专题深度报告</text>
+      <text class="topic-banner-desc">
+        {{loveTopicStatus === 'none' ? '恋爱人格、理想伴侣与感情运势' :
+          loveTopicStatus === 'pending' ? '任务排队中，请稍候...' :
+          loveTopicStatus === 'processing' ? '正在为你生成爱情报告...' :
+          loveTopicStatus === 'completed' ? '查看你的专属爱情解读' :
+          loveTopicStatus === 'failed' ? '生成失败，点击重试' : '恋爱人格、理想伴侣与感情运势'}}
+      </text>
+      <view wx:if="{{loveTopicStatus === 'processing' || loveTopicStatus === 'pending'}}" class="banner-progress">
+        <view class="banner-progress-bar">
+          <view class="banner-progress-fill" style="width: {{loveTopicProgress || 0}}%"></view>
         </view>
-      </block>
+        <text class="banner-progress-text">{{loveTopicProgress || 0}}%</text>
+      </view>
+    </view>
+    <view class="topic-banner-btn {{loveTopicStatus === 'processing' || loveTopicStatus === 'pending' ? 'btn-processing' : ''}}">
+      {{loveTopicStatus === 'none' ? '立即解锁' :
+        loveTopicStatus === 'pending' ? '排队中' :
+        loveTopicStatus === 'processing' ? '生成中' :
+        loveTopicStatus === 'completed' ? '查看报告' :
+        loveTopicStatus === 'failed' ? '重试' : '立即解锁'}}
+    </view>
+  </view>
+
+  <view class="topic-banner career-topic-banner {{careerTopicStatus === 'processing' ? 'processing' : careerTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="career-topic">
+    <image class="banner-icon" src="/images/astro-symbols/jupiter.png" mode="aspectFit" />
+    <view class="topic-banner-info">
+      <text class="topic-banner-title">事业专题深度报告</text>
+      <text class="topic-banner-desc">
+        {{careerTopicStatus === 'none' ? '职业天赋、职场人际与事业运势' :
+          careerTopicStatus === 'pending' ? '任务排队中，请稍候...' :
+          careerTopicStatus === 'processing' ? '正在为你生成事业报告...' :
+          careerTopicStatus === 'completed' ? '查看你的专属事业解读' :
+          careerTopicStatus === 'failed' ? '生成失败，点击重试' : '职业天赋、职场人际与事业运势'}}
+      </text>
+      <view wx:if="{{careerTopicStatus === 'processing' || careerTopicStatus === 'pending'}}" class="banner-progress">
+        <view class="banner-progress-bar">
+          <view class="banner-progress-fill" style="width: {{careerTopicProgress || 0}}%"></view>
+        </view>
+        <text class="banner-progress-text">{{careerTopicProgress || 0}}%</text>
+      </view>
+    </view>
+    <view class="topic-banner-btn {{careerTopicStatus === 'processing' || careerTopicStatus === 'pending' ? 'btn-processing' : ''}}">
+      {{careerTopicStatus === 'none' ? '立即解锁' :
+        careerTopicStatus === 'pending' ? '排队中' :
+        careerTopicStatus === 'processing' ? '生成中' :
+        careerTopicStatus === 'completed' ? '查看报告' :
+        careerTopicStatus === 'failed' ? '重试' : '立即解锁'}}
+    </view>
+  </view>
+
+  <view class="topic-banner wealth-topic-banner {{wealthTopicStatus === 'processing' ? 'processing' : wealthTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="wealth-topic">
+    <image class="banner-icon" src="/images/astro-symbols/saturn.png" mode="aspectFit" />
+    <view class="topic-banner-info">
+      <text class="topic-banner-title">财富专题深度报告</text>
+      <text class="topic-banner-desc">
+        {{wealthTopicStatus === 'none' ? '金钱关系、财富潜力与理财运势' :
+          wealthTopicStatus === 'pending' ? '任务排队中，请稍候...' :
+          wealthTopicStatus === 'processing' ? '正在为你生成财富报告...' :
+          wealthTopicStatus === 'completed' ? '查看你的专属财富解读' :
+          wealthTopicStatus === 'failed' ? '生成失败，点击重试' : '金钱关系、财富潜力与理财运势'}}
+      </text>
+      <view wx:if="{{wealthTopicStatus === 'processing' || wealthTopicStatus === 'pending'}}" class="banner-progress">
+        <view class="banner-progress-bar">
+          <view class="banner-progress-fill" style="width: {{wealthTopicProgress || 0}}%"></view>
+        </view>
+        <text class="banner-progress-text">{{wealthTopicProgress || 0}}%</text>
+      </view>
+    </view>
+    <view class="topic-banner-btn {{wealthTopicStatus === 'processing' || wealthTopicStatus === 'pending' ? 'btn-processing' : ''}}">
+      {{wealthTopicStatus === 'none' ? '立即解锁' :
+        wealthTopicStatus === 'pending' ? '排队中' :
+        wealthTopicStatus === 'processing' ? '生成中' :
+        wealthTopicStatus === 'completed' ? '查看报告' :
+        wealthTopicStatus === 'failed' ? '重试' : '立即解锁'}}
+    </view>
+  </view>
+
+  <!-- 支付弹窗 -->
+  <view class="payment-mask" wx:if="{{showPayment}}" bindtap="closePayment" catchtouchmove="true"></view>
+  <view class="payment-sheet {{showPayment ? 'show' : ''}}" wx:if="{{showPayment}}">
+    <view class="payment-body">
+      <view class="payment-handle"></view>
+
+      <view class="payment-header">
+        <text class="payment-title font-ancient">{{paymentMeta.title}}</text>
+        <text class="payment-subtitle">{{paymentMeta.subtitle}}</text>
+      </view>
+
+      <view class="payment-features">
+        <block wx:for="{{paymentMeta.features}}" wx:key="title">
+          <view class="payment-feature-item">
+            <view class="feature-icon">◈</view>
+            <view class="feature-content">
+              <text class="feature-title">{{item.title}}</text>
+              <text class="feature-desc">{{item.desc}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="payment-price-section">
+        <view class="payment-price-row">
+          <text class="payment-price-label">报告价格</text>
+          <view class="payment-price-value">
+            <text class="payment-price-num">{{paymentMeta.price}}</text>
+            <text class="payment-price-unit">积分</text>
+          </view>
+        </view>
+        <text class="payment-price-note">{{paymentMeta.note}}</text>
+      </view>
+    </view>
+
+    <view class="payment-actions">
+      <button class="payment-btn-primary" bindtap="handlePay" loading="{{paymentLoading}}">
+        {{paymentLoading ? '生成中...' : '立即解锁'}}
+      </button>
+      <view class="payment-btn-cancel" bindtap="closePayment">稍后再说</view>
     </view>
   </view>
 </view>

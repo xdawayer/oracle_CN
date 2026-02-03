@@ -7,7 +7,6 @@ import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import { stripe, STRIPE_WEBHOOK_SECRET, isStripeConfigured, PRODUCTS, SUBSCRIBER_DISCOUNT } from '../config/stripe.js';
 import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 import { addDevGmCredits } from '../services/entitlementService.js';
-import { isSupabaseConfigured } from '../db/supabase.js';
 
 const router = Router();
 

@@ -50,6 +50,9 @@ export const STRIPE_PRICES = {
   DETAIL_PACK_10: process.env.STRIPE_PRICE_DETAIL_PACK || 'price_detail_299', // @deprecated
   CBT_ANALYSIS: process.env.STRIPE_PRICE_CBT || 'price_cbt_99', // @deprecated
 
+  // K线报告解锁
+  KLINE_REPORT_UNLOCK: process.env.STRIPE_PRICE_KLINE_REPORT || 'price_kline_report_2999',
+
   // Report prices
   REPORT_MONTHLY: process.env.STRIPE_PRICE_REPORT_MONTHLY || 'price_report_monthly_199',
   REPORT_ANNUAL: process.env.STRIPE_PRICE_REPORT_ANNUAL || 'price_report_annual_799',
@@ -156,6 +159,12 @@ export const PRODUCTS = {
       amount: 99,
       name: 'CBT Journal Analysis',
       quantity: 1,
+    },
+    kline_report: {
+      priceId: STRIPE_PRICES.KLINE_REPORT_UNLOCK,
+      amount: 2999, // ¥29.99
+      name: 'Life K-Line Full Report',
+      scope: 'permanent' as const,
     },
   },
   reports: {

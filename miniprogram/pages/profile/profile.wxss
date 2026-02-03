@@ -1,0 +1,122 @@
+.page-container {
+  min-height: 100vh;
+  background-color: var(--paper-100);
+  padding-bottom: 80rpx;
+}
+
+/* 头像区域 */
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xxl) 0 var(--spacing-xl);
+}
+
+.avatar-wrap {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+}
+
+.avatar {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--border-color);
+}
+
+.avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-200);
+  color: var(--ink-light);
+  font-size: 56rpx;
+}
+
+.camera-badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 48rpx;
+  height: 48rpx;
+  background: var(--ink-deep);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-icon {
+  color: var(--paper-50);
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.avatar-hint {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  margin-top: var(--spacing-sm);
+}
+
+/* 表单区域 */
+.form-section {
+  padding: 0 var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-item {
+  background: var(--paper-50);
+  padding: var(--spacing-lg);
+}
+
+.form-label-row {
+  margin-bottom: 8rpx;
+}
+
+.form-label {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.form-value-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-value {
+  font-size: 32rpx;
+  color: var(--ink-deep);
+}
+
+.form-chevron {
+  font-size: 24rpx;
+  color: var(--ink-light);
+}
+
+/* 保存按钮 */
+.save-section {
+  padding: var(--spacing-xxl) var(--spacing-lg);
+}
+
+.save-btn {
+  background: var(--ink-deep);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+}
+
+.save-btn.disabled {
+  opacity: 0.4;
+}
+
+.save-btn-text {
+  font-size: 32rpx;
+  color: var(--paper-50);
+  font-weight: 600;
+}

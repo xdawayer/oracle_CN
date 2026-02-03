@@ -1,130 +1,192 @@
 <view class="page">
-  <view class="header">
-    <text class="title font-ancient">星缘速配</text>
-    <text class="subtitle">探索你们的缘分密码</text>
-  </view>
-
-  <view class="content">
-
-    <view class="selection-area">
-      <view class="user-column">
-        <text class="column-label">甲方</text>
-        <view class="avatar-card ink-border">
-          <image
-            wx:if="{{!iconErrorA}}"
-            class="zodiac-icon"
-            src="/images/astro-symbols/{{zodiacSigns[signAIndex].id}}.png"
-            mode="aspectFit"
-            binderror="onIconErrorA"
-          ></image>
-          <text class="avatar-name font-ancient">{{zodiacSigns[signAIndex].name}}</text>
-          <text class="avatar-animal">属{{animalSigns[animalAIndex]}}</text>
-        </view>
-        <view class="picker-group">
-          <picker range="{{zodiacSigns}}" range-key="name" value="{{signAIndex}}" bindchange="bindSignAChange">
-            <view class="picker-item ink-border">{{zodiacSigns[signAIndex].name}}</view>
-          </picker>
-          <picker range="{{animalSigns}}" value="{{animalAIndex}}" bindchange="bindAnimalAChange">
-            <view class="picker-item ink-border">属{{animalSigns[animalAIndex]}}</view>
-          </picker>
-        </view>
-      </view>
-
-      <view class="center-decoration">
-        <text class="heart-icon">❤️</text>
-      </view>
-
-      <view class="user-column">
-        <text class="column-label">乙方</text>
-        <view class="avatar-card ink-border">
-          <image
-            wx:if="{{!iconErrorB}}"
-            class="zodiac-icon"
-            src="/images/astro-symbols/{{zodiacSigns[signBIndex].id}}.png"
-            mode="aspectFit"
-            binderror="onIconErrorB"
-          ></image>
-          <text class="avatar-name font-ancient">{{zodiacSigns[signBIndex].name}}</text>
-          <text class="avatar-animal">属{{animalSigns[animalBIndex]}}</text>
-        </view>
-        <view class="picker-group">
-          <picker range="{{zodiacSigns}}" range-key="name" value="{{signBIndex}}" bindchange="bindSignBChange">
-            <view class="picker-item ink-border">{{zodiacSigns[signBIndex].name}}</view>
-          </picker>
-          <picker range="{{animalSigns}}" value="{{animalBIndex}}" bindchange="bindAnimalBChange">
-            <view class="picker-item ink-border">属{{animalSigns[animalBIndex]}}</view>
-          </picker>
-        </view>
-      </view>
+  <!-- Step 1: 输入界面 -->
+  <view wx:if="{{step === 1}}">
+    <view class="header">
+      <text class="title font-ancient">星缘速配</text>
+      <text class="subtitle">探索你们的缘分密码</text>
     </view>
 
-    <button class="match-btn btn-primary" bindtap="handleMatch" disabled="{{loading}}">
-      <block wx:if="{{loading}}">
-        <text class="loading-text">正在测算...</text>
-      </block>
-      <block wx:else>
-        <text>立即测算</text>
-      </block>
-    </button>
-
-    <view class="info-card ink-border">
-      <view class="info-content">
-        <text class="info-title">深度分析</text>
-        <text class="info-desc">融合东西方星象智慧，结合心理学深度模型，提供具有代入感的缘分洞察。</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="overlay" wx:if="{{showResult}}">
-    <view class="overlay-bg" bindtap="closeResult"></view>
-    <view class="result-card ink-border">
-      <view class="close-btn" bindtap="closeResult">×</view>
-      
-      <view class="result-heart-decoration">
-        <text class="result-heart">❤️</text>
-      </view>
-
-      <view class="result-pairing-info">
-        <view class="mini-avatar">
-          <text class="mini-sign font-ancient">{{finalData.signA.name}}</text>
-          <text class="mini-animal">属{{finalData.animalA}}</text>
-        </view>
-        <text class="pairing-connector">×</text>
-        <view class="mini-avatar">
-          <text class="mini-sign font-ancient">{{finalData.signB.name}}</text>
-          <text class="mini-animal">属{{finalData.animalB}}</text>
-        </view>
-      </view>
-
-      <view class="result-header">
-        <text class="score-label font-ancient">缘分契合</text>
-        <text class="score-value font-ancient">{{finalData.score}}%</text>
-      </view>
-
-      <view class="dimensions-grid">
-        <view class="dim-item" wx:for="{{dimensionLabels}}" wx:key="key">
-          <view class="dim-header">
-            <text class="dim-label">{{item.label}}</text>
-            <text class="dim-val font-ancient">{{finalData.dims[item.key]}}%</text>
+    <view class="content">
+      <view class="selection-area">
+        <view class="user-column">
+          <text class="column-label">甲方</text>
+          <view class="avatar-card ink-border">
+            <image
+              wx:if="{{!iconErrorA}}"
+              class="zodiac-icon"
+              src="/images/astro-symbols/{{zodiacSigns[signAIndex].id}}.png"
+              mode="aspectFit"
+              binderror="onIconErrorA"
+            ></image>
+            <text class="avatar-name font-ancient">{{zodiacSigns[signAIndex].name}}</text>
+            <text class="avatar-animal">属{{animalSigns[animalAIndex]}}</text>
           </view>
-          <view class="progress-bar-wrap">
-            <view class="progress-bar-inner" style="width: {{finalData.dims[item.key]}}%"></view>
+          <view class="picker-group">
+            <picker range="{{zodiacSigns}}" range-key="name" value="{{signAIndex}}" bindchange="bindSignAChange">
+              <view class="picker-item ink-border">{{zodiacSigns[signAIndex].name}}</view>
+            </picker>
+            <picker range="{{animalSigns}}" value="{{animalAIndex}}" bindchange="bindAnimalAChange">
+              <view class="picker-item ink-border">属{{animalSigns[animalAIndex]}}</view>
+            </picker>
+          </view>
+        </view>
+
+        <view class="center-decoration">
+          <text class="heart-icon">❤️</text>
+        </view>
+
+        <view class="user-column">
+          <text class="column-label">乙方</text>
+          <view class="avatar-card ink-border">
+            <image
+              wx:if="{{!iconErrorB}}"
+              class="zodiac-icon"
+              src="/images/astro-symbols/{{zodiacSigns[signBIndex].id}}.png"
+              mode="aspectFit"
+              binderror="onIconErrorB"
+            ></image>
+            <text class="avatar-name font-ancient">{{zodiacSigns[signBIndex].name}}</text>
+            <text class="avatar-animal">属{{animalSigns[animalBIndex]}}</text>
+          </view>
+          <view class="picker-group">
+            <picker range="{{zodiacSigns}}" range-key="name" value="{{signBIndex}}" bindchange="bindSignBChange">
+              <view class="picker-item ink-border">{{zodiacSigns[signBIndex].name}}</view>
+            </picker>
+            <picker range="{{animalSigns}}" value="{{animalBIndex}}" bindchange="bindAnimalBChange">
+              <view class="picker-item ink-border">属{{animalSigns[animalBIndex]}}</view>
+            </picker>
           </view>
         </view>
       </view>
 
-      <view class="analysis-box">
-        <text class="analysis-text">“{{finalData.analysisText}}”</text>
-      </view>
+      <button class="match-btn btn-primary" bindtap="handleMatch" disabled="{{loading}}">
+        <block wx:if="{{loading}}">
+          <text class="loading-text">正在测算...</text>
+        </block>
+        <block wx:else>
+          <text>立即测算</text>
+        </block>
+      </button>
 
-      <view class="tips-section">
-        <view class="tip-box">
-          <text class="tip-title font-ancient">相处指引</text>
-          <text class="tip-text">在关键决策时多听听对方的直觉，尝试一起开启一段没有计划的旅行。</text>
+      <view class="info-card ink-border">
+        <view class="info-content">
+          <text class="info-title">深度分析</text>
+          <text class="info-desc">融合东西方星象智慧，结合心理学深度模型，提供具有代入感的缘分洞察。</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Step 2: 全屏报告 -->
+  <view wx:if="{{step === 2 && finalData}}" class="report-page">
+    <!-- 报告顶部信息 -->
+    <view class="report-header">
+      <view class="report-pairing-row">
+        <view class="report-person">
+          <image
+            class="report-sign-icon"
+            src="/images/astro-symbols/{{finalData.signA.id}}.png"
+            mode="aspectFit"
+          ></image>
+          <text class="report-sign-name font-ancient">{{finalData.signA.name}}</text>
+          <text class="report-animal">属{{finalData.animalA}}</text>
+        </view>
+        <view class="report-connector">
+          <text class="report-heart">❤️</text>
+        </view>
+        <view class="report-person">
+          <image
+            class="report-sign-icon"
+            src="/images/astro-symbols/{{finalData.signB.id}}.png"
+            mode="aspectFit"
+          ></image>
+          <text class="report-sign-name font-ancient">{{finalData.signB.name}}</text>
+          <text class="report-animal">属{{finalData.animalB}}</text>
         </view>
       </view>
 
-      <button class="confirm-btn btn-primary" bindtap="closeResult">确认</button>
+      <view class="report-score-area">
+        <text class="report-score-label">缘分契合度</text>
+        <text class="report-score-value font-ancient">{{finalData.score}}<text class="report-score-unit">%</text></text>
+      </view>
+    </view>
+
+    <!-- 维度分析卡片 -->
+    <view class="report-section">
+      <text class="section-title font-ancient">维度分析</text>
+      <view class="dim-cards">
+        <view class="dim-card ink-border" wx:for="{{finalData.dimensions}}" wx:key="key">
+          <view class="dim-card-header">
+            <text class="dim-card-label">{{item.label}}</text>
+            <text class="dim-card-score font-ancient">{{item.score}}%</text>
+          </view>
+          <view class="dim-card-bar">
+            <view class="dim-card-bar-inner" style="width: {{item.score}}%"></view>
+          </view>
+          <!-- AI 文字描述 -->
+          <block wx:if="{{item.desc}}">
+            <text class="dim-card-desc">{{item.desc}}</text>
+          </block>
+          <!-- 骨架屏 -->
+          <block wx:elif="{{aiLoading}}">
+            <view class="skeleton-line"></view>
+            <view class="skeleton-line skeleton-short"></view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <!-- 综合分析 -->
+    <view class="report-section">
+      <text class="section-title font-ancient">综合分析</text>
+      <view class="analysis-card ink-border">
+        <block wx:if="{{finalData.analysis}}">
+          <text class="analysis-content">{{finalData.analysis}}</text>
+        </block>
+        <block wx:elif="{{aiLoading}}">
+          <view class="skeleton-line"></view>
+          <view class="skeleton-line"></view>
+          <view class="skeleton-line skeleton-short"></view>
+          <view class="skeleton-line" style="margin-top: 20rpx"></view>
+          <view class="skeleton-line"></view>
+          <view class="skeleton-line skeleton-short"></view>
+        </block>
+        <block wx:else>
+          <text class="analysis-content fallback-text">AI 分析暂不可用，请稍后重试。</text>
+        </block>
+      </view>
+    </view>
+
+    <!-- 相处建议 -->
+    <view class="report-section" wx:if="{{finalData.tips.length > 0 || aiLoading}}">
+      <text class="section-title font-ancient">相处建议</text>
+      <block wx:if="{{finalData.tips.length > 0}}">
+        <view class="tip-card ink-border" wx:for="{{finalData.tips}}" wx:key="title">
+          <text class="tip-card-title">{{item.title}}</text>
+          <text class="tip-card-content">{{item.content}}</text>
+        </view>
+      </block>
+      <block wx:elif="{{aiLoading}}">
+        <view class="tip-card ink-border" wx:for="{{[1,2,3]}}" wx:key="*this">
+          <view class="skeleton-line skeleton-title"></view>
+          <view class="skeleton-line"></view>
+          <view class="skeleton-line skeleton-short"></view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 底部操作区 -->
+    <view class="report-actions">
+      <view class="ask-btn-wrapper">
+        <button class="ask-btn" bindtap="goToAsk">
+          <text class="ask-btn-text">有疑问？问一问</text>
+        </button>
+      </view>
+      <view class="back-btn-wrapper">
+        <button class="back-btn" bindtap="goBack">
+          <text class="back-btn-text">重新测算</text>
+        </button>
+      </view>
     </view>
   </view>
 </view>

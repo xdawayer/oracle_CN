@@ -12,7 +12,7 @@ import { resolveLocation } from '../services/geocoding.js';
 
 export const cbtRouter = Router();
 
-// CBT 记录保留 3 个月（秒）
+// 情绪日记记录保留 3 个月（秒）
 const CBT_RETENTION_TTL = 90 * 24 * 60 * 60;
 
 interface CBTRecord {
@@ -25,6 +25,7 @@ interface CBTRecord {
   evidenceFor: string[];
   evidenceAgainst: string[];
   balancedEntries: Array<{ id: string; text: string; belief: number }>;
+  bodySignal?: string;
   analysis?: unknown;
 }
 
@@ -50,19 +51,21 @@ async function parseBirthInput(body: Record<string, unknown>): Promise<BirthInpu
   };
 }
 
-// POST /api/cbt/analysis - CBT 分析
+// POST /api/cbt/analysis - 情绪日记分析
 cbtRouter.post('/analysis', async (req, res) => {
   try {
     const requestStart = performance.now();
     const langInput = (req.body as Record<string, unknown>).lang;
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
     const birth = await parseBirthInput(req.body);
-    const { situation, moods, automaticThoughts, hotThought, evidenceFor, evidenceAgainst, balancedEntries } = req.body;
+    const { situation, moods, automaticThoughts, hotThought, evidenceFor, evidenceAgainst, balancedEntries, bodySignal, moodGroup, scene, sleep, bodyTags, note } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -73,13 +76,23 @@ cbtRouter.post('/analysis', async (req, res) => {
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
-        situation,
-        moods,
-        automaticThoughts,
-        hotThought,
-        evidenceFor,
-        evidenceAgainst,
-        balancedEntries,
+        cbt_record: {
+          // 新字段（心情日记 v2）
+          moodGroup,
+          moods,
+          scene,
+          sleep,
+          bodyTags,
+          note,
+          // 向后兼容旧字段
+          situation,
+          automaticThoughts,
+          hotThought,
+          evidenceFor,
+          evidenceAgainst,
+          balancedEntries,
+          bodySignal,
+        },
       },
       lang,
     });
@@ -97,7 +110,7 @@ cbtRouter.post('/analysis', async (req, res) => {
   }
 });
 
-// POST /api/cbt/aggregate-analysis - CBT 聚合分析 (月度/阶段性)
+// POST /api/cbt/aggregate-analysis - 情绪日记聚合分析 (月度/阶段性)
 cbtRouter.post('/aggregate-analysis', async (req, res) => {
   try {
     const requestStart = performance.now();
@@ -107,9 +120,11 @@ cbtRouter.post('/aggregate-analysis', async (req, res) => {
     const { period, somatic_stats, root_stats, mood_stats, competence_stats } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -152,9 +167,11 @@ cbtRouter.post('/somatic-analysis', async (req, res) => {
     const { period, somatic_stats } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -194,9 +211,11 @@ cbtRouter.post('/root-analysis', async (req, res) => {
     const { period, root_stats } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -236,9 +255,11 @@ cbtRouter.post('/mood-analysis', async (req, res) => {
     const { period, mood_stats } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -268,7 +289,7 @@ cbtRouter.post('/mood-analysis', async (req, res) => {
   }
 });
 
-// POST /api/cbt/competence-analysis - CBT能力统计报告
+// POST /api/cbt/competence-analysis - 内在力量统计报告
 cbtRouter.post('/competence-analysis', async (req, res) => {
   try {
     const requestStart = performance.now();
@@ -278,9 +299,11 @@ cbtRouter.post('/competence-analysis', async (req, res) => {
     const { period, competence_stats } = req.body;
 
     const coreStart = performance.now();
-    const chart = await ephemerisService.calculateNatalChart(birth);
     const now = new Date();
-    const transits = await ephemerisService.calculateTransits(birth, now);
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, now),
+    ]);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
@@ -310,7 +333,7 @@ cbtRouter.post('/competence-analysis', async (req, res) => {
   }
 });
 
-// POST /api/cbt/records - 创建 CBT 记录
+// POST /api/cbt/records - 创建情绪日记记录
 cbtRouter.post('/records', async (req, res) => {
   try {
     const { userId, record } = req.body as { userId: string; record: CBTRecord };
@@ -335,7 +358,7 @@ cbtRouter.post('/records', async (req, res) => {
   }
 });
 
-// GET /api/cbt/records - 获取 CBT 记录列表
+// GET /api/cbt/records - 获取情绪日记记录列表
 cbtRouter.get('/records', async (req, res) => {
   try {
     const userId = req.query.userId as string;

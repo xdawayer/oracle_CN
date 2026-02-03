@@ -194,12 +194,12 @@ router.post('/v2/purchase', authMiddleware, requireAuth, async (req: Request, re
     }
 
     // 获取 scope（新版产品才有）
-    const scope = 'scope' in product ? product.scope : 'consumable';
+    const scope = 'scope' in product ? (product as { scope: string }).scope : 'consumable';
 
     // 创建 Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      customer_email: user.email,
+      customer_email: user!.email,
       line_items: [
         {
           price_data: {

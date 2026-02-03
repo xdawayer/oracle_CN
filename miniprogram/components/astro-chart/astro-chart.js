@@ -169,15 +169,12 @@ Component({
         Object.entries(planetImages).forEach(([key, filename]) => {
           const img = this.canvas.createImage();
           const imagePath = `/images/astro-symbols/${filename}.png`;
-          console.log(`[Image Load] Attempting to load planet: ${key} from ${imagePath}`);
 
           const promise = new Promise((resolveImg) => {
             img.onload = () => {
-              console.log(`[Image Load] ✓ Successfully loaded planet: ${key}, size: ${img.width}x${img.height}`);
               resolveImg();
             };
-            img.onerror = (err) => {
-              console.error(`[Image Load] ✗ Failed to load planet image: ${filename}`, err);
+            img.onerror = () => {
               resolveImg();
             };
             img.src = imagePath;
@@ -190,15 +187,12 @@ Component({
         Object.entries(signImages).forEach(([key, filename]) => {
           const img = this.canvas.createImage();
           const imagePath = `/images/astro-symbols/${filename}.png`;
-          console.log(`[Image Load] Attempting to load sign: ${key} from ${imagePath}`);
 
           const promise = new Promise((resolveImg) => {
             img.onload = () => {
-              console.log(`[Image Load] ✓ Successfully loaded sign: ${key}, size: ${img.width}x${img.height}`);
               resolveImg();
             };
-            img.onerror = (err) => {
-              console.error(`[Image Load] ✗ Failed to load sign image: ${filename}`, err);
+            img.onerror = () => {
               resolveImg();
             };
             img.src = imagePath;
@@ -210,7 +204,6 @@ Component({
         // 等待所有图片加载完成
         Promise.all(loadPromises).then(() => {
           this.imagesLoaded = true;
-          console.log('All astro symbol images loaded successfully');
           resolve();
         });
       });
@@ -226,21 +219,14 @@ Component({
      * @param {string} color - 着色颜色（可选）
      */
     drawImageSymbol(ctx, key, x, y, size, color) {
-      console.log(`[Draw Symbol] Attempting to draw: ${key} at (${x.toFixed(1)}, ${y.toFixed(1)}), size: ${size}px, color: ${color || 'none'}`);
-
       if (!this.imageCache) {
-        console.error(`[Draw Symbol] ✗ Image cache not initialized`);
         return false;
       }
 
       const img = this.imageCache[key];
       if (!img) {
-        console.warn(`[Draw Symbol] ✗ Image not found in cache: ${key}`);
-        console.log(`[Draw Symbol] Available cache keys:`, Object.keys(this.imageCache));
         return false;
       }
-
-      console.log(`[Draw Symbol] Image found in cache: ${key}, complete: ${img.complete}, width: ${img.width}, height: ${img.height}`);
 
       if (img && img.complete) {
         ctx.save();
@@ -263,11 +249,9 @@ Component({
         }
 
         ctx.restore();
-        console.log(`[Draw Symbol] ✓ Successfully drew image: ${key}${color ? ' with color: ' + color : ''}`);
         return true;
       }
 
-      console.warn(`[Draw Symbol] ✗ Image not complete: ${key}`);
       return false;
     },
 
@@ -483,14 +467,35 @@ Component({
      * 处理行星数据（添加绝对角度和视觉角度）
      */
     processPlanets(positions) {
-      return positions.map(p => {
+      if (!Array.isArray(positions) || positions.length === 0) {
+        console.warn('[processPlanets] Empty or invalid positions array');
+        return [];
+      }
+
+      const result = positions.map(p => {
+        if (!p || !p.name) {
+          console.warn('[processPlanets] Invalid planet data:', p);
+          return null;
+        }
         const absAngle = getAbsoluteAngle(p.sign, p.degree, p.minute || 0);
         return {
           ...p,
           absAngle,
           visualAngle: absAngle,
         };
-      });
+      }).filter(Boolean);
+
+      // 调试日志：打印前3个行星的数据
+      if (result.length > 0) {
+        console.log('[processPlanets] Sample planets:', result.slice(0, 3).map(p => ({
+          name: p.name,
+          sign: p.sign,
+          degree: p.degree,
+          absAngle: p.absAngle?.toFixed(2)
+        })));
+      }
+
+      return result;
     },
 
     /**
@@ -1048,17 +1053,15 @@ Component({
       if (!this.chartData || !this.chartData.aspects) return [];
 
       const aspects = this.chartData.aspects;
-      const { innerPlanets } = this.chartData;
+      const baseName = stripOuterPrefix(planet.name);
 
       return aspects
-        .filter(a => a.planet1 === planet.name || a.planet2 === planet.name)
+        .filter(a => stripOuterPrefix(a.planet1) === baseName || stripOuterPrefix(a.planet2) === baseName)
         .map(a => {
-          const otherPlanet = a.planet1 === planet.name ? a.planet2 : a.planet1;
-
-          // 判断是否为跨盘相位
-          const planetInInner = innerPlanets.some(p => p.name === planet.name);
-          const otherInInner = innerPlanets.some(p => p.name === otherPlanet);
-          const isCross = planetInInner !== otherInInner;
+          const otherPlanet = stripOuterPrefix(a.planet1) === baseName ? a.planet2 : a.planet1;
+          const p1Outer = /^(T-|B-)/.test(a.planet1);
+          const p2Outer = /^(T-|B-)/.test(a.planet2);
+          const isCross = p1Outer !== p2Outer;
 
           return {
             ...a,

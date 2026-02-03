@@ -1,9 +1,18 @@
+/**
+ * @deprecated 此文件已弃用，请使用新的三层架构：
+ * - 类型定义：从 './core/types' 导入
+ * - 输出格式指令：从 './instructions/output-format' 导入
+ * - 安全边界：从 './instructions/safety' 导入
+ * - 统一入口：从 './index' 导入
+ *
+ * 计划在集成验证通过后删除此文件。
+ */
 // INPUT: Prompt 共享类型、常量与工具函数。
 // OUTPUT: 导出 Prompt 类型定义与共享工具函数。
 // POS: Prompt 公共模块；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 /**
- * Prompt 共享模块
+ * Prompt 共享模块（已弃用）
  * - 类型定义
  * - 共享常量（语言指令、格式要求）
  * - 工具函数（语言解析、上下文格式化）
@@ -14,7 +23,11 @@
 export interface PromptMeta {
   id: string;
   version: string;
-  scenario: 'natal' | 'daily' | 'ask' | 'synastry' | 'wiki';
+  scenario?: 'natal' | 'daily' | 'ask' | 'synastry' | 'wiki' | 'annual';
+  module?: string;
+  priority?: string;
+  description?: string;
+  lastUpdated?: string;
 }
 
 export type PromptSystem = string | ((context: Record<string, unknown>) => string);

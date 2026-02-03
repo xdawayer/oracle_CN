@@ -738,6 +738,8 @@ export interface WikiItemSummary {
   subtitle?: string;
   symbol: string;
   keywords: string[];
+  prototype?: string;
+  analogy?: string;
   description: string;
   color_token?: string;
 }

@@ -67,6 +67,12 @@ const CROSS_ASPECT_PLANETS = [
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
   'North Node', 'Ascendant', 'Descendant', 'Midheaven', 'IC'
 ];
+// 合盘精简列表 - 只包含主要行星，减少矩阵大小
+const SYNASTRY_ASPECT_PLANETS = [
+  'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
+  'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+  'North Node'
+];
 
 const EMPTY_ELEMENT_MATRIX = {
   fire: { cardinal: [], fixed: [], mutable: [] },
@@ -712,16 +718,19 @@ Page({
   },
 
   buildSynastryAspectMatrix(aspects) {
-    const aBodies = CROSS_ASPECT_PLANETS;
-    const bBodies = CROSS_ASPECT_PLANETS;
+    // 使用精简的行星列表，矩阵更紧凑
+    const aBodies = SYNASTRY_ASPECT_PLANETS;
+    const bBodies = SYNASTRY_ASPECT_PLANETS;
     const matrix = [];
 
+    // 表头行：第一个是空/角标单元格，后面是甲方行星符号
     const headerRow = [{ isEmpty: true }];
     aBodies.forEach((name) => {
       headerRow.push({ isHeader: true, symbol: PLANET_META[name]?.glyph || '' });
     });
     matrix.push(headerRow);
 
+    // 数据行：每行第一个是乙方行星符号，后面是相位数据
     bBodies.forEach((bName) => {
       const row = [];
       row.push({ isHeader: true, symbol: PLANET_META[bName]?.glyph || '' });

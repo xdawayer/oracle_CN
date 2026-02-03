@@ -1,8 +1,9 @@
 // INPUT: 心理占星百科 API 路由与查询处理（含每日星象/灵感日级缓存与经典书籍 Markdown 内容）。
-// OUTPUT: 导出 wiki 路由（首页聚合、条目列表、经典书籍分类列表、详情与搜索）。
+// OUTPUT: 导出 wiki 路由（首页聚合、条目列表、经典书籍分类列表、详情与搜索，含 Server-Timing）。
 // POS: Wiki 端点；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router } from 'express';
+import { performance } from 'perf_hooks';
 import type {
   Language,
   WikiDailyTransit,
@@ -105,6 +106,8 @@ const buildSummary = (item: WikiItem): WikiItemSummary => ({
   subtitle: item.subtitle,
   symbol: item.symbol,
   keywords: item.keywords,
+  prototype: item.prototype,
+  analogy: item.analogy,
   description: item.description,
   color_token: item.color_token,
 });
@@ -196,6 +199,7 @@ const buildClassicReason = (item: WikiClassicDetail, query: string, lang: Langua
 // GET /api/wiki/home - wiki 首页聚合内容
 wikiRouter.get('/home', async (req, res) => {
   try {
+    const requestStart = performance.now();
     const lang = resolveLang(req.query.lang);
     const date = resolveToday(req.query.date);
     const staticContent = getWikiStaticContent(lang);
@@ -207,11 +211,15 @@ wikiRouter.get('/home', async (req, res) => {
       return;
     }
 
+    const aiStart = performance.now();
     const ai = await generateAIContent<{ daily_transit: WikiDailyTransit; daily_wisdom: WikiDailyWisdom }>({
       promptId: 'wiki-home',
       context: { date },
       lang,
     });
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+    res.setHeader('Server-Timing', `core;dur=0,ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
     const payload: WikiHomeResponse = {
       lang: ai.lang,

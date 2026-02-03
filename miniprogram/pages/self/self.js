@@ -1,4 +1,4 @@
-const { request } = require('../../utils/request');
+const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const {
@@ -132,6 +132,94 @@ const DETAIL_SECTION_LABELS = {
   asteroids: '小行星',
   rulers: '宫主星',
   elements: '元素',
+  // 元素详情
+  element_distribution: '元素分布',
+  dominant_element: '主导元素',
+  weak_element: '薄弱元素',
+  element_balance: '元素平衡',
+  chinese_metaphor: '文化意象',
+  name: '名称',
+  interpretation: '解读',
+  growth_tip: '成长建议',
+  overall: '整体评估',
+  life_pattern: '生活模式',
+  title: '标题',
+  explanation: '说明',
+  count: '数量',
+  percentage: '占比',
+  // 行星详情
+  sign: '星座',
+  house: '宫位',
+  degree: '度数',
+  content: '内容',
+  description: '描述',
+  meaning: '含义',
+  influence: '影响',
+  // 相位详情
+  aspect: '相位',
+  orb: '容许度',
+  type: '类型',
+  // 维度详情
+  dimension_key: '维度',
+  pattern: '核心模式',
+  root: '根源',
+  when_triggered: '触发场景',
+  what_helps: '缓解方法',
+  shadow: '阴影面',
+  practice: '练习',
+  prompt_question: '反思问题',
+  confidence: '置信度',
+  steps: '步骤',
+  // 深度解析
+  domain_key: '领域',
+  key_patterns: '核心模式',
+  growth_path: '成长方向',
+  direction: '方向',
+  reflection_question: '反思问题',
+  astro_basis: '星象依据',
+  // 宫主星
+  ruler: '宫主星',
+  flies_to_house: '飞入宫位',
+  flies_to_sign: '飞入星座',
+  // Big3 详情
+  sun: '太阳',
+  moon: '月亮',
+  rising: '上升',
+  key_traits: '核心特质',
+  life_scenario: '生活场景',
+  // 通用
+  fire: '火元素',
+  earth: '土元素',
+  air: '风元素',
+  water: '水元素',
+};
+
+// 报告元数据（用于支付弹窗展示）
+const REPORT_PAYMENT_META = {
+  annual: {
+    title: '2026 流年大运',
+    subtitle: '专属年度星象解读',
+    features: [
+      { title: '年度总览', desc: '全年运势主题与能量走向' },
+      { title: '六大领域', desc: '事业、感情、健康、社交、成长、财运' },
+      { title: '季度详解', desc: '四季运势节奏与关键时间点' },
+      { title: '开运指南', desc: '幸运元素与能量提升建议' },
+    ],
+    price: 500,
+    note: '约 8000-10000 字深度解读，永久保存',
+  },
+  'natal-report': {
+    title: '本命深度解读',
+    subtitle: '专属星盘全维度解析',
+    features: [
+      { title: '核心人格解读', desc: '太阳、月亮、上升的深层心理分析' },
+      { title: '人生维度详解', desc: '事业、感情、健康等领域的星象指引' },
+      { title: '行星相位解读', desc: '内在动力与潜在张力的深度剖析' },
+      { title: '成长建议', desc: '基于星盘的个性化发展方向' },
+    ],
+    price: 500,
+    note: '约 5000-8000 字深度解读，永久保存',
+  },
 };
 
 Page({
@@ -144,10 +232,24 @@ Page({
     isZoomed: false,
     showPayment: false,
     paymentLoading: false,
+    paymentReportType: 'annual', // 'annual' | 'natal-report'
+    paymentMeta: null, // 当前弹窗显示的报告元数据
     expandedSection: null,
     showDetailReport: false,
     detailReportData: null,
     detailContentCache: {},
+    prefetchedContent: {}, // 从 /api/natal/full 预获取的 overview/coreThemes/dimension 内容
+    statusBarHeight: 20,
+    navTitle: 'Self',
+    // 流年报告任务状态
+    annualTaskStatus: 'none', // none | pending | processing | completed | failed
+    annualTaskProgress: 0,
+    annualTaskMessage: '',
+
+    // 本命深度解读任务状态
+    natalReportStatus: 'none', // none | pending | processing | completed | failed
+    natalReportProgress: 0,
+    natalReportMessage: '',
 
     chartSize: 300,
     fullChartSize: 400,
@@ -184,6 +286,9 @@ Page({
   closePlanetDetail() {
     this.setData({
       selectedPlanet: null
+    }, () => {
+      // 关闭行星详情后重新绘制雷达图
+      setTimeout(() => this.drawRadarChart('radarChart', this.data.radarSize), 50);
     });
   },
 
@@ -192,14 +297,113 @@ Page({
     const windowWidth = sysInfo.windowWidth;
     const padding = 128 * (windowWidth / 750);
     const chartSize = Math.max(240, Math.floor(windowWidth - padding));
-    
+
     this.setData({
       chartSize,
-      fullChartSize: Math.floor(windowWidth * 0.9)
+      fullChartSize: Math.floor(windowWidth * 0.9),
+      statusBarHeight: sysInfo.statusBarHeight || 20
     });
 
     this.loadUserProfile();
     this.fetchNatalChart();
+    this.checkAnnualReportAccess();
+    this.checkNatalReportAccess();
+  },
+
+  onShow() {
+    // 每次页面显示时检查报告权限（可能在其他页面购买了）
+    this.checkAnnualReportAccess();
+    this.checkNatalReportAccess();
+  },
+
+  /** 检查流年报告任务状态 */
+  async checkAnnualReportAccess() {
+    try {
+      // 使用 user_profile 获取出生信息
+      const userProfile = storage.get('user_profile');
+      if (!userProfile || !userProfile.birthDate) return;
+
+      // 转换为 API 期望的格式
+      const birthData = {
+        date: userProfile.birthDate,
+        time: userProfile.birthTime || '12:00',
+        city: userProfile.birthCity || '',
+        lat: userProfile.lat,
+        lon: userProfile.lon,
+        timezone: userProfile.timezone || 'Asia/Shanghai',
+        accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+      };
+
+      const result = await request({
+        url: '/api/annual-task/status',
+        method: 'GET',
+        data: { birth: JSON.stringify(birthData) },
+      });
+
+      if (result && result.exists) {
+        this.setData({
+          annualTaskStatus: result.status,
+          annualTaskProgress: result.progress || 0,
+          annualTaskMessage: result.message || '',
+        });
+
+        // 如果正在处理中，定时刷新状态
+        if (result.status === 'processing') {
+          this._startStatusPolling();
+        }
+      } else {
+        this.setData({
+          annualTaskStatus: 'none',
+          annualTaskProgress: 0,
+          annualTaskMessage: '',
+        });
+      }
+    } catch (error) {
+      console.log('Check annual task status:', error?.statusCode || error);
+      this.setData({ annualTaskStatus: 'none' });
+    }
+  },
+
+  /** 开始轮询任务状态（递归 setTimeout 防止异步堆叠） */
+  _startStatusPolling() {
+    if (this._statusPollTimer) {
+      clearTimeout(this._statusPollTimer);
+    }
+    this._statusPolling = true;
+    this._pollAnnualOnce();
+  },
+
+  async _pollAnnualOnce() {
+    if (!this._statusPolling) return;
+
+    await this.checkAnnualReportAccess();
+
+    if (this.data.annualTaskStatus !== 'processing') {
+      this._statusPolling = false;
+      this._statusPollTimer = null;
+      if (this.data.annualTaskStatus === 'completed') {
+        wx.showToast({ title: '报告已生成完成', icon: 'success' });
+      }
+      return;
+    }
+
+    if (this._statusPolling) {
+      this._statusPollTimer = setTimeout(() => this._pollAnnualOnce(), 5000);
+    }
+  },
+
+  onUnload() {
+    // 清理定时器
+    this._statusPolling = false;
+    if (this._statusPollTimer) {
+      clearTimeout(this._statusPollTimer);
+      this._statusPollTimer = null;
+    }
+    this._natalReportPolling = false;
+    if (this._natalReportPollTimer) {
+      clearTimeout(this._natalReportPollTimer);
+      this._natalReportPollTimer = null;
+    }
   },
 
   loadUserProfile() {
@@ -414,7 +618,7 @@ Page({
       const chart = res?.chart;
       const positions = chart?.positions || [];
       const aspects = chart?.aspects || [];
-      const houseCusps = chart?.houseCusps || [];
+      const houseCusps = chart?.houseCusps || chart?.house_cusps || [];
 
       const planets = this.buildPlanetList(positions);
       const big3 = [
@@ -441,6 +645,8 @@ Page({
         chartHouseCusps: houseCusps
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
+        // 星盘渲染完成后，后台预取 AI 内容（不阻塞界面）
+        this.fetchNatalFull();
       });
     } catch (err) {
       console.error('Fetch natal chart failed', err);
@@ -467,20 +673,113 @@ Page({
     }
   },
 
-  drawRadarChart(canvasId, size) {
+  /**
+   * 调用 /api/natal/full 并行端点，预获取 overview/coreThemes/dimension 内容。
+   * 如果用户缺少完整出生信息或请求失败，静默降级，不影响正常使用。
+   */
+  async fetchNatalFull() {
+    const profile = this.userProfile || DEFAULT_PROFILE;
+    // 需要完整出生信息才调用
+    if (!profile.birthDate || !profile.birthTime) return;
+
+    try {
+      const query = this.buildNatalParams();
+      const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
+
+      if (!canChunked) {
+        const res = await request({ url: `${API_ENDPOINTS.NATAL_FULL}?${query}`, timeout: 120000 });
+        if (!res) return;
+
+        const prefetched = {};
+        const blockNames = ['overview', 'coreThemes', 'dimension'];
+        for (const blockName of blockNames) {
+          const block = res[blockName];
+          if (block && block.content) {
+            prefetched[blockName] = block.content;
+          }
+        }
+
+        if (Object.keys(prefetched).length > 0) {
+          this.setData({ prefetchedContent: prefetched });
+          console.log('[natal/full] Prefetched blocks:', Object.keys(prefetched).join(', '));
+        }
+        return;
+      }
+
+      const prefetched = { ...(this.data.prefetchedContent || {}) };
+      const moduleMap = {
+        overview: 'overview',
+        coreThemes: 'coreThemes',
+        dimension: 'dimension'
+      };
+
+      await new Promise((resolve) => {
+        this._natalStreamTask = requestStream({
+          url: `${API_ENDPOINTS.NATAL_FULL_STREAM}?${query}`,
+          method: 'GET',
+          onModule: (evt) => {
+            const blockName = moduleMap[evt.moduleId];
+            if (!blockName || !evt.content) return;
+            prefetched[blockName] = evt.content;
+            this._cacheNatalFullBlock(blockName, evt.content);
+            this.setData({ prefetchedContent: prefetched });
+          },
+          onDone: () => {
+            if (Object.keys(prefetched).length > 0) {
+              this.setData({ prefetchedContent: prefetched });
+              console.log('[natal/full/stream] Prefetched blocks:', Object.keys(prefetched).join(', '));
+            }
+            resolve();
+          },
+          onError: (err) => {
+            console.log('[natal/full/stream] Prefetch failed, will fallback to /api/detail:', err?.message || err);
+            resolve();
+          },
+        });
+      });
+    } catch (err) {
+      // 静默失败，fallback 到原有单端点模式
+      console.log('[natal/full] Prefetch failed, will fallback to /api/detail:', err?.statusCode || err?.message || err);
+    }
+  },
+
+  /**
+   * 将预获取的内容块写入 localStorage 缓存。
+   * blockName: 'overview' | 'coreThemes' | 'dimension'
+   */
+  _cacheNatalFullBlock(blockName, content) {
+    const cacheKey = `natal_full_${blockName}`;
+    storage.set(cacheKey, { content });
+  },
+
+  drawRadarChart(canvasId, size, retryCount = 0) {
     const query = wx.createSelectorQuery();
     query.select('#' + canvasId)
       .fields({ node: true, size: true })
       .exec((res) => {
-        if (!res[0]) return;
+        if (!res[0] || !res[0].node) {
+          // Canvas 未就绪，延迟重试
+          if (retryCount < 3) {
+            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), 100);
+          }
+          return;
+        }
         const canvas = res[0].node;
         const ctx = canvas.getContext('2d');
         const dpr = wx.getSystemInfoSync().pixelRatio;
-        canvas.width = res[0].width * dpr;
-        canvas.height = res[0].height * dpr;
+        // 如果尺寸为 0，使用传入的 size 或默认值
+        let width = res[0].width || size || 300;
+        let height = res[0].height || size || 300;
+        // 尺寸为 0 时延迟重试
+        if (width <= 0 || height <= 0) {
+          if (retryCount < 3) {
+            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), 100);
+          }
+          return;
+        }
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
-        const width = res[0].width;
-        const height = res[0].height;
         const cx = width / 2;
         const cy = height / 2;
         const r = Math.min(width, height) / 2 - 45;
@@ -551,38 +850,431 @@ Page({
     });
   },
 
-  showPaymentModal() {
+  showPaymentModal(reportType) {
+    const type = reportType || 'annual';
+    const meta = REPORT_PAYMENT_META[type];
+    if (!meta) return;
     if (wx.hideTabBar) {
       wx.hideTabBar({ animation: false });
     }
-    this.setData({ showPayment: true });
+    this.setData({
+      showPayment: true,
+      paymentReportType: type,
+      paymentMeta: meta,
+    });
   },
 
   closePayment() {
     if (wx.showTabBar) {
       wx.showTabBar({ animation: false });
     }
-    this.setData({ showPayment: false });
+    this.setData({ showPayment: false, paymentLoading: false }, () => {
+      // 弹窗关闭后重新绘制雷达图
+      setTimeout(() => this.drawRadarChart('radarChart', this.data.radarSize), 50);
+    });
   },
 
-  handlePay() {
+  async handlePay() {
+    const reportType = this.data.paymentReportType;
     this.setData({ paymentLoading: true });
-    setTimeout(() => {
-      if (wx.showTabBar) {
-        wx.showTabBar({ animation: false });
+
+    // 获取用户出生信息
+    const userProfile = storage.get('user_profile');
+    if (!userProfile || !userProfile.birthDate) {
+      wx.showToast({ title: '请先完善出生信息', icon: 'none' });
+      this.setData({ paymentLoading: false });
+      return;
+    }
+
+    // 转换为 API 期望的格式
+    const birthData = {
+      date: userProfile.birthDate,
+      time: userProfile.birthTime || '12:00',
+      city: userProfile.birthCity || '',
+      lat: userProfile.lat,
+      lon: userProfile.lon,
+      timezone: userProfile.timezone || 'Asia/Shanghai',
+      accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+    };
+
+    // TODO: 开发阶段 - 暂未接入支付，直接创建任务
+    // 正式上线后需要先进行支付，支付成功后再创建任务
+    const DEV_MODE = true;
+
+    try {
+      if (!DEV_MODE) {
+        // 正式版：先支付
+        const payResult = await request({
+          url: '/api/reports/purchase',
+          method: 'POST',
+          data: { reportType },
+        });
+
+        if (!payResult || !payResult.success) {
+          const errorMsg = payResult?.error || '支付失败';
+          if (payResult?.error === 'Insufficient credits') {
+            wx.showModal({
+              title: '积分不足',
+              content: `当前积分: ${payResult.balance || 0}，需要: ${payResult.price || 500}`,
+              confirmText: '去充值',
+              cancelText: '取消',
+              success: (res) => {
+                if (res.confirm) {
+                  wx.navigateTo({ url: '/pages/me/me' });
+                }
+              },
+            });
+          } else {
+            wx.showToast({ title: errorMsg, icon: 'none' });
+          }
+          return;
+        }
       }
-      this.setData({ paymentLoading: false, showPayment: false });
-      wx.showToast({ title: 'Payment logic', icon: 'none' });
-    }, 1500);
+
+      // 根据报告类型分派创建逻辑
+      if (reportType === 'annual') {
+        await this._createAnnualTask(birthData);
+      } else if (reportType === 'natal-report') {
+        await this._createNatalTask(birthData);
+      }
+    } catch (error) {
+      console.error('Create task error:', error);
+      wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
+    } finally {
+      this.setData({ paymentLoading: false });
+    }
+  },
+
+  /** 创建流年报告异步任务 */
+  async _createAnnualTask(birthData) {
+    const result = await request({
+      url: '/api/annual-task/create',
+      method: 'POST',
+      data: { birth: birthData, lang: 'zh' },
+    });
+
+    if (result && result.success) {
+      this.closePayment();
+      this.setData({
+        annualTaskStatus: result.status,
+        annualTaskProgress: result.progress || 0,
+        annualTaskMessage: result.message || '',
+      });
+
+      if (result.isNew) {
+        wx.showModal({
+          title: '任务已创建',
+          content: `报告将在后台生成，预计需要 ${result.estimatedMinutes || 5} 分钟。\n\n生成完成后可在"本我"页面查看。`,
+          showCancel: false,
+          confirmText: '知道了',
+        });
+        this._startStatusPolling();
+      } else if (result.status === 'completed') {
+        wx.navigateTo({ url: '/pages/annual-report/annual-report' });
+      } else if (result.status === 'processing') {
+        wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
+        this._startStatusPolling();
+      }
+    } else {
+      wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
+    }
+  },
+
+  /** 创建本命深度解读异步任务 */
+  async _createNatalTask(birthData) {
+    const result = await request({
+      url: API_ENDPOINTS.REPORT_CREATE,
+      method: 'POST',
+      data: { reportType: 'natal-report', birth: birthData, lang: 'zh' },
+    });
+
+    if (result && result.success) {
+      this.closePayment();
+      this.setData({
+        natalReportStatus: result.status,
+        natalReportProgress: result.progress || 0,
+        natalReportMessage: result.message || '',
+      });
+
+      if (result.isNew) {
+        wx.showModal({
+          title: '任务已创建',
+          content: '报告将在后台生成，预计需要数分钟。\n\n生成完成后可在"本我"页面查看。',
+          showCancel: false,
+          confirmText: '知道了',
+        });
+        this._startNatalReportPolling();
+      } else if (result.status === 'completed') {
+        wx.navigateTo({ url: '/pages/report/report?reportType=natal-report' });
+      } else if (result.status === 'processing') {
+        wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
+        this._startNatalReportPolling();
+      }
+    } else {
+      wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
+    }
+  },
+
+  /** 流年报告入口点击处理 */
+  onAnnualReportTap() {
+    const { annualTaskStatus } = this.data;
+
+    switch (annualTaskStatus) {
+      case 'none':
+        this.showPaymentModal('annual');
+        break;
+
+      case 'pending':
+      case 'processing':
+        wx.navigateTo({ url: '/pages/annual-report/annual-report' });
+        break;
+
+      case 'completed':
+        wx.navigateTo({ url: '/pages/annual-report/annual-report' });
+        break;
+
+      case 'failed':
+        wx.showModal({
+          title: '生成失败',
+          content: '报告生成过程中出现错误，是否重试？',
+          confirmText: '重试',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.retryAnnualReport();
+            }
+          },
+        });
+        break;
+
+      default:
+        this.showPaymentModal('annual');
+    }
+  },
+
+  /** 重试失败的任务 */
+  async retryAnnualReport() {
+    const userProfile = storage.get('user_profile');
+    if (!userProfile || !userProfile.birthDate) {
+      wx.showToast({ title: '请先完善出生信息', icon: 'none' });
+      return;
+    }
+
+    const birthData = {
+      date: userProfile.birthDate,
+      time: userProfile.birthTime || '12:00',
+      city: userProfile.birthCity || '',
+      lat: userProfile.lat,
+      lon: userProfile.lon,
+      timezone: userProfile.timezone || 'Asia/Shanghai',
+      accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+    };
+
+    wx.showLoading({ title: '正在重试...' });
+
+    try {
+      const result = await request({
+        url: '/api/annual-task/retry',
+        method: 'POST',
+        data: { birth: birthData },
+      });
+
+      wx.hideLoading();
+
+      if (result && result.success) {
+        this.setData({
+          annualTaskStatus: 'processing',
+          annualTaskProgress: result.task?.progress || 0,
+        });
+        wx.showToast({ title: '重试任务已启动', icon: 'success' });
+        this._startStatusPolling();
+      } else {
+        wx.showToast({ title: result?.error || '重试失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({ title: '重试失败', icon: 'none' });
+    }
+  },
+
+  /** 直接查看流年报告（兼容旧代码） */
+  goToAnnualReport() {
+    this.onAnnualReportTap();
+  },
+
+  /** 检查本命深度解读任务状态 */
+  async checkNatalReportAccess() {
+    try {
+      const userProfile = storage.get('user_profile');
+      if (!userProfile || !userProfile.birthDate) return;
+
+      const birthData = {
+        date: userProfile.birthDate,
+        time: userProfile.birthTime || '12:00',
+        city: userProfile.birthCity || '',
+        lat: userProfile.lat,
+        lon: userProfile.lon,
+        timezone: userProfile.timezone || 'Asia/Shanghai',
+        accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+      };
+
+      const result = await request({
+        url: API_ENDPOINTS.REPORT_STATUS,
+        method: 'GET',
+        data: {
+          reportType: 'natal-report',
+          birth: JSON.stringify(birthData),
+        },
+      });
+
+      if (result && result.exists) {
+        this.setData({
+          natalReportStatus: result.status,
+          natalReportProgress: result.progress || 0,
+          natalReportMessage: result.message || '',
+        });
+
+        if (result.status === 'processing') {
+          this._startNatalReportPolling();
+        }
+      } else {
+        this.setData({
+          natalReportStatus: 'none',
+          natalReportProgress: 0,
+          natalReportMessage: '',
+        });
+      }
+    } catch (error) {
+      console.log('Check natal report status:', error?.statusCode || error);
+      this.setData({ natalReportStatus: 'none' });
+    }
+  },
+
+  /** 开始轮询本命报告任务状态（递归 setTimeout 防止异步堆叠） */
+  _startNatalReportPolling() {
+    if (this._natalReportPollTimer) {
+      clearTimeout(this._natalReportPollTimer);
+    }
+    this._natalReportPolling = true;
+    this._pollNatalOnce();
+  },
+
+  async _pollNatalOnce() {
+    if (!this._natalReportPolling) return;
+
+    await this.checkNatalReportAccess();
+
+    if (this.data.natalReportStatus !== 'processing') {
+      this._natalReportPolling = false;
+      this._natalReportPollTimer = null;
+      if (this.data.natalReportStatus === 'completed') {
+        wx.showToast({ title: '本命解读已生成', icon: 'success' });
+      }
+      return;
+    }
+
+    if (this._natalReportPolling) {
+      this._natalReportPollTimer = setTimeout(() => this._pollNatalOnce(), 5000);
+    }
+  },
+
+  /** 本命深度解读入口点击处理 */
+  onNatalReportTap() {
+    const { natalReportStatus } = this.data;
+
+    switch (natalReportStatus) {
+      case 'none':
+        this.showPaymentModal('natal-report');
+        break;
+
+      case 'pending':
+      case 'processing':
+      case 'completed':
+        wx.navigateTo({ url: '/pages/report/report?reportType=natal-report' });
+        break;
+
+      case 'failed':
+        wx.showModal({
+          title: '生成失败',
+          content: '报告生成过程中出现错误，是否重试？',
+          confirmText: '重试',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.retryNatalReport();
+            }
+          },
+        });
+        break;
+
+      default:
+        this.showPaymentModal('natal-report');
+    }
+  },
+
+  /** 重试本命深度解读任务 */
+  async retryNatalReport() {
+    const userProfile = storage.get('user_profile');
+    if (!userProfile || !userProfile.birthDate) {
+      wx.showToast({ title: '请先完善出生信息', icon: 'none' });
+      return;
+    }
+
+    const birthData = {
+      date: userProfile.birthDate,
+      time: userProfile.birthTime || '12:00',
+      city: userProfile.birthCity || '',
+      lat: userProfile.lat,
+      lon: userProfile.lon,
+      timezone: userProfile.timezone || 'Asia/Shanghai',
+      accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+    };
+
+    wx.showLoading({ title: '正在重试...' });
+
+    try {
+      const result = await request({
+        url: API_ENDPOINTS.REPORT_RETRY,
+        method: 'POST',
+        data: {
+          reportType: 'natal-report',
+          birth: birthData,
+        },
+      });
+
+      wx.hideLoading();
+
+      if (result && result.success) {
+        this.setData({
+          natalReportStatus: 'processing',
+          natalReportProgress: result.task?.progress || 0,
+        });
+        wx.showToast({ title: '重试任务已启动', icon: 'success' });
+        this._startNatalReportPolling();
+      } else {
+        wx.showToast({ title: result?.error || '重试失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({ title: '重试失败', icon: 'none' });
+    }
   },
 
   closeDetailReport() {
-    this.setData({ showDetailReport: false, detailReportData: null });
+    this.setData({ showDetailReport: false, detailReportData: null, navTitle: 'Self' }, () => {
+      // 弹窗关闭后重新绘制雷达图
+      setTimeout(() => this.drawRadarChart('radarChart', this.data.radarSize), 50);
+    });
   },
 
   toggleZoom() {
     const newZoom = !this.data.isZoomed;
-    this.setData({ isZoomed: newZoom });
+    this.setData({ isZoomed: newZoom }, () => {
+      // 关闭全屏模式后重新绘制雷达图
+      if (!newZoom) {
+        setTimeout(() => this.drawRadarChart('radarChart', this.data.radarSize), 50);
+      }
+    });
   },
 
   toggleAccordion(e) {
@@ -705,21 +1397,13 @@ Page({
     return `self_detail_${safeKey}`;
   },
 
-  normalizeDetailContent(value) {
-    if (!value) return '';
-    if (typeof value === 'string') return value.trim();
-    if (Array.isArray(value)) return value.map(item => String(item)).join('\n');
-    if (typeof value === 'object') {
-      if (typeof value.text === 'string') return value.text.trim();
-      return JSON.stringify(value, null, 2);
-    }
-    return String(value);
-  },
-
   async fetchDetailContent(type, chartData, cacheKey) {
+    // 1. 检查内存缓存
     if (cacheKey && this.data.detailContentCache?.[cacheKey]) {
       return this.data.detailContentCache[cacheKey];
     }
+
+    // 2. 检查 localStorage 缓存（包括 fetchNatalFull 写入的）
     const cached = cacheKey ? storage.get(cacheKey) : null;
     if (cached?.content) {
       if (cacheKey) {
@@ -728,19 +1412,28 @@ Page({
       return cached.content;
     }
 
+    // 3. 走原有的 /api/detail POST 请求
     const payload = {
       type,
       context: 'natal',
       lang: 'zh',
       chartData,
     };
-    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload });
+    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000 });
     const content = result?.content ?? null;
     if (cacheKey) {
       storage.set(cacheKey, { content });
       this.setData({ [`detailContentCache.${cacheKey}`]: content });
     }
     return content;
+  },
+
+  /**
+   * 获取预取的 natal/full 内容块
+   * blockName: 'overview' | 'coreThemes' | 'dimension'
+   */
+  getPrefetchedBlock(blockName) {
+    return this.data.prefetchedContent?.[blockName] ?? null;
   },
 
   formatSectionTitle(raw) {
@@ -755,10 +1448,29 @@ Page({
     return title;
   },
 
+  _formatArrayItem(item) {
+    if (typeof item === 'string') return item.trim();
+    if (typeof item === 'number' || typeof item === 'boolean') return String(item);
+    if (typeof item === 'object' && item !== null) {
+      // 优先使用 title/description 组合（如 key_patterns 元素）
+      const title = item.title || item.name || item.label || '';
+      const desc = item.description || item.content || item.text || item.meaning || '';
+      if (title && desc) return `${title}：${desc}`;
+      if (title) return title;
+      if (desc) return desc;
+      // fallback: 提取所有原始值拼接
+      const parts = Object.entries(item)
+        .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+        .map(([k, v]) => `${this.formatSectionTitle(k)}：${String(v)}`);
+      if (parts.length) return parts.join('，');
+    }
+    return '';
+  },
+
   formatSectionValue(value) {
     if (value === null || value === undefined) return { text: '', list: [] };
     if (Array.isArray(value)) {
-      const list = value.map(item => String(item).trim()).filter(Boolean);
+      const list = value.map(item => this._formatArrayItem(item)).filter(Boolean);
       return { text: '', list };
     }
     if (typeof value === 'string') {
@@ -772,10 +1484,22 @@ Page({
       if (typeof value.content === 'string') return { text: value.content.trim(), list: [] };
       if (typeof value.description === 'string') return { text: value.description.trim(), list: [] };
       if (Array.isArray(value.items)) {
-        return { text: '', list: value.items.map(item => String(item).trim()).filter(Boolean) };
+        return { text: '', list: value.items.map(item => this._formatArrayItem(item)).filter(Boolean) };
       }
       if (Array.isArray(value.list)) {
-        return { text: '', list: value.list.map(item => String(item).trim()).filter(Boolean) };
+        return { text: '', list: value.list.map(item => this._formatArrayItem(item)).filter(Boolean) };
+      }
+      // steps 数组（如 practice.steps）
+      if (Array.isArray(value.steps)) {
+        const title = value.title ? `${value.title}：` : '';
+        const steps = value.steps.map(s => this._formatArrayItem(s)).filter(Boolean);
+        return { text: title, list: steps };
+      }
+      // actions 数组（如 growth_path.actions）
+      if (Array.isArray(value.actions)) {
+        const dir = value.direction ? `${value.direction}` : '';
+        const actions = value.actions.map(a => this._formatArrayItem(a)).filter(Boolean);
+        return { text: dir, list: actions };
       }
       const primitiveEntries = Object.entries(value).filter(([, v]) =>
         typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
@@ -864,17 +1588,345 @@ Page({
     return sections;
   },
 
-  buildDetailReportData(title, subtitle, content) {
-    const normalized = this.normalizeDetailContent(content);
-    const sections = normalized.sections && normalized.sections.length
-      ? normalized.sections
-      : this.buildDetailSections(normalized.text || '');
-    if (!sections.length) return null;
+  buildDetailReportData(title, subtitle, content, type) {
+    if (!content) return null;
+    const normalizer = {
+      big3: this.normalizeBig3Content,
+      deep: this.normalizeDeepContent,
+      dimension: this.normalizeDimensionContent,
+      elements: this.normalizeElementsContent,
+      aspects: this.normalizeAspectsContent,
+      planets: this.normalizePlanetsContent,
+      asteroids: this.normalizeAsteroidsContent,
+      rulers: this.normalizeRulersContent,
+    }[type];
+    const sections = normalizer
+      ? normalizer.call(this, content)
+      : this.normalizeGenericSections(content);
+    if (!sections || !sections.length) return null;
     return {
       title: title || '解读详情',
       subtitle: subtitle || '',
       sections
     };
+  },
+
+  /** 将英文行星/星座名翻译为中文，已是中文则原样返回 */
+  _zhName(name) {
+    if (!name || typeof name !== 'string') return name || '';
+    return PLANET_NAMES_ZH[name] || SIGN_NAMES_ZH[name] || name;
+  },
+
+  /** 翻译数组中的行星名 */
+  _zhNames(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(n => this._zhName(n));
+  },
+
+  normalizeGenericSections(content) {
+    const normalized = this.normalizeDetailContent(content);
+    const sections = normalized.sections && normalized.sections.length
+      ? normalized.sections
+      : this.buildDetailSections(normalized.text || '');
+    return sections;
+  },
+
+  normalizeBig3Content(content) {
+    const sections = [];
+    // 概述卡片（新格式 summary 优先，旧格式 fallback 到 content）
+    const summaryText = content.summary || content.content || '';
+    if (summaryText) {
+      const titleParts = [];
+      if (content.title) titleParts.push(content.title);
+      if (content.sign && content.house) titleParts.push(`${this._zhName(content.sign)} ${content.house}宫`);
+      else if (content.sign) titleParts.push(this._zhName(content.sign));
+      sections.push({
+        title: titleParts.join(' · ') || '概述',
+        text: summaryText,
+        cardColor: 'accent-red'
+      });
+    }
+    // 核心模式（新格式，含星象依据）
+    if (Array.isArray(content.key_patterns) && content.key_patterns.length) {
+      content.key_patterns.forEach((p, i) => {
+        const text = [p.description, p.astro_basis ? `星象依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
+        sections.push({ title: p.title || `核心模式 ${i + 1}`, text, cardColor: 'info' });
+      });
+    }
+    // 天赋优势
+    if (Array.isArray(content.strengths) && content.strengths.length) {
+      sections.push({ title: '天赋优势', list: content.strengths, cardColor: 'success' });
+    }
+    // 兼容旧格式 key_traits
+    if (!content.strengths && Array.isArray(content.key_traits) && content.key_traits.length) {
+      sections.push({ title: '核心特质', list: content.key_traits, cardColor: 'success' });
+    }
+    // 成长挑战
+    if (Array.isArray(content.challenges) && content.challenges.length) {
+      sections.push({ title: '成长挑战', list: content.challenges, cardColor: 'warning' });
+    }
+    // 生活场景（新格式数组 / 旧格式字符串）
+    if (Array.isArray(content.life_scenarios) && content.life_scenarios.length) {
+      sections.push({ title: '生活场景', list: content.life_scenarios, cardColor: 'default' });
+    } else if (content.life_scenario) {
+      sections.push({ title: '生活场景', text: content.life_scenario, cardColor: 'default' });
+    }
+    // 成长方向
+    if (content.growth_path) {
+      const gp = content.growth_path;
+      sections.push({
+        title: '成长方向',
+        text: gp.direction || '',
+        list: Array.isArray(gp.actions) ? gp.actions : [],
+        cardColor: 'success'
+      });
+    }
+    // 兼容旧格式 growth_tip
+    if (!content.growth_path && content.growth_tip) {
+      sections.push({ title: '成长建议', text: content.growth_tip, cardColor: 'success' });
+    }
+    // 反思问题
+    if (content.reflection_question) {
+      sections.push({ title: '反思问题', text: content.reflection_question, cardColor: 'accent-red' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeDeepContent(content) {
+    const sections = [];
+    if (content.summary) {
+      sections.push({ title: content.title || '概述', text: content.summary, cardColor: 'accent-red' });
+    }
+    if (Array.isArray(content.key_patterns) && content.key_patterns.length) {
+      content.key_patterns.forEach((p, i) => {
+        const text = [p.description, p.astro_basis ? `星象依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
+        sections.push({ title: p.title || `核心模式 ${i + 1}`, text, cardColor: 'info' });
+      });
+    }
+    if (Array.isArray(content.strengths) && content.strengths.length) {
+      sections.push({ title: '天赋优势', list: content.strengths, cardColor: 'success' });
+    }
+    if (Array.isArray(content.challenges) && content.challenges.length) {
+      sections.push({ title: '成长挑战', list: content.challenges, cardColor: 'warning' });
+    }
+    if (content.growth_path) {
+      const gp = content.growth_path;
+      sections.push({
+        title: '成长方向',
+        text: gp.direction || '',
+        list: Array.isArray(gp.actions) ? gp.actions : [],
+        cardColor: 'success'
+      });
+    }
+    if (content.reflection_question) {
+      sections.push({ title: '反思问题', text: content.reflection_question, cardColor: 'accent-red' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeDimensionContent(content) {
+    const sections = [];
+    if (content.pattern) {
+      sections.push({ title: content.title || '核心模式', text: content.pattern, cardColor: 'accent-red' });
+    }
+    if (content.root) {
+      sections.push({ title: '模式根源', text: content.root, cardColor: 'info' });
+    }
+    if (content.when_triggered) {
+      sections.push({ title: '触发场景', text: content.when_triggered, cardColor: 'warning' });
+    }
+    if (Array.isArray(content.what_helps) && content.what_helps.length) {
+      sections.push({ title: '缓解方法', list: content.what_helps, cardColor: 'success' });
+    }
+    if (content.shadow) {
+      sections.push({ title: '阴影面', text: content.shadow, cardColor: 'info' });
+    }
+    if (content.practice) {
+      const pr = content.practice;
+      sections.push({
+        title: pr.title || '推荐练习',
+        list: Array.isArray(pr.steps) ? pr.steps : [],
+        cardColor: 'success'
+      });
+    }
+    if (content.prompt_question) {
+      sections.push({ title: '反思问题', text: content.prompt_question, cardColor: 'accent-red' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeElementsContent(content) {
+    const sections = [];
+    if (content.element_distribution) {
+      const dist = content.element_distribution;
+      const elementNames = { fire: '火元素', earth: '土元素', air: '风元素', water: '水元素' };
+      const list = Object.entries(elementNames).map(([key, name]) => {
+        const el = dist[key];
+        if (!el) return '';
+        const planets = Array.isArray(el.planets) ? this._zhNames(el.planets).join('、') : '';
+        return `${name}：${el.count || 0}颗（${el.percentage || 0}%）${planets ? ' — ' + planets : ''}`;
+      }).filter(Boolean);
+      if (list.length) sections.push({ title: '元素分布', list, cardColor: 'info' });
+    }
+    if (content.dominant_element) {
+      const de = content.dominant_element;
+      sections.push({ title: `主导元素：${de.name || ''}`, text: de.interpretation || '', cardColor: 'success' });
+    }
+    if (content.weak_element) {
+      const we = content.weak_element;
+      const text = [we.interpretation, we.growth_tip ? `成长建议：${we.growth_tip}` : ''].filter(Boolean).join('\n');
+      sections.push({ title: `薄弱元素：${we.name || ''}`, text, cardColor: 'warning' });
+    }
+    if (content.element_balance) {
+      const eb = content.element_balance;
+      const text = [eb.overall, eb.life_pattern].filter(Boolean).join('\n');
+      sections.push({ title: '元素平衡', text, cardColor: 'default' });
+    }
+    if (content.chinese_metaphor) {
+      const cm = content.chinese_metaphor;
+      sections.push({ title: cm.title || '文化意象', text: cm.explanation || '', cardColor: 'accent-red' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeAspectsContent(content) {
+    const sections = [];
+    if (Array.isArray(content.major_aspects)) {
+      content.major_aspects.forEach(a => {
+        const parts = [a.content];
+        if (a.life_scenario) parts.push(`生活场景：${a.life_scenario}`);
+        if (a.growth_point) parts.push(`成长建议：${a.growth_point}`);
+        const typeLabel = a.type === '和谐' ? 'success' : a.type === '紧张' ? 'warning' : 'info';
+        sections.push({
+          title: a.title || a.aspect || '相位',
+          text: parts.filter(Boolean).join('\n'),
+          cardColor: typeLabel
+        });
+      });
+    }
+    if (content.aspect_pattern && content.aspect_pattern.name) {
+      const ap = content.aspect_pattern;
+      const text = [
+        ap.interpretation,
+        Array.isArray(ap.planets_involved) ? `相关行星：${this._zhNames(ap.planets_involved).join('、')}` : ''
+      ].filter(Boolean).join('\n');
+      sections.push({ title: `格局：${ap.name}`, text, cardColor: 'accent-red' });
+    }
+    if (content.summary) {
+      const s = content.summary;
+      const text = [
+        s.main_theme ? `主题：${s.main_theme}` : '',
+        s.inner_tension ? `内在张力：${s.inner_tension}` : '',
+        s.resource ? `内在资源：${s.resource}` : ''
+      ].filter(Boolean).join('\n');
+      sections.push({ title: '总结', text, cardColor: 'default' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizePlanetsContent(content) {
+    const sections = [];
+    const formatPlanet = (p) => {
+      const parts = [];
+      if (p.title) parts.push(p.title);
+      if (p.meaning) parts.push(p.meaning);
+      if (p.expression) parts.push(`表现：${p.expression}`);
+      if (p.life_stage) parts.push(`人生阶段：${p.life_stage}`);
+      if (p.generation_theme) parts.push(`世代主题：${p.generation_theme}`);
+      if (p.personal_touch) parts.push(p.personal_touch);
+      const header = [this._zhName(p.planet), this._zhName(p.sign), p.house ? `${p.house}宫` : '', p.dignity || ''].filter(Boolean).join(' · ');
+      return { header, text: parts.filter(Boolean).join('\n') };
+    };
+    if (Array.isArray(content.personal_planets) && content.personal_planets.length) {
+      content.personal_planets.forEach(p => {
+        const f = formatPlanet(p);
+        sections.push({ title: f.header || '个人行星', text: f.text, cardColor: 'info' });
+      });
+    }
+    if (Array.isArray(content.social_planets) && content.social_planets.length) {
+      content.social_planets.forEach(p => {
+        const f = formatPlanet(p);
+        sections.push({ title: f.header || '社会行星', text: f.text, cardColor: 'success' });
+      });
+    }
+    if (Array.isArray(content.outer_planets) && content.outer_planets.length) {
+      content.outer_planets.forEach(p => {
+        const f = formatPlanet(p);
+        sections.push({ title: f.header || '外行星', text: f.text, cardColor: 'warning' });
+      });
+    }
+    if (content.key_insight) {
+      const ki = content.key_insight;
+      const text = [
+        ki.strongest_planet ? `最强行星：${ki.strongest_planet}` : '',
+        ki.hidden_power ? `隐藏力量：${ki.hidden_power}` : '',
+        ki.integration_advice ? `整合建议：${ki.integration_advice}` : ''
+      ].filter(Boolean).join('\n');
+      sections.push({ title: '关键洞察', text, cardColor: 'accent-red' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeAsteroidsContent(content) {
+    const sections = [];
+    const asteroidKeys = [
+      { key: 'chiron', name: '凯龙星', fields: ['wound', 'healing_path', 'gift'] },
+      { key: 'juno', name: '婚神星', fields: ['partnership_need', 'ideal_partner', 'growth_point'] },
+      { key: 'pallas', name: '智神星', fields: ['wisdom_style', 'application'] },
+      { key: 'ceres', name: '谷神星', fields: ['nurturing_style', 'comfort_needs', 'mothering_pattern'] },
+    ];
+    const colorCycle = ['info', 'success', 'warning', 'accent-red'];
+    asteroidKeys.forEach((def, i) => {
+      const a = content[def.key];
+      if (!a) return;
+      const header = [a.title || def.name, this._zhName(a.sign), a.house ? `${a.house}宫` : ''].filter(Boolean).join(' · ');
+      const parts = [];
+      def.fields.forEach(f => {
+        if (a[f]) {
+          if (Array.isArray(a[f])) parts.push(a[f].join('、'));
+          else parts.push(a[f]);
+        }
+      });
+      sections.push({ title: header, text: parts.join('\n'), cardColor: colorCycle[i % colorCycle.length] });
+    });
+    if (content.integration) {
+      const ig = content.integration;
+      const text = [ig.common_theme, ig.life_lesson].filter(Boolean).join('\n');
+      sections.push({ title: '整合洞察', text, cardColor: 'default' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
+  },
+
+  normalizeRulersContent(content) {
+    const sections = [];
+    if (content.chart_ruler) {
+      const cr = content.chart_ruler;
+      const header = [this._zhName(cr.planet), this._zhName(cr.sign), cr.house ? `${cr.house}宫` : '', cr.condition || ''].filter(Boolean).join(' · ');
+      sections.push({ title: `命主星：${header}`, text: cr.life_direction || '', cardColor: 'accent-red' });
+    }
+    if (Array.isArray(content.key_rulers) && content.key_rulers.length) {
+      content.key_rulers.forEach(r => {
+        const header = `${r.house}宫 ${r.house_theme || ''}`;
+        const parts = [
+          `宫头${this._zhName(r.cusp_sign)}，宫主星${this._zhName(r.ruler)}在${this._zhName(r.ruler_sign)} ${r.ruler_house || ''}宫`,
+          r.interpretation,
+          r.life_implication ? `生活影响：${r.life_implication}` : ''
+        ].filter(Boolean);
+        sections.push({ title: header, text: parts.join('\n'), cardColor: 'info' });
+      });
+    }
+    if (Array.isArray(content.ruler_chains) && content.ruler_chains.length) {
+      content.ruler_chains.forEach(chain => {
+        const text = [chain.description, chain.insight].filter(Boolean).join('\n');
+        sections.push({ title: chain.name || '宫主星链', text, cardColor: 'success' });
+      });
+    }
+    if (content.key_insight) {
+      const ki = content.key_insight;
+      const text = [ki.energy_flow, ki.advice].filter(Boolean).join('\n');
+      sections.push({ title: '关键洞察', text, cardColor: 'warning' });
+    }
+    return sections.length ? sections : this.normalizeGenericSections(content);
   },
 
   async openDetailReport({ type, key, title, subtitle, chartData }) {
@@ -886,14 +1938,15 @@ Page({
     wx.showLoading({ title: '加载解读...' });
     try {
       const content = await this.fetchDetailContent(type, chartData, cacheKey);
-      const reportData = this.buildDetailReportData(title, subtitle, content);
+      const reportData = this.buildDetailReportData(title, subtitle, content, type);
       if (!reportData) {
         wx.showToast({ title: '暂无解读内容', icon: 'none' });
         return;
       }
       this.setData({
         detailReportData: reportData,
-        showDetailReport: true
+        showDetailReport: true,
+        navTitle: reportData.title || '太阳解读'
       });
     } catch (err) {
       console.error('Fetch self detail failed', err);

@@ -1,0 +1,75 @@
+<view class="page-container">
+  <!-- 头像区域 -->
+  <view class="avatar-section">
+    <view class="avatar-wrap" bindtap="onChooseAvatar">
+      <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+      <view class="avatar placeholder" wx:else>
+        <text class="avatar-text">U</text>
+      </view>
+      <view class="camera-badge">
+        <text class="camera-icon">+</text>
+      </view>
+    </view>
+    <text class="avatar-hint">点击更换头像</text>
+  </view>
+
+  <!-- 表单区域 -->
+  <view class="form-section">
+    <view class="form-item ink-border" bindtap="onEditName">
+      <view class="form-label-row">
+        <text class="form-label">昵称</text>
+      </view>
+      <view class="form-value-row">
+        <text class="form-value">{{name || '未设置'}}</text>
+        <text class="form-chevron">></text>
+      </view>
+    </view>
+
+    <view class="form-item ink-border" bindtap="onEditBirthDate">
+      <view class="form-label-row">
+        <text class="form-label">出生日期</text>
+      </view>
+      <view class="form-value-row">
+        <text class="form-value">{{birthDate || '未设置'}}</text>
+        <text class="form-chevron">></text>
+      </view>
+    </view>
+
+    <view class="form-item ink-border" bindtap="onEditBirthTime">
+      <view class="form-label-row">
+        <text class="form-label">出生时间</text>
+      </view>
+      <view class="form-value-row">
+        <text class="form-value">{{birthTime || '未设置'}}</text>
+        <text class="form-chevron">></text>
+      </view>
+    </view>
+
+    <view class="form-item ink-border" bindtap="onEditBirthCity">
+      <view class="form-label-row">
+        <text class="form-label">出生城市</text>
+      </view>
+      <view class="form-value-row">
+        <text class="form-value">{{birthCity || '未设置'}}</text>
+        <text class="form-chevron">></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="save-section">
+    <view class="save-btn {{hasChanges ? '' : 'disabled'}}" bindtap="onSave">
+      <text class="save-btn-text">保存修改</text>
+    </view>
+  </view>
+
+  <!-- 日期选择器 -->
+  <picker mode="date" value="{{birthDate}}" start="1940-01-01" end="2010-12-31" bindchange="onDateChange" wx:if="{{showDatePicker}}">
+    <view></view>
+  </picker>
+
+  <!-- 时间选择器 -->
+  <picker mode="time" value="{{birthTime}}" bindchange="onTimeChange" wx:if="{{showTimePicker}}">
+    <view></view>
+  </picker>
+</view>

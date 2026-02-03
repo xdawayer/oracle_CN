@@ -1,0 +1,54 @@
+<view class="page-container">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="header-title font-ancient">{{reportTitle}}</text>
+    <text class="header-desc">{{reportDesc}}</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && !hasContent}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在为你生成专属报告...</text>
+    <view class="progress-bar-container">
+      <view class="progress-bar" style="width: {{progress}}%;"></view>
+    </view>
+    <text class="progress-text">{{progressText}}</text>
+  </view>
+
+  <!-- 报告内容 -->
+  <view wx:if="{{hasContent}}" class="report-content">
+    <!-- 生成中提示 -->
+    <view wx:if="{{loading}}" class="generating-banner">
+      <view class="generating-dot"></view>
+      <text class="generating-text">{{progressText}}</text>
+    </view>
+
+    <!-- 动态模块渲染 -->
+    <block wx:for="{{moduleList}}" wx:key="id">
+      <view wx:if="{{modules[item.id]}}" class="module-section module-{{item.id}}">
+        <view class="module-accent module-accent-{{item.id}}"></view>
+        <view class="module-header">
+          <text class="module-title font-ancient module-title-{{item.id}}">{{item.name}}</text>
+        </view>
+        <view class="module-body">
+          <rich-text class="markdown-content" nodes="{{modules[item.id]}}"></rich-text>
+        </view>
+      </view>
+      <view wx:elif="{{moduleStatus[item.id] === 'pending' && loading}}" class="module-placeholder">
+        <text class="placeholder-text">{{item.name}}生成中...</text>
+      </view>
+    </block>
+
+    <!-- 底部留白 -->
+    <view class="bottom-spacer"></view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{error}}" class="error-container">
+    <text class="error-title">生成失败</text>
+    <text class="error-message">{{error}}</text>
+    <view class="retry-btn" bindtap="onRetry">
+      <text>重新生成</text>
+    </view>
+  </view>
+</view>

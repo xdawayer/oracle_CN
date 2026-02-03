@@ -1,88 +1,79 @@
 <view class="container">
-  <!-- Header -->
-  <view class="header">
-    <view class="back-btn" bindtap="onBack">
-      <text class="back-text">返回</text>
-    </view>
-    <view class="header-title-group">
-      <text class="header-title">{{selectedReport ? (selectedReport.content.title || selectedReport.title) : '收藏报告'}}</text>
-      <text class="header-subtitle" wx:if="{{!selectedReport}}">我的档案</text>
-    </view>
-    <view class="header-placeholder"></view>
-  </view>
-
   <!-- List View -->
   <view class="list-container" wx:if="{{!selectedReport}}">
-    <view wx:if="{{reports.length === 0 && !loading}}" class="empty-state">
-      <text class="empty-text">暂无已收藏的报告</text>
-      <text class="empty-subtext">去探索页面生成你的第一份专业解析吧</text>
+    <!-- 未登录状态 -->
+    <view wx:if="{{needLogin}}" class="empty-state">
+      <text class="empty-title">登录后查看收藏的报告</text>
+      <view class="login-btn" bindtap="goToLogin">
+        <text>去登录</text>
+      </view>
     </view>
 
-    <view wx:for="{{reports}}" wx:key="id" class="report-card" bindtap="onSelectReport" data-report="{{item}}">
+    <!-- 空状态 -->
+    <view wx:elif="{{reports.length === 0 && !loading}}" class="empty-state">
+      <text class="empty-title">暂无收藏</text>
+      <text class="empty-desc">你的占星报告将保存在这里</text>
+    </view>
+
+    <view wx:for="{{reports}}" wx:key="id" class="report-card ink-border" bindtap="onSelectReport" data-report="{{item}}">
       <view class="card-header">
-        <view class="tag {{item.typeClass}}">
-          {{item.typeText}}
-        </view>
-        <view class="date-label">
-          {{item.dateFormatted}}
-        </view>
+        <view class="tag">{{item.typeText}}</view>
+        <text class="date-label">{{item.dateFormatted}}</text>
       </view>
-      <view class="card-title">{{item.title}}</view>
-      <view class="card-summary">{{item.summary}}</view>
+      <text class="card-title font-ancient">{{item.title}}</text>
+      <text class="card-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
       <view class="card-footer">
-        <text class="details-link">点击查看详情</text>
+        <text class="card-action">点击查看详情 ></text>
       </view>
     </view>
   </view>
 
   <!-- Detail View -->
-  <scroll-view scroll-y class="detail-container" wx:else>
+  <scroll-view scroll-y class="detail-container" wx:else show-scrollbar="false">
     <view class="detail-meta">
-      <view class="tag {{selectedReport.typeClass}}">
-        {{selectedReport.typeText}}
-      </view>
-      <view class="detail-date">{{selectedReport.date}} 生成</view>
+      <view class="tag">{{selectedReport.typeText}}</view>
+      <text class="detail-date">{{selectedReport.date}} 生成</text>
     </view>
 
-    <!-- Generic Content Structure -->
     <view class="report-header-section">
-      <text class="report-main-title">{{selectedReport.content.title}}</text>
+      <text class="report-main-title font-ancient">{{selectedReport.content.title}}</text>
       <text class="report-subtitle" wx:if="{{selectedReport.content.subtitle}}">{{selectedReport.content.subtitle}}</text>
-      <view class="report-summary-box" wx:if="{{selectedReport.content.summary}}">
-        <text class="summary-text">{{selectedReport.content.summary}}</text>
+      <view class="report-summary-box ink-border" wx:if="{{selectedReport.content.summary}}">
+        <text class="summary-text">"{{selectedReport.content.summary}}"</text>
       </view>
     </view>
 
     <block wx:for="{{selectedReport.content.sections}}" wx:key="title">
-       <view class="section-card">
-         <view class="section-title">
-           <text>{{item.title}}</text>
-           <text class="section-rating" wx:if="{{item.rating}}">评分: {{item.rating}}</text>
-         </view>
-         
-         <view class="section-content" wx:if="{{item.content}}">
-           <text>{{item.content}}</text>
-         </view>
-
-          <view class="highlights-box" wx:if="{{item.highlights && item.highlights.length > 0}}">
-             <view class="highlight-item" wx:for="{{item.highlights}}" wx:for-item="hl" wx:key="*this">
-                <text>{{hl}}</text>
-             </view>
+      <view class="section-card ink-border">
+        <view class="section-title font-ancient">
+          <text>{{item.title}}</text>
+          <text class="section-rating" wx:if="{{item.rating}}">{{item.rating}}分</text>
+        </view>
+        <view class="section-content" wx:if="{{item.content}}">
+          <text>{{item.content}}</text>
+        </view>
+        <view class="highlights-box" wx:if="{{item.highlights && item.highlights.length > 0}}">
+          <view class="highlight-item" wx:for="{{item.highlights}}" wx:for-item="hl" wx:key="*this">
+            <text>{{hl}}</text>
           </view>
-
-          <view class="advice-box" wx:if="{{item.advice}}">
-             <text class="advice-label">建议</text>
-             <text class="advice-content">{{item.advice}}</text>
-          </view>
-       </view>
+        </view>
+        <view class="advice-box" wx:if="{{item.advice}}">
+          <text class="advice-label">建议</text>
+          <text class="advice-content">{{item.advice}}</text>
+        </view>
+      </view>
     </block>
 
-    <!-- Footer Security -->
     <view class="security-footer">
-      <text class="security-text text-success">安全</text>
-      <text class="security-text">此报告已在本地加密并上云，仅您本人可查看。</text>
+      <text class="security-text">此报告已加密存储，仅您本人可查看。</text>
     </view>
-    
+
+    <view class="back-btn-wrap">
+      <view class="back-detail-btn" bindtap="onBack">
+        <text>返回列表</text>
+      </view>
+    </view>
+
     <view style="height: 40rpx;"></view>
   </scroll-view>
 </view>

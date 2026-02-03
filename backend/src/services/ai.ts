@@ -1,9 +1,10 @@
-// INPUT: AI 内容生成服务（DeepSeek chat/reasoning，单语言输出与合盘综述/成长焦点分区 mock）。
-// OUTPUT: 导出 AI 调用服务（snake_case 输出、合盘成长焦点字段，含缓存与 JSON 修复）。
+// INPUT: AI 内容生成服务（DeepSeek chat/reasoning，含 token 预算、流式输出与缓存）。
+// OUTPUT: 导出 AI 调用服务（snake_case 输出、缓存/JSON 修复、流式生成与调用日志）。
 // POS: AI 生成服务；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 // 一旦我被更新，务必更新我的开头注释，以及所属的文件夹的md。
 
-import { getPrompt, buildCacheKey } from '../prompts/manager.js';
+import { getPrompt, buildCacheKey } from '../prompts/index.js';
+import { replaceSensitiveWords } from './content-security.js';
 import { hashInput, CACHE_TTL } from '../cache/strategy.js';
 import { cacheService } from '../cache/redis.js';
 import type { AIContentMeta, LocalizedContent, Language } from '../types/api.js';
@@ -13,7 +14,8 @@ const getDeepSeekBaseUrl = () =>
   process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 const AI_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.AI_TIMEOUT_MS);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  // 默认 2 分钟超时
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 120000;
 })();
 const AI_TEMPERATURE_DEFAULT = (() => {
   const parsed = Number(process.env.AI_TEMPERATURE);
@@ -21,6 +23,35 @@ const AI_TEMPERATURE_DEFAULT = (() => {
   return Math.min(Math.max(parsed, 0), 1);
 })();
 const DEFAULT_LANG: Language = 'zh';
+const DEFAULT_MAX_TOKENS = 4096;
+
+const MAX_TOKENS_MAP: Record<string, number> = {
+  // 高频文本与结构化输出：控制长尾时长
+  'ask-answer': 3072,
+  'daily-forecast': 1600,
+  'daily-detail': 1600,
+  'natal-overview': 1400,
+  'natal-core-themes': 1400,
+  'natal-dimension': 1400,
+  'cbt-analysis': 1600,
+  'cbt-aggregate-analysis': 1600,
+  'cbt-somatic-analysis': 1400,
+  'cbt-root-analysis': 1400,
+  'cbt-mood-analysis': 1400,
+  'cbt-competence-analysis': 1400,
+  'wiki-home': 1800,
+  'wiki-classics-master': 2000,
+  'pairing-analysis': 1600,
+  'synthetica-analysis': 1400,
+  'cycle-naming': 800,
+  'daily-home-card': 400,
+};
+
+function resolveMaxTokens(promptId: string, override?: number): number {
+  if (Number.isFinite(override) && (override as number) > 0) return override as number;
+  if (promptId.startsWith('detail-')) return 1200;
+  return MAX_TOKENS_MAP[promptId] ?? DEFAULT_MAX_TOKENS;
+}
 
 // ============================================================
 // 温度分层配置
@@ -89,6 +120,8 @@ const TEMPERATURE_MAP: Record<string, number> = {
   'cbt-aggregate-analysis': 0.5,
   // 工具分析
   'synthetica-analysis': 0.5,
+  // 配对分析
+  'pairing-analysis': 0.5,
 
   // T4 (0.6): 时效性/建议性内容
   'daily-forecast': 0.6,
@@ -98,10 +131,43 @@ const TEMPERATURE_MAP: Record<string, number> = {
   'synastry-vibe-tags': 0.6,
   'synastry-weather-forecast': 0.6,
   'synastry-action-plan': 0.6,
+  // 流年报告 - 季度/建议性内容
+  'annual-q1': 0.6,
+  'annual-q2': 0.6,
+  'annual-q3': 0.6,
+  'annual-q4': 0.6,
+  'annual-lucky': 0.6,
 
   // T5 (0.7): 创意性/深度洞察
   'ask-answer': 0.7,
   'oracle-answer': 0.7,
+  // 流年报告 - 核心模块（需要个性化洞察）
+  'annual-overview': 0.7,
+  'annual-career': 0.7,
+  'annual-love': 0.7,
+  'annual-health': 0.7,
+  'annual-social': 0.7,
+  'annual-growth': 0.7,
+  // 本命深度解读 - 核心模块（需要个性化洞察）
+  'natal-report-overview': 0.7,
+  'natal-report-love': 0.7,
+  'natal-report-career': 0.7,
+  'natal-report-emotion': 0.7,
+  'natal-report-soul': 0.7,
+  // 本命深度解读 - 次要模块（分析性内容）
+  'natal-report-mind': 0.5,
+  'natal-report-wealth': 0.5,
+  'natal-report-health': 0.5,
+
+  // 月度报告 - 核心模块（需要个性化洞察）
+  'monthly-tone': 0.7,
+  'monthly-dimensions': 0.7,
+  // 月度报告 - 时效性/建议性内容
+  'monthly-rhythm': 0.6,
+  'monthly-lunar': 0.6,
+  'monthly-actions': 0.6,
+  // 月度报告 - 事实性内容（日期表）
+  'monthly-dates': 0.5,
 };
 
 function getTemperatureForPrompt(promptId: string): number {
@@ -109,8 +175,76 @@ function getTemperatureForPrompt(promptId: string): number {
 }
 
 // 使用 reasoning 模型的 promptId
-const REASONING_PROMPTS = ['ask-answer', 'oracle-answer'];
-const RAW_TEXT_PROMPTS = new Set<string>(['ask-answer']);
+const REASONING_PROMPTS = [
+  'oracle-answer',
+  // 流年报告使用 reasoning 模型
+  'annual-overview',
+  'annual-career',
+  'annual-love',
+  'annual-health',
+  'annual-social',
+  'annual-growth',
+  'annual-q1',
+  'annual-q2',
+  'annual-q3',
+  'annual-q4',
+  'annual-lucky',
+  // 本命深度解读使用 reasoning 模型
+  'natal-report-overview',
+  'natal-report-mind',
+  'natal-report-emotion',
+  'natal-report-love',
+  'natal-report-career',
+  'natal-report-wealth',
+  'natal-report-health',
+  'natal-report-soul',
+  // 月度报告使用 reasoning 模型
+  'monthly-tone',
+  'monthly-dimensions',
+  'monthly-rhythm',
+  'monthly-lunar',
+  'monthly-dates',
+  'monthly-actions',
+];
+
+// 输出原始文本（非 JSON）的 promptId
+const RAW_TEXT_PROMPTS = new Set<string>([
+  // ask 问答输出纯 Markdown 文本
+  'ask-answer',
+  // 流年报告输出纯 Markdown 文本
+  'annual-overview',
+  'annual-career',
+  'annual-love',
+  'annual-health',
+  'annual-social',
+  'annual-growth',
+  'annual-q1',
+  'annual-q2',
+  'annual-q3',
+  'annual-q4',
+  'annual-lucky',
+  // 本命深度解读输出纯 Markdown 文本
+  'natal-report-overview',
+  'natal-report-mind',
+  'natal-report-emotion',
+  'natal-report-love',
+  'natal-report-career',
+  'natal-report-wealth',
+  'natal-report-health',
+  'natal-report-soul',
+  // 月度报告输出纯 Markdown 文本
+  'monthly-tone',
+  'monthly-dimensions',
+  'monthly-rhythm',
+  'monthly-lunar',
+  'monthly-dates',
+  'monthly-actions',
+]);
+
+// 支持 SSE 流式输出的 promptId（仅文本型，非 JSON 结构化输出）
+const STREAMABLE_PROMPTS = new Set<string>([
+  'ask-answer',
+]);
 const NO_CACHE_PROMPTS = new Set<string>();
 
 export interface AIGenerateOptions {
@@ -212,39 +346,65 @@ function stripCodeFence(text: string): string {
   return (fenced ? fenced[1] : trimmed).trim();
 }
 
-async function repairJsonWithAI(jsonText: string, apiKey: string, baseUrl: string, timeoutMs: number): Promise<string | null> {
+function repairJsonLocal(jsonText: string): string | null {
   try {
-    const response = await fetchWithTimeout(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: [
-              'You are a JSON repair assistant.',
-              'Return ONLY valid JSON with the same content.',
-              'Escape any double quotes inside string values.',
-              'Do not add markdown fences or explanations.',
-            ].join('\n'),
-          },
-          { role: 'user', content: jsonText },
-        ],
-        temperature: 0.0,
-        max_tokens: 4096,
-      }),
-    }, timeoutMs);
+    let text = jsonText.trim();
 
-    if (!response.ok) return null;
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) return null;
-    const extracted = extractJsonObject(text) || text;
-    return extracted;
+    // 0. 将字符串值内的中文引号 \u201c \u201d 替换为转义引号
+    // AI 常返回 "小步破圈"实验" 这样的内容，中文引号会破坏 JSON
+    {
+      let out = '';
+      let inString = false;
+      let escaped = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inString) {
+          if (escaped) { out += c; escaped = false; continue; }
+          if (c === '\\') { out += c; escaped = true; continue; }
+          if (c === '"') { out += c; inString = false; continue; }
+          if (c === '\u201c' || c === '\u201d') { out += '\\"'; continue; }
+          out += c;
+        } else {
+          if (c === '"') { out += c; inString = true; continue; }
+          out += c;
+        }
+      }
+      text = out;
+    }
+
+    // 1. 去除尾部多余逗号（对象/数组末尾的 ,} 或 ,]）
+    text = text.replace(/,\s*([}\]])/g, '$1');
+
+    // 2. 修复缺失的闭合括号
+    let braces = 0;
+    let brackets = 0;
+    let inStr = false;
+    let esc = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inStr) {
+        if (esc) { esc = false; continue; }
+        if (ch === '\\') { esc = true; continue; }
+        if (ch === '"') inStr = false;
+        continue;
+      }
+      if (ch === '"') inStr = true;
+      else if (ch === '{') braces++;
+      else if (ch === '}') braces--;
+      else if (ch === '[') brackets++;
+      else if (ch === ']') brackets--;
+    }
+    // 如果字符串未闭合，尝试闭合
+    if (inStr) text += '"';
+    while (brackets > 0) { text += ']'; brackets--; }
+    while (braces > 0) { text += '}'; braces--; }
+
+    // 3. 修复单引号为双引号（简单启发式：仅处理 key 的情况）
+    text = text.replace(/(?<=[\{,]\s*)'([^']+)'(?=\s*:)/g, '"$1"');
+
+    // 4. 尝试解析
+    JSON.parse(text);
+    return text;
   } catch {
     return null;
   }
@@ -259,30 +419,43 @@ function resolveMockReason(error?: unknown): AIContentMeta['reason'] {
 }
 
 async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise<AIGenerateResult<T>> {
+  const startTime = Date.now();
+  console.log(`[AI] >>> Starting generation for promptId: ${options.promptId}`);
+
   const allowMock = options.allowMock === true;
   const lang = options.lang ?? DEFAULT_LANG;
   const prompt = getPrompt(options.promptId);
   if (!prompt) {
     if (!allowMock) {
+      console.error(`[AI] Prompt not found: ${options.promptId}`);
       throw new AIUnavailableError('prompt_missing', `Prompt not found: ${options.promptId}`);
     }
     console.warn(`[AI] Prompt not found: ${options.promptId}. Using mock response.`);
     return { content: getMockResponse<T>(options.promptId, lang), meta: buildMockMeta('prompt_missing') };
   }
+  console.log(`[AI] Prompt found: ${options.promptId}, version: ${prompt.meta.version}`);
+
+  const useReasoning = REASONING_PROMPTS.includes(options.promptId);
+  const model = useReasoning ? 'deepseek-reasoner' : 'deepseek-chat';
+  const maxTokens = resolveMaxTokens(options.promptId, options.maxTokens);
 
   const context = { ...options.context, lang };
   const systemMessage = typeof prompt.system === 'function'
     ? prompt.system(context)
     : prompt.system;
   const userMessage = prompt.user(context);
-  const cacheKey = buildCacheKey(options.promptId, hashInput(context));
+  const inputChars = (systemMessage?.length || 0) + (userMessage?.length || 0);
+  const cacheKey = buildCacheKey(options.promptId, prompt.meta.version, hashInput(context));
 
   const shouldUseCache = !NO_CACHE_PROMPTS.has(options.promptId);
 
   // 检查缓存
   if (shouldUseCache) {
     const cached = await cacheService.get<LocalizedContent<T>>(cacheKey);
-    if (cached) return buildAIResult(cached, true);
+    if (cached) {
+      console.log(`[AI] Cache hit for ${options.promptId} in ${Date.now() - startTime}ms (model=${model}, maxTokens=${maxTokens})`);
+      return buildAIResult(cached, true);
+    }
   }
 
   const apiKey = getDeepSeekApiKey();
@@ -293,13 +466,13 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
     return { content: getMockResponse<T>(options.promptId, lang), meta: buildMockMeta('missing_api_key') };
   }
 
-  const useReasoning = REASONING_PROMPTS.includes(options.promptId);
-  const model = useReasoning ? 'deepseek-reasoner' : 'deepseek-chat';
   const baseUrl = getDeepSeekBaseUrl();
 
   try {
     const timeoutMs = options.timeoutMs ?? AI_TIMEOUT_MS;
-    const maxTokens = options.maxTokens ?? 4096;
+    console.log(`[AI] Calling DeepSeek API: model=${model}, timeoutMs=${timeoutMs || 'none'}, maxTokens=${maxTokens}, inputChars=${inputChars}`);
+    const apiStartTime = Date.now();
+
     const response = await fetchWithTimeout(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
@@ -317,24 +490,35 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       }),
     }, timeoutMs);
 
+    const apiEndTime = Date.now();
+    console.log(`[AI] DeepSeek API responded in ${apiEndTime - apiStartTime}ms, status: ${response.status}`);
+
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`DeepSeek API error: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
+    const usage = data.usage;
     const text = data.choices?.[0]?.message?.content;
+    console.log(`[AI] Response text length: ${text?.length || 0} chars`);
+    if (usage) {
+      console.log(`[AI] Usage prompt=${usage.prompt_tokens ?? 'n/a'} completion=${usage.completion_tokens ?? 'n/a'} total=${usage.total_tokens ?? 'n/a'}`);
+    }
 
     if (!text) {
       throw new Error('No response from DeepSeek');
     }
 
+    console.log(`[AI] <<< Completed ${options.promptId} in ${Date.now() - startTime}ms`);
+
     if (RAW_TEXT_PROMPTS.has(options.promptId)) {
-      const cleaned = stripCodeFence(text);
+      const cleaned = replaceSensitiveWords(stripCodeFence(text));
       const result: LocalizedContent<T> = { lang, content: cleaned as T };
       if (shouldUseCache) {
         await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
       }
+      console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${Date.now() - startTime}`);
       return buildAIResult(result);
     }
 
@@ -346,12 +530,17 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       throw new Error('Invalid JSON response from DeepSeek');
     }
 
+    // 对 JSON 字符串做敏感词替换（在解析前处理，避免破坏 JSON 结构键名）
+    const sanitizedJsonStr = replaceSensitiveWords(jsonStr);
+
     let parsed: unknown;
     try {
-      parsed = JSON.parse(jsonStr) as unknown;
+      parsed = JSON.parse(sanitizedJsonStr) as unknown;
     } catch (parseError) {
-      const repaired = await repairJsonWithAI(jsonStr, apiKey, baseUrl, timeoutMs);
+      console.warn(`[AI] JSON parse failed for ${options.promptId}, attempting local repair`);
+      const repaired = repairJsonLocal(sanitizedJsonStr);
       if (!repaired) throw parseError;
+      console.log(`[AI] JSON repaired locally for ${options.promptId}`);
       parsed = JSON.parse(repaired) as unknown;
     }
     const result = normalizeLocalizedContent<T>(parsed, lang);
@@ -361,12 +550,16 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
     }
 
+    console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${Date.now() - startTime}`);
     return buildAIResult(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
     const reason = resolveMockReason(error);
+    const elapsed = Date.now() - startTime;
+    console.error(`[AI] !!! ${options.promptId} FAILED after ${elapsed}ms: ${message}`);
+    if (stack) console.error(`[AI] Stack: ${stack}`);
     if (!allowMock) {
-      console.error(`[AI] ${options.promptId} failed: ${message}`);
       throw new AIUnavailableError(reason, message);
     }
     console.warn(`[AI] Using mock response for ${options.promptId}: ${message}`);
@@ -381,6 +574,153 @@ export async function generateAIContent<T>(options: AIGenerateOptions): Promise<
 
 export async function generateAIContentWithMeta<T>(options: AIGenerateOptions): Promise<AIGenerateResult<T>> {
   return generateAIContentInternal<T>(options);
+}
+
+// ============================================================
+// SSE 流式输出
+// ============================================================
+
+export interface StreamGenerateOptions {
+  promptId: string;
+  context: Record<string, unknown>;
+  timeoutMs?: number;
+  maxTokens?: number;
+  lang?: Language;
+}
+
+export function isStreamablePrompt(promptId: string): boolean {
+  return STREAMABLE_PROMPTS.has(promptId);
+}
+
+/**
+ * 流式生成 AI 内容，返回 AsyncIterable<string>。
+ * 仅适用于 STREAMABLE_PROMPTS 中的文本型 prompt。
+ */
+export async function* generateAIContentStream(
+  options: StreamGenerateOptions
+): AsyncGenerator<string, void, undefined> {
+  const startTime = Date.now();
+  const lang = options.lang ?? DEFAULT_LANG;
+  console.log(`[AI-Stream] >>> Starting stream for promptId: ${options.promptId}`);
+
+  if (!STREAMABLE_PROMPTS.has(options.promptId)) {
+    throw new AIUnavailableError('error', `Prompt ${options.promptId} does not support streaming`);
+  }
+
+  const prompt = getPrompt(options.promptId);
+  if (!prompt) {
+    throw new AIUnavailableError('prompt_missing', `Prompt not found: ${options.promptId}`);
+  }
+
+  const context = { ...options.context, lang };
+  const systemMessage = typeof prompt.system === 'function'
+    ? prompt.system(context)
+    : prompt.system;
+  const userMessage = prompt.user(context);
+  const inputChars = (systemMessage?.length || 0) + (userMessage?.length || 0);
+
+  // 检查缓存 —— 如果命中直接一次性返回
+  const shouldUseCache = !NO_CACHE_PROMPTS.has(options.promptId);
+  const cacheKey = shouldUseCache
+    ? buildCacheKey(options.promptId, prompt.meta.version, hashInput(context))
+    : '';
+  if (shouldUseCache) {
+    const cached = await cacheService.get<LocalizedContent<string>>(cacheKey);
+    if (cached) {
+      console.log(`[AI-Stream] Cache hit for ${options.promptId}`);
+      yield cached.content;
+      return;
+    }
+  }
+
+  const apiKey = getDeepSeekApiKey();
+  if (!apiKey) {
+    throw new AIUnavailableError('missing_api_key', 'DeepSeek API key missing');
+  }
+
+  const useReasoning = REASONING_PROMPTS.includes(options.promptId);
+  const model = useReasoning ? 'deepseek-reasoner' : 'deepseek-chat';
+  const baseUrl = getDeepSeekBaseUrl();
+  const timeoutMs = options.timeoutMs ?? AI_TIMEOUT_MS;
+  const maxTokens = resolveMaxTokens(options.promptId, options.maxTokens);
+
+  console.log(`[AI-Stream] Calling DeepSeek API: model=${model}, stream=true, timeoutMs=${timeoutMs}, maxTokens=${maxTokens}, inputChars=${inputChars}`);
+
+  const response = await fetchWithTimeout(`${baseUrl}/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: getTemperatureForPrompt(options.promptId),
+      max_tokens: maxTokens,
+      stream: true,
+    }),
+  }, timeoutMs);
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`DeepSeek API error: ${response.status} - ${errText}`);
+  }
+
+  if (!response.body) {
+    throw new Error('No response body from DeepSeek streaming');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      // 保留最后一行（可能不完整）
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (!trimmed.startsWith('data: ')) continue;
+
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullText += delta;
+            yield delta;
+          }
+        } catch {
+          // 忽略无法解析的 SSE 行
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const elapsed = Date.now() - startTime;
+  console.log(`[AI-Stream] <<< Completed ${options.promptId} in ${elapsed}ms, ${fullText.length} chars (model=${model}, maxTokens=${maxTokens})`);
+
+  // 写入缓存（复用上方计算的 cacheKey）
+  if (shouldUseCache && fullText) {
+    const cleaned = stripCodeFence(fullText);
+    const result: LocalizedContent<string> = { lang, content: cleaned };
+    await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
+  }
 }
 
 // Mock 响应用于开发
@@ -642,6 +982,242 @@ function getMockResponse<T>(promptId: string, lang: Language): LocalizedContent<
         one_question: '我可以放下的担忧是什么？',
         under_the_hood: { moon_phase_sign: '盈凸月·处女', key_aspects: ['月亮拱金星', '太阳刑火星'] },
         confidence: 'high'
+      },
+    },
+    'detail-dimension-transit': {
+      zh: {
+        dimension_key: 'career',
+        title: '事业节奏',
+        summary: '今天更适合稳住节奏，把精力放在关键事项上。',
+        key_aspects: [{ aspect: '行运火星刑本命太阳', meaning: '推进力更强，但容易急躁' }],
+        opportunities: ['推进关键任务', '明确优先级与边界'],
+        challenges: ['节奏过快', '沟通偏强势'],
+        actions: ['把任务拆成小步', '重要沟通先对齐目标'],
+        reflection_question: '我今天最需要稳住的节奏是什么？',
+        confidence: 'med'
+      },
+      en: {
+        dimension_key: 'career',
+        title: '事业节奏',
+        summary: '今天更适合稳住节奏，把精力放在关键事项上。',
+        key_aspects: [{ aspect: '行运火星刑本命太阳', meaning: '推进力更强，但容易急躁' }],
+        opportunities: ['推进关键任务', '明确优先级与边界'],
+        challenges: ['节奏过快', '沟通偏强势'],
+        actions: ['把任务拆成小步', '重要沟通先对齐目标'],
+        reflection_question: '我今天最需要稳住的节奏是什么？',
+        confidence: 'med'
+      },
+    },
+    'detail-advice-transit': {
+      zh: {
+        focus_title: '稳住节奏，先对齐再推进',
+        do: { title: '宜做', items: ['先确定优先级', '把沟通说清楚', '留出缓冲时间'] },
+        dont: { title: '忌做', items: ['临时改方向', '情绪化决策', '高强度并行'] },
+        reasoning: '行运带来冲劲，但需要结构承接，先稳住再加速。',
+        reminder: '先把最关键的一步完成。',
+        confidence: 'high'
+      },
+      en: {
+        focus_title: '稳住节奏，先对齐再推进',
+        do: { title: '宜做', items: ['先确定优先级', '把沟通说清楚', '留出缓冲时间'] },
+        dont: { title: '忌做', items: ['临时改方向', '情绪化决策', '高强度并行'] },
+        reasoning: '行运带来冲劲，但需要结构承接，先稳住再加速。',
+        reminder: '先把最关键的一步完成。',
+        confidence: 'high'
+      },
+    },
+    'detail-time-windows-transit': {
+      zh: {
+        day_focus: '上午推进、午间对齐、晚上收尾',
+        windows: [
+          { period: '上午', time: '06:00-12:00', energy_level: '积极', theme: '推进', best_for: ['处理重点任务', '集中执行'], avoid_for: ['临时改方向'], tip: '先做最关键的一步。' },
+          { period: '午间', time: '12:00-18:00', energy_level: '平稳', theme: '对齐', best_for: ['沟通协调', '明确共识'], avoid_for: ['过度争辩'], tip: '用事实对齐节奏。' },
+          { period: '晚上', time: '18:00-24:00', energy_level: '放松', theme: '收尾', best_for: ['复盘整理', '轻量社交'], avoid_for: ['高压决策'], tip: '给自己留出恢复空间。' }
+        ],
+        confidence: 'high'
+      },
+      en: {
+        day_focus: '上午推进、午间对齐、晚上收尾',
+        windows: [
+          { period: '上午', time: '06:00-12:00', energy_level: '积极', theme: '推进', best_for: ['处理重点任务', '集中执行'], avoid_for: ['临时改方向'], tip: '先做最关键的一步。' },
+          { period: '午间', time: '12:00-18:00', energy_level: '平稳', theme: '对齐', best_for: ['沟通协调', '明确共识'], avoid_for: ['过度争辩'], tip: '用事实对齐节奏。' },
+          { period: '晚上', time: '18:00-24:00', energy_level: '放松', theme: '收尾', best_for: ['复盘整理', '轻量社交'], avoid_for: ['高压决策'], tip: '给自己留出恢复空间。' }
+        ],
+        confidence: 'high'
+      },
+    },
+    'detail-weekly-trend-transit': {
+      zh: {
+        week_range: '1/20-1/26',
+        daily_scores: [
+          { date: '2024-01-20', score: 72, label: '稳' },
+          { date: '2024-01-21', score: 68, label: '缓' },
+          { date: '2024-01-22', score: 75, label: '进' },
+          { date: '2024-01-23', score: 80, label: '强' },
+          { date: '2024-01-24', score: 70, label: '稳' },
+          { date: '2024-01-25', score: 66, label: '缓' },
+          { date: '2024-01-26', score: 78, label: '进' }
+        ],
+        key_dates: [
+          { date: '2024-01-22', label: '效率日', description: '适合推进重点事项。' },
+          { date: '2024-01-25', label: '缓冲日', description: '适合减少安排、恢复节奏。' }
+        ],
+        weekly_focus: '稳住节奏、减少内耗',
+        strategy: '先定优先级，再推进执行。',
+        confidence: 'med'
+      },
+      en: {
+        week_range: '1/20-1/26',
+        daily_scores: [
+          { date: '2024-01-20', score: 72, label: '稳' },
+          { date: '2024-01-21', score: 68, label: '缓' },
+          { date: '2024-01-22', score: 75, label: '进' },
+          { date: '2024-01-23', score: 80, label: '强' },
+          { date: '2024-01-24', score: 70, label: '稳' },
+          { date: '2024-01-25', score: 66, label: '缓' },
+          { date: '2024-01-26', score: 78, label: '进' }
+        ],
+        key_dates: [
+          { date: '2024-01-22', label: '效率日', description: '适合推进重点事项。' },
+          { date: '2024-01-25', label: '缓冲日', description: '适合减少安排、恢复节奏。' }
+        ],
+        weekly_focus: '稳住节奏、减少内耗',
+        strategy: '先定优先级，再推进执行。',
+        confidence: 'med'
+      },
+    },
+    'detail-aspect-matrix-transit': {
+      zh: {
+        headline: '张力与推进并存',
+        summary: '相位矩阵显示行动力增强，但需要用结构稳住节奏。',
+        key_aspects: [
+          { aspect: '行运火星刑本命太阳', impact: '冲劲更强，易急躁', advice: '先定优先级再推进' },
+          { aspect: '行运月亮拱本命金星', impact: '关系更易柔和对齐', advice: '用温和沟通争取支持' }
+        ],
+        energy_flow: ['适合推进而非重启', '沟通要放慢语气'],
+        do_dont: { do: ['拆分任务', '先对齐共识'], dont: ['情绪化决策', '临时改方向'] },
+        confidence: 'med'
+      },
+      en: {
+        headline: '张力与推进并存',
+        summary: '相位矩阵显示行动力增强，但需要用结构稳住节奏。',
+        key_aspects: [
+          { aspect: '行运火星刑本命太阳', impact: '冲劲更强，易急躁', advice: '先定优先级再推进' },
+          { aspect: '行运月亮拱本命金星', impact: '关系更易柔和对齐', advice: '用温和沟通争取支持' }
+        ],
+        energy_flow: ['适合推进而非重启', '沟通要放慢语气'],
+        do_dont: { do: ['拆分任务', '先对齐共识'], dont: ['情绪化决策', '临时改方向'] },
+        confidence: 'med'
+      },
+    },
+    'detail-astro-report-transit': {
+      zh: {
+        title: '今日星象解读',
+        summary: '今天更像在稳住节奏的状态下完成关键推进。',
+        deep_dive: '行运激活了对效率与控制感的需求，急于求成会让能量外散。把重点放在一件最关键的事上，反而更稳更有效。',
+        highlights: [
+          { title: '行动力增强', description: '适合推进重点任务，但要避免冲动。' },
+          { title: '沟通缓冲', description: '温和表达更容易获得支持。' }
+        ],
+        caution: '避免在疲惫时做重要决定。',
+        action: '把今天最重要的一步写下来并完成。',
+        reflection_question: '我今天想用什么方式稳住自己的节奏？',
+        confidence: 'high'
+      },
+      en: {
+        title: '今日星象解读',
+        summary: '今天更像在稳住节奏的状态下完成关键推进。',
+        deep_dive: '行运激活了对效率与控制感的需求，急于求成会让能量外散。把重点放在一件最关键的事上，反而更稳更有效。',
+        highlights: [
+          { title: '行动力增强', description: '适合推进重点任务，但要避免冲动。' },
+          { title: '沟通缓冲', description: '温和表达更容易获得支持。' }
+        ],
+        caution: '避免在疲惫时做重要决定。',
+        action: '把今天最重要的一步写下来并完成。',
+        reflection_question: '我今天想用什么方式稳住自己的节奏？',
+        confidence: 'high'
+      },
+    },
+    'detail-planets-transit': {
+      zh: {
+        title: '行运行星解读',
+        summary: '行运行星强调执行与边界，适合稳步推进。',
+        interpretation: '快速行星带来节奏变化，适合把任务分段推进并在沟通时更清晰。',
+        highlights: ['重点任务优先', '沟通先对齐目标', '避免临时改方向']
+      },
+      en: {
+        title: '行运行星解读',
+        summary: '行运行星强调执行与边界，适合稳步推进。',
+        interpretation: '快速行星带来节奏变化，适合把任务分段推进并在沟通时更清晰。',
+        highlights: ['重点任务优先', '沟通先对齐目标', '避免临时改方向']
+      },
+    },
+    'detail-asteroids-transit': {
+      zh: {
+        headline: '小行星强调疗愈与边界',
+        focus_asteroids: [
+          { name: 'Chiron', sign: '白羊', house: 6, theme: '修复与疗愈', influence: '更关注身体与日常恢复。' },
+          { name: 'Ceres', sign: '金牛', house: 7, theme: '照料与稳定', influence: '关系中更渴望踏实照料。' },
+          { name: 'Juno', sign: '天秤', house: 1, theme: '承诺与契约', influence: '对合作关系的要求更明确。' },
+          { name: 'Vesta', sign: '处女', house: 12, theme: '专注与内在', influence: '适合整理内在节奏。' }
+        ],
+        chiron_focus: { is_return: false, theme: '疗愈旧伤', healing_path: '用可执行的日常护理修复自己。', warning: '避免忽视身体信号。' },
+        suggestions: ['安排恢复性的日常仪式', '把压力拆成小步骤处理'],
+        confidence: 'med'
+      },
+      en: {
+        headline: '小行星强调疗愈与边界',
+        focus_asteroids: [
+          { name: 'Chiron', sign: '白羊', house: 6, theme: '修复与疗愈', influence: '更关注身体与日常恢复。' },
+          { name: 'Ceres', sign: '金牛', house: 7, theme: '照料与稳定', influence: '关系中更渴望踏实照料。' },
+          { name: 'Juno', sign: '天秤', house: 1, theme: '承诺与契约', influence: '对合作关系的要求更明确。' },
+          { name: 'Vesta', sign: '处女', house: 12, theme: '专注与内在', influence: '适合整理内在节奏。' }
+        ],
+        chiron_focus: { is_return: false, theme: '疗愈旧伤', healing_path: '用可执行的日常护理修复自己。', warning: '避免忽视身体信号。' },
+        suggestions: ['安排恢复性的日常仪式', '把压力拆成小步骤处理'],
+        confidence: 'med'
+      },
+    },
+    'detail-rulers-transit': {
+      zh: {
+        overview: '宫主星链条提示今日更适合稳住节奏，先处理基础盘。',
+        rulers: [
+          { house: 1, sign: '天秤', ruler: 'Venus', flies_to_house: 7, flies_to_sign: '白羊', theme: '自我与关系', advice: '用清晰边界换来平衡。' },
+          { house: 2, sign: '天蝎', ruler: 'Pluto', flies_to_house: 4, flies_to_sign: '巨蟹', theme: '资源与安全', advice: '优先保障稳定感。' },
+          { house: 3, sign: '射手', ruler: 'Jupiter', flies_to_house: 10, flies_to_sign: '摩羯', theme: '沟通与目标', advice: '把沟通落到具体目标。' },
+          { house: 4, sign: '摩羯', ruler: 'Saturn', flies_to_house: 6, flies_to_sign: '双鱼', theme: '家庭与日常', advice: '稳住作息与习惯。' },
+          { house: 5, sign: '水瓶', ruler: 'Uranus', flies_to_house: 11, flies_to_sign: '狮子', theme: '创造与社群', advice: '把创意放到合作里。' },
+          { house: 6, sign: '双鱼', ruler: 'Neptune', flies_to_house: 12, flies_to_sign: '处女', theme: '健康与修复', advice: '给自己可执行的恢复步骤。' }
+        ],
+        deep_focus: [
+          { title: '关系与自我', description: '1宫主入7宫，关系议题更重要。' },
+          { title: '资源与安全', description: '2宫主入4宫，安全感是关键。' }
+        ],
+        combinations: [
+          { from_house: 1, to_house: 7, theme: '自我-关系联动', suggestion: '用清晰表达换取理解。' },
+          { from_house: 2, to_house: 4, theme: '资源-家庭联动', suggestion: '优先照顾基本盘。' }
+        ],
+        confidence: 'med'
+      },
+      en: {
+        overview: '宫主星链条提示今日更适合稳住节奏，先处理基础盘。',
+        rulers: [
+          { house: 1, sign: '天秤', ruler: 'Venus', flies_to_house: 7, flies_to_sign: '白羊', theme: '自我与关系', advice: '用清晰边界换来平衡。' },
+          { house: 2, sign: '天蝎', ruler: 'Pluto', flies_to_house: 4, flies_to_sign: '巨蟹', theme: '资源与安全', advice: '优先保障稳定感。' },
+          { house: 3, sign: '射手', ruler: 'Jupiter', flies_to_house: 10, flies_to_sign: '摩羯', theme: '沟通与目标', advice: '把沟通落到具体目标。' },
+          { house: 4, sign: '摩羯', ruler: 'Saturn', flies_to_house: 6, flies_to_sign: '双鱼', theme: '家庭与日常', advice: '稳住作息与习惯。' },
+          { house: 5, sign: '水瓶', ruler: 'Uranus', flies_to_house: 11, flies_to_sign: '狮子', theme: '创造与社群', advice: '把创意放到合作里。' },
+          { house: 6, sign: '双鱼', ruler: 'Neptune', flies_to_house: 12, flies_to_sign: '处女', theme: '健康与修复', advice: '给自己可执行的恢复步骤。' }
+        ],
+        deep_focus: [
+          { title: '关系与自我', description: '1宫主入7宫，关系议题更重要。' },
+          { title: '资源与安全', description: '2宫主入4宫，安全感是关键。' }
+        ],
+        combinations: [
+          { from_house: 1, to_house: 7, theme: '自我-关系联动', suggestion: '用清晰表达换取理解。' },
+          { from_house: 2, to_house: 4, theme: '资源-家庭联动', suggestion: '优先照顾基本盘。' }
+        ],
+        confidence: 'med'
       },
     },
     'cycle-naming': {

@@ -26,8 +26,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: #ffffff;
-  border-radius: 12px;
+  background-color: var(--paper-100);
+  border: 1rpx solid var(--border-color);
   padding: 16px;
   z-index: 9999;
   white-space: normal; /* Ensure text wraps in cover-view */
@@ -38,7 +38,7 @@
   top: 8px;
   right: 12px;
   font-size: 20px;
-  color: #94a3b8;
+  color: var(--ink-light);
   line-height: 1;
 }
 
@@ -75,25 +75,25 @@
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.08);
-  color: #64748b;
+  background-color: var(--paper-200);
+  color: var(--ink-medium);
 }
 
 .planet-keywords {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ink-medium);
   margin-top: 4px;
 }
 
 .card-section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--border-color);
 }
 
 .section-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--ink-light);
   margin-bottom: 4px;
 }
 
@@ -106,7 +106,7 @@
 
 .section-text {
   font-size: 14px;
-  color: #1e293b;
+  color: var(--ink-dark);
   margin-right: 4px;
 }
 
@@ -125,13 +125,13 @@
 .house-num {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ink-dark);
   margin-right: 4px;
 }
 
 .divider {
   margin: 0 8px;
-  color: #94a3b8;
+  color: var(--ink-light);
 }
 
 .aspect-list {
@@ -166,7 +166,7 @@
 
 .aspect-orb {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--ink-light);
   margin-left: 4px;
 }
 
@@ -174,7 +174,7 @@
   font-size: 10px;
   padding: 1px 4px;
   border-radius: 3px;
-  background-color: rgba(159, 118, 69, 0.15);
-  color: #9F7645;
+  background-color: var(--paper-200);
+  color: var(--ink-medium);
   margin-left: 4px;
 }

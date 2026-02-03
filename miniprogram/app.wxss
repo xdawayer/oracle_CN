@@ -32,13 +32,28 @@ page {
   --text-secondary: var(--paper-600);
   --text-muted: var(--paper-400);
   --accent: var(--ink-deep);
-  --accent-red: #B22222; /* Seal Red */
+  --accent-red: var(--seal-red); /* Seal Red */
 
-  /* Functional Colors (Muted/Ink style) */
-  --success: #2E8B57;
-  --warning: #CD853F;
+  /* Ink Wash Layers (Mo Yun) */
+  --ink-wash-1: rgba(26, 26, 26, 0.03); /* Lightest wash bg */
+  --ink-wash-2: rgba(26, 26, 26, 0.06); /* Light wash divider */
+  --ink-wash-3: rgba(26, 26, 26, 0.10); /* Medium wash hover */
+
+  /* Cultural Colors (Wen Hua Se) */
+  --seal-red: #C53929;                    /* Yin Zhang Hong */
+  --seal-red-light: rgba(197, 57, 41, 0.08);
+  --bamboo-green: #5B7553;                /* Zhu Qing */
+  --bamboo-light: rgba(91, 117, 83, 0.08);
+  --mountain-blue: #4A6B7A;              /* Yuan Shan Lan */
+  --mountain-light: rgba(74, 107, 122, 0.08);
+  --amber-glow: #B8860B;                 /* Hu Po Jin */
+  --paper-warm: #FAF7F2;                 /* Nuan Xuan Zhi */
+
+  /* Functional Colors (mapped to cultural palette) */
+  --success: var(--bamboo-green);
+  --warning: var(--amber-glow);
   --danger: #8B0000;
-  --info: #4682B4;
+  --info: var(--mountain-blue);
 
   /* Love Theme (For pairing/romance features) */
   --love-pink: #FF6B8A;
@@ -48,7 +63,12 @@ page {
   --border-color: rgba(0, 0, 0, 0.05);
   --shadow-sm: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
   --shadow-md: 0 12rpx 32rpx rgba(0, 0, 0, 0.05);
-  
+
+  /* Ink Wash Shadows (Mo Yun Ying) */
+  --shadow-ink-sm: 0 2rpx 8rpx rgba(26, 26, 26, 0.04);
+  --shadow-ink-md: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
+  --shadow-ink-lg: 0 16rpx 48rpx rgba(26, 26, 26, 0.08);
+
   /* Whitespace */
   --spacing-xs: 8rpx;
   --spacing-sm: 16rpx;
@@ -56,6 +76,14 @@ page {
   --spacing-lg: 48rpx;
   --spacing-xl: 64rpx;
   --spacing-xxl: 80rpx;
+
+  /* Breath Spacing (Hu Xi Jian Ju) */
+  --breath-xs: 12rpx;   /* Wei Xi */
+  --breath-sm: 24rpx;   /* Qian Xi */
+  --breath-md: 40rpx;   /* Zhong Xi */
+  --breath-lg: 64rpx;   /* Chang Xi */
+  --breath-xl: 96rpx;   /* Shen Xi */
+  --breath-xxl: 128rpx; /* Jing Xi */
 }
 
 page {
@@ -177,7 +205,7 @@ view, text, image, navigator {
 }
 
 .subtitle {
-  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 26rpx;
   color: var(--ink-light);
   letter-spacing: 2rpx;
@@ -277,6 +305,7 @@ view, text, image, navigator {
 }
 
 .input-label {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 22rpx;
   color: var(--ink-light);
   margin-bottom: var(--spacing-xs);
@@ -286,6 +315,7 @@ view, text, image, navigator {
 
 /* Tag/Badge Styles */
 .tag {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 18rpx;
   padding: 4rpx 12rpx;
   background: var(--paper-200);
@@ -337,5 +367,182 @@ view, text, image, navigator {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* === Zen Design System Utilities === */
+
+/* Font: Body (Sans-serif for auxiliary text) */
+.font-body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* Font: Data (For scores/numbers) */
+.font-data {
+  font-family: "DIN Alternate", -apple-system, "Helvetica Neue", sans-serif;
+  font-weight: 300;
+  letter-spacing: -2rpx;
+}
+
+/* Ink Divider - Gradient fade from edges */
+.ink-divider {
+  height: 1rpx;
+  width: 80%;
+  margin: var(--breath-md) auto;
+  background: linear-gradient(to right, transparent, var(--ink-wash-2), transparent);
+}
+
+/* Ink Divider Double - Classic book-style double line */
+.ink-divider-double {
+  height: 6rpx;
+  width: 80%;
+  margin: var(--breath-md) auto;
+  border-top: 1rpx solid var(--ink-wash-2);
+  border-bottom: 1rpx solid var(--ink-wash-2);
+}
+
+/* Seal Stamp - Base */
+.seal-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--seal-red);
+  color: var(--paper-50);
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 8rpx 20rpx;
+  letter-spacing: 2rpx;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0);
+}
+
+.seal-stamp:active {
+  opacity: 0.85;
+  transform: translateY(1rpx) rotate(0.5deg);
+}
+
+/* Seal Stamp Small */
+.seal-stamp-sm {
+  font-size: 18rpx;
+  padding: 4rpx 12rpx;
+}
+
+/* Seal Stamp Large */
+.seal-stamp-lg {
+  font-size: 28rpx;
+  padding: 16rpx 32rpx;
+  letter-spacing: 4rpx;
+}
+
+/* Seal Button (CTA variant) */
+.btn-seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--seal-red);
+  color: var(--paper-50);
+  font-family: "SourceHanSerifSC", "Songti SC", "STSong", serif;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 24rpx 64rpx;
+  height: 88rpx;
+  letter-spacing: 4rpx;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0);
+}
+
+.btn-seal:active {
+  opacity: 0.85;
+  transform: translateY(1rpx);
+}
+
+/* Updated primary button - zen timing */
+.btn-primary {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0);
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+  transform: translateY(1rpx);
+}
+
+/* Updated outline button - zen hover */
+.btn-outline:active {
+  background: var(--ink-wash-1);
+}
+
+/* Color utility classes */
+.text-seal-red { color: var(--seal-red); }
+.text-bamboo { color: var(--bamboo-green); }
+.text-mountain { color: var(--mountain-blue); }
+.text-amber { color: var(--amber-glow); }
+.bg-ink-wash-1 { background-color: var(--ink-wash-1); }
+.bg-ink-wash-2 { background-color: var(--ink-wash-2); }
+.bg-ink-wash-3 { background-color: var(--ink-wash-3); }
+.bg-paper-warm { background-color: var(--paper-warm); }
+.bg-seal-light { background-color: var(--seal-red-light); }
+.bg-bamboo-light { background-color: var(--bamboo-light); }
+.bg-mountain-light { background-color: var(--mountain-light); }
+
+/* === Zen Animation Keyframes === */
+
+/* Ink Spread - Loading animation */
+@keyframes inkSpread {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Seal Press - Confirmation feedback */
+@keyframes sealPress {
+  0% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Breathe - Gentle pulse for scores */
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Zen fadeInUp - Softer than default */
+@keyframes zenFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .seal-stamp,
+  .btn-seal,
+  .btn-primary,
+  .btn-outline,
+  .card {
+    transition: none;
   }
 }

@@ -267,7 +267,10 @@ export class SwissEphemerisService implements EphemerisService {
     if (this.useRealEphemeris && lat !== 0) {
       try {
         const houseResult = swisseph.swe_houses(jd, lat, lon, 'P'); // P = Placidus
-        houses = houseResult.house || houseResult.cusps || [];
+        // Swiss Ephemeris 返回的 cusps 数组通常有 13 个元素（index 0 未使用或是 ASC）
+        // 确保我们只取 12 个宫头（index 1-12 或前 12 个元素）
+        const rawHouses = houseResult.house || houseResult.cusps || [];
+        houses = rawHouses.length === 13 ? rawHouses.slice(1) : rawHouses.slice(0, 12);
         ascendant = houseResult.ascendant ?? houseResult.asc ?? 0;
         midheaven = houseResult.mc ?? houseResult.medium_coeli ?? houses[9] ?? (ascendant + 270) % 360;
         vertex = houseResult.vertex;

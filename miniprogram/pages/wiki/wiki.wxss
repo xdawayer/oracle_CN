@@ -1,6 +1,6 @@
-/* pages/wiki/wiki.wxss */
+/* pages/wiki/wiki.wxss - Ink Wash Optimization */
 page {
-  background-color: var(--space-950);
+  background-color: var(--paper-100);
   height: 100vh;
   overflow: hidden;
 }
@@ -10,42 +10,29 @@ page {
   display: flex;
   flex-direction: column;
   padding: 0;
-  background-color: var(--space-950);
 }
 
-/* Header */
 .header {
-  padding: 24rpx 32rpx;
-  background-color: var(--space-950);
-  border-bottom: 1px solid var(--space-700);
-}
-
-.title-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-md);
+  border-bottom: 1rpx solid var(--border-color);
+  background: var(--paper-50);
 }
 
 .main-title {
-  font-size: 36rpx;
-  font-weight: 900;
-  color: var(--text-primary);
-  letter-spacing: -1rpx;
+  font-size: 56rpx;
+  color: var(--ink-deep);
 }
 
 .sub-title {
   font-size: 18rpx;
-  font-weight: 700;
-  color: var(--text-muted);
+  color: var(--ink-light);
   letter-spacing: 4rpx;
-  margin-top: 4rpx;
 }
 
-/* Categories */
 .categories-wrapper {
-  background-color: var(--space-950);
-  border-bottom: 1px solid var(--space-700);
-  padding: 24rpx 0;
+  background-color: var(--paper-50);
+  border-bottom: 1rpx solid var(--border-color);
+  padding: var(--spacing-md) 0;
 }
 
 .categories-scroll {
@@ -56,364 +43,359 @@ page {
 
 .categories-list {
   display: flex;
-  padding: 0 32rpx;
-  gap: 24rpx;
+  padding: 0 var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .category-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  opacity: 0.5;
-  transition: all 0.3s ease;
+  opacity: 0.6;
 }
 
 .category-item.active {
   opacity: 1;
-  transform: scale(1.05);
 }
 
 .cat-pill {
   height: 64rpx;
   padding: 0 32rpx;
-  border-radius: 32rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--space-800);
-  border: 1px solid var(--space-700);
+  border-radius: 4rpx;
+  background-color: var(--paper-100);
+  border: 1rpx solid var(--border-color);
 }
 
 .category-item.active .cat-pill {
-  background-color: var(--text-primary);
+  background-color: var(--ink-deep);
+  border-color: var(--ink-deep);
 }
 
 .cat-name {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--text-muted);
+  font-size: 22rpx;
+  color: var(--ink-medium);
 }
 
 .category-item.active .cat-name {
-  color: var(--space-950);
+  color: var(--paper-50);
 }
 
-/* Category Colors (using tokens where possible) */
-.cat-pill.planets { border-color: var(--warning); color: var(--warning); }
-.category-item.active .cat-pill.planets { background-color: var(--warning); border-color: var(--warning); }
+/* 分类颜色 - 文化色系 */
+.cat-pill.planets { border-color: var(--amber-glow); }
+.category-item.active .cat-pill.planets { background-color: var(--amber-glow); border-color: var(--amber-glow); }
 
-.cat-pill.signs { border-color: var(--mystic-500); color: var(--mystic-500); }
-.category-item.active .cat-pill.signs { background-color: var(--mystic-500); border-color: var(--mystic-500); }
+.cat-pill.signs { border-color: var(--seal-red); }
+.category-item.active .cat-pill.signs { background-color: var(--seal-red); border-color: var(--seal-red); }
 
-.cat-pill.houses { border-color: var(--info); color: var(--info); }
-.category-item.active .cat-pill.houses { background-color: var(--info); border-color: var(--info); }
+.cat-pill.houses { border-color: var(--mountain-blue); }
+.category-item.active .cat-pill.houses { background-color: var(--mountain-blue); border-color: var(--mountain-blue); }
 
-.cat-pill.aspects { border-color: var(--danger); color: var(--danger); }
-.category-item.active .cat-pill.aspects { background-color: var(--danger); border-color: var(--danger); }
+.cat-pill.aspects { border-color: var(--seal-red); }
+.category-item.active .cat-pill.aspects { background-color: var(--seal-red); border-color: var(--seal-red); }
 
-.cat-pill.elements { border-color: var(--accent); color: var(--accent); }
-.category-item.active .cat-pill.elements { background-color: var(--accent); border-color: var(--accent); }
+.cat-pill.elements { border-color: var(--bamboo-green); }
+.category-item.active .cat-pill.elements { background-color: var(--bamboo-green); border-color: var(--bamboo-green); }
 
-.cat-pill.modalities { border-color: var(--success); color: var(--success); }
-.category-item.active .cat-pill.modalities { background-color: var(--success); border-color: var(--success); }
+.cat-pill.modalities { border-color: var(--mountain-blue); }
+.category-item.active .cat-pill.modalities { background-color: var(--mountain-blue); border-color: var(--mountain-blue); }
 
-.cat-pill.axes { border-color: var(--mystic-500); color: var(--mystic-500); }
-.category-item.active .cat-pill.axes { background-color: var(--mystic-500); border-color: var(--mystic-500); }
+.cat-pill.axes { border-color: var(--seal-red); }
+.category-item.active .cat-pill.axes { background-color: var(--seal-red); border-color: var(--seal-red); }
 
-.cat-pill.chart_types { border-color: var(--text-muted); color: var(--text-muted); }
-.category-item.active .cat-pill.chart_types { background-color: var(--text-muted); border-color: var(--text-muted); }
+.cat-pill.chart_types { border-color: var(--ink-medium); }
+.category-item.active .cat-pill.chart_types { background-color: var(--ink-medium); border-color: var(--ink-medium); }
 
-/* Content Area */
+/* 列表标签颜色 */
+.cat-tag.planets { color: var(--amber-glow); border-color: var(--amber-glow); }
+.cat-tag.signs { color: var(--seal-red); border-color: var(--seal-red); }
+.cat-tag.houses { color: var(--mountain-blue); border-color: var(--mountain-blue); }
+.cat-tag.aspects { color: var(--seal-red); border-color: var(--seal-red); }
+.cat-tag.elements { color: var(--bamboo-green); border-color: var(--bamboo-green); }
+.cat-tag.modalities { color: var(--mountain-blue); border-color: var(--mountain-blue); }
+.cat-tag.axes { color: var(--seal-red); border-color: var(--seal-red); }
+.cat-tag.chart_types { color: var(--ink-medium); border-color: var(--ink-medium); }
+
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 32rpx;
+  padding: var(--spacing-lg);
+  box-sizing: border-box;
   overflow: hidden;
+}
+
+.items-list {
+  flex: 1;
 }
 
 .search-bar {
   display: flex;
   align-items: center;
-  background-color: var(--space-800);
-  border: 1px solid var(--space-700);
-  border-radius: 24rpx;
-  padding: 0 24rpx;
+  background-color: var(--paper-50);
+  padding: 0 var(--spacing-md);
   height: 80rpx;
-  margin-bottom: 32rpx;
-}
-
-.search-icon {
-  font-size: 22rpx;
-  color: var(--text-muted);
-  margin-right: 16rpx;
+  margin-bottom: var(--spacing-lg);
 }
 
 .search-input {
   flex: 1;
-  font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-deep);
+  font-size: 26rpx;
   height: 100%;
 }
 
 .search-placeholder {
-  color: var(--text-muted);
+  color: var(--ink-water);
 }
 
 .clear-btn {
-  font-size: 20rpx;
-  color: var(--text-muted);
-  padding: 10rpx;
-}
-
-/* List */
-.items-list {
-  flex: 1;
-  overflow-y: auto;
+  font-size: 22rpx;
+  color: var(--ink-light);
+  padding: 8rpx 16rpx;
+  flex-shrink: 0;
 }
 
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80rpx 0;
+  padding: var(--spacing-xxl) 0;
+  text-align: center;
 }
 
 .empty-text {
-  color: var(--text-muted);
-  font-size: 28rpx;
-  font-weight: 500;
+  font-size: 26rpx;
+  color: var(--ink-light);
 }
 
 .wiki-card {
-  background-color: var(--space-800);
-  border: 1px solid var(--space-700);
-  border-radius: 32rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
+  background-color: var(--paper-50);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  transition: transform 0.1s;
-}
-
-.wiki-card:active {
-  transform: scale(0.98);
 }
 
 .wiki-card-content {
   flex: 1;
-  margin-right: 24rpx;
+  min-width: 0;
 }
 
 .wiki-card-header {
   display: flex;
   align-items: center;
-  margin-bottom: 12rpx;
-  flex-wrap: wrap;
-  gap: 12rpx;
+  margin-bottom: var(--spacing-xs);
 }
 
 .cat-tag {
   padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 18rpx;
-  font-weight: 900;
-  text-transform: uppercase;
-  border: 1px solid;
-  color: var(--text-muted);
-  border-color: var(--text-muted);
+  font-size: 16rpx;
+  font-weight: 600;
+  border: 1rpx solid var(--ink-water);
+  color: var(--ink-light);
+  margin-right: 12rpx;
+  flex-shrink: 0;
 }
-
-.cat-tag.planets { color: var(--warning); border-color: var(--warning); }
-.cat-tag.signs { color: var(--mystic-500); border-color: var(--mystic-500); }
-.cat-tag.houses { color: var(--info); border-color: var(--info); }
-.cat-tag.aspects { color: var(--danger); border-color: var(--danger); }
-.cat-tag.elements { color: var(--accent); border-color: var(--accent); }
-.cat-tag.modalities { color: var(--success); border-color: var(--success); }
-.cat-tag.axes { color: var(--mystic-500); border-color: var(--mystic-500); }
-.cat-tag.chart_types { color: var(--text-muted); border-color: var(--text-muted); }
 
 .wiki-title {
   font-size: 28rpx;
-  font-weight: 700;
-  color: var(--text-primary);
+  color: var(--ink-deep);
 }
 
 .wiki-summary {
-  font-size: 24rpx;
-  color: var(--text-muted);
-  line-height: 1.5;
+  font-size: 22rpx;
+  color: var(--ink-medium);
   display: -webkit-box;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
   overflow: hidden;
-}
-
-.arrow-icon {
-  font-size: 32rpx;
-  color: var(--text-muted);
-}
-
-/* Modal */
-.modal-mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--space-950);
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.modal-container {
-  background-color: var(--space-900);
-  width: 100%;
-  max-height: 85vh;
-  border-top-left-radius: 48rpx;
-  border-top-right-radius: 48rpx;
-  padding: 40rpx;
-  padding-bottom: 60rpx;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 24rpx;
-}
-
-.close-btn {
-  width: 64rpx;
-  height: 64rpx;
-  background-color: var(--space-800);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 32rpx;
-}
-
-.modal-scroll {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.modal-content {
-  padding-bottom: 40rpx;
-}
-
-.modal-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 48rpx;
-}
-
-.modal-cat-tag {
-  padding: 8rpx 24rpx;
-  border-radius: 16rpx;
-  font-size: 20rpx;
-  font-weight: 900;
-  text-transform: uppercase;
-  border: 1px solid;
-  margin-bottom: 24rpx;
-}
-
-/* Match colors for modal tags */
-.modal-cat-tag.planets { color: var(--warning); border-color: var(--warning); }
-.modal-cat-tag.signs { color: var(--mystic-500); border-color: var(--mystic-500); }
-.modal-cat-tag.houses { color: var(--info); border-color: var(--info); }
-.modal-cat-tag.aspects { color: var(--danger); border-color: var(--danger); }
-.modal-cat-tag.elements { color: var(--accent); border-color: var(--accent); }
-.modal-cat-tag.modalities { color: var(--success); border-color: var(--success); }
-.modal-cat-tag.axes { color: var(--mystic-500); border-color: var(--mystic-500); }
-.modal-cat-tag.chart_types { color: var(--text-muted); border-color: var(--text-muted); }
-
-.modal-title {
-  font-size: 48rpx;
-  font-weight: 900;
-  color: var(--text-primary);
-  text-align: center;
-}
-
-.essence-box {
-  background-color: var(--space-900);
-  border: 1px solid var(--space-700);
-  border-radius: 32rpx;
-  padding: 40rpx;
-  margin-bottom: 48rpx;
-}
-
-.essence-label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.essence-label text {
-  font-size: 20rpx;
-  font-weight: 900;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2rpx;
-}
-
-.essence-text {
-  font-size: 28rpx;
-  font-weight: 600;
-  font-style: italic;
-  color: var(--text-secondary);
   line-height: 1.6;
 }
 
-.detail-section {
-  margin-bottom: 48rpx;
+.arrow-icon {
+  color: var(--ink-water);
+  font-size: 32rpx;
+  margin-left: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
-.section-label {
-  font-size: 20rpx;
-  font-weight: 900;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2rpx;
-  margin-bottom: 24rpx;
-  padding-left: 8rpx;
+/* ========== Detail Overlay (全屏覆盖层) ========== */
+.wiki-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: var(--paper-warm);
+  display: flex;
+  flex-direction: column;
 }
 
-.detail-text {
-  font-size: 28rpx;
-  color: var(--text-secondary);
-  line-height: 1.8;
-  display: block;
+.wiki-detail-topbar {
+  height: 88rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid var(--border-color);
+  background: var(--paper-50);
+  flex-shrink: 0;
 }
 
-.detail-subtext {
-  font-size: 24rpx;
-  color: var(--text-muted);
-  line-height: 1.7;
-  display: block;
-  margin-top: 16rpx;
-}
-
-.back-btn-large {
-  width: 100%;
-  height: 96rpx;
-  background-color: var(--text-primary);
-  color: var(--space-950);
-  border-radius: 48rpx;
-  font-size: 30rpx;
-  font-weight: 900;
+.wiki-detail-back {
+  width: 72rpx;
+  height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: 2rpx;
-  border: none;
 }
+
+.wiki-detail-back-icon {
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 3rpx solid var(--ink-dark);
+  border-bottom: 3rpx solid var(--ink-dark);
+  transform: rotate(45deg);
+}
+
+.wiki-detail-nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  color: var(--ink-deep);
+  font-weight: 600;
+}
+
+.wiki-detail-right-placeholder {
+  width: 72rpx;
+}
+
+.wiki-detail-scroll {
+  flex: 1;
+  height: 0;
+  padding: var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+/* Detail Header */
+.wiki-detail-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.wiki-detail-header .cat-tag {
+  margin-bottom: var(--spacing-sm);
+}
+
+.wiki-detail-title {
+  display: block;
+  font-size: 56rpx;
+  color: var(--ink-deep);
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.3;
+  border-bottom: 3rpx solid var(--seal-red);
+  padding-bottom: var(--spacing-sm);
+  display: inline;
+}
+
+.wiki-detail-subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: var(--ink-medium);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+}
+
+.wiki-detail-symbol {
+  display: block;
+  font-size: 48rpx;
+  color: var(--ink-light);
+  margin-bottom: var(--spacing-md);
+}
+
+.wiki-detail-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.wiki-keyword-tag {
+  padding: 4rpx 16rpx;
+  font-size: 20rpx;
+  color: var(--ink-medium);
+  background: var(--paper-50);
+}
+
+/* ========== Detail Card 样式系统 (复用 self 页面) ========== */
+.detail-card {
+  position: relative;
+  background: var(--paper-50);
+  margin-bottom: var(--spacing-md);
+  border: 1rpx solid var(--border-color);
+  overflow: hidden;
+}
+
+.detail-card__accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6rpx;
+}
+
+.detail-card__body {
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-xl) calc(var(--spacing-xl) + 6rpx);
+}
+
+.detail-card__title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+}
+
+.detail-card__text {
+  display: block;
+  font-size: 28rpx;
+  color: var(--ink-dark);
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+.detail-card__list {
+  margin-top: var(--spacing-sm);
+}
+
+.detail-card__list-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-xs);
+}
+
+.detail-card__list-num {
+  font-size: 28rpx;
+  color: var(--ink-medium);
+  font-weight: 600;
+  min-width: 40rpx;
+}
+
+.detail-card__list-text {
+  font-size: 28rpx;
+  color: var(--ink-dark);
+  flex: 1;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+/* 颜色变体 - default */
+.detail-card--default .detail-card__accent { background: var(--ink-water); }
+.detail-card--default .detail-card__title { color: var(--ink-deep); }
+
+/* 颜色变体 - accent-red */
+.detail-card--accent-red .detail-card__accent { background: var(--seal-red); }
+.detail-card--accent-red .detail-card__title { color: var(--seal-red); }
+
+/* 颜色变体 - info */
+.detail-card--info .detail-card__accent { background: var(--mountain-blue); }
+.detail-card--info .detail-card__title { color: var(--mountain-blue); }
+
+/* 颜色变体 - success */
+.detail-card--success .detail-card__accent { background: var(--bamboo-green); }
+.detail-card--success .detail-card__title { color: var(--bamboo-green); }
+
+/* 颜色变体 - warning */
+.detail-card--warning .detail-card__accent { background: var(--amber-glow); }
+.detail-card--warning .detail-card__title { color: var(--amber-glow); }

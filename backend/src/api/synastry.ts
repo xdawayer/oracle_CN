@@ -1,5 +1,5 @@
 // INPUT: Synastry API 路由（含综述分区懒加载、权益校验与技术附录同步）。
-// OUTPUT: 导出 synastry 路由（含 overview 分区端点与权益校验逻辑）。
+// OUTPUT: 导出 synastry 路由（含 full/stream 分区端点与权益校验逻辑）。
 // POS: Synastry 端点；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router } from 'express';
@@ -21,6 +21,7 @@ import type {
 } from '../types/api.js';
 import { ephemerisService } from '../services/ephemeris.js';
 import { AIUnavailableError, generateAIContentWithMeta } from '../services/ai.js';
+import { generateParallel } from '../services/parallel-generator.js';
 import { ASPECT_TYPES, PLANETS, SIGNS } from '../data/sources.js';
 import { authMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
@@ -28,6 +29,10 @@ import { PRICING } from '../config/auth.js';
 import { isSupabaseConfigured, type SynastryPersonInfo } from '../db/supabase.js';
 
 export const synastryRouter = Router();
+
+function writeSSE(res: any, payload: unknown) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
 
 const SIGN_ORDER = [...SIGNS];
 const ELEMENT_META: Record<string, { element: string; modality: string }> = {
@@ -605,7 +610,23 @@ function parseBirthInput(query: Record<string, unknown>, prefix: string): BirthI
   };
 }
 
-const buildSynastryCore = async (birthA: BirthInput, birthB: BirthInput) => {
+// 星盘计算短期内存缓存（5 分钟 TTL），避免同一用户对浏览多个 tab 时重复计算
+const synastryCoreCacheMap = new Map<string, { data: Awaited<ReturnType<typeof buildSynastryCoreInternal>>; expiry: number }>();
+const SYNASTRY_CORE_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+const SYNASTRY_CORE_CACHE_MAX = 200;
+
+// 每 10 分钟清理过期缓存
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of synastryCoreCacheMap) {
+    if (now > entry.expiry) synastryCoreCacheMap.delete(key);
+  }
+}, 10 * 60 * 1000);
+
+const buildSynastryCoreKey = (birthA: BirthInput, birthB: BirthInput) =>
+  `${birthA.date}|${birthA.time}|${birthA.city}|${birthA.lat}|${birthA.lon}|${birthB.date}|${birthB.time}|${birthB.city}|${birthB.lat}|${birthB.lon}`;
+
+const buildSynastryCoreInternal = async (birthA: BirthInput, birthB: BirthInput) => {
   const [chartA, chartB] = await Promise.all([
     ephemerisService.calculateNatalChart(birthA),
     ephemerisService.calculateNatalChart(birthB),
@@ -625,6 +646,23 @@ const buildSynastryCore = async (birthA: BirthInput, birthB: BirthInput) => {
   };
 
   return { chartA, chartB, synastryAspects, overlaysAB, overlaysBA, synastry };
+};
+
+const buildSynastryCore = async (birthA: BirthInput, birthB: BirthInput) => {
+  const key = buildSynastryCoreKey(birthA, birthB);
+  const now = Date.now();
+  const cached = synastryCoreCacheMap.get(key);
+  if (cached && now < cached.expiry) return cached.data;
+
+  const data = await buildSynastryCoreInternal(birthA, birthB);
+
+  // 超出容量时清除最旧的条目
+  if (synastryCoreCacheMap.size >= SYNASTRY_CORE_CACHE_MAX) {
+    const firstKey = synastryCoreCacheMap.keys().next().value;
+    if (firstKey !== undefined) synastryCoreCacheMap.delete(firstKey);
+  }
+  synastryCoreCacheMap.set(key, { data, expiry: now + SYNASTRY_CORE_CACHE_TTL });
+  return data;
 };
 
 const buildSynastrySummaryContext = (
@@ -752,7 +790,12 @@ synastryRouter.get('/overview-section', authMiddleware, async (req, res) => {
     const nameA = (req.query.nameA as string) || 'A';
     const nameB = (req.query.nameB as string) || 'B';
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
-    const userId = req.userId!;
+
+    // 用户标识：必须有 userId 或 deviceFingerprint
+    const userId = req.userId || deviceFingerprint;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const normalizedRelationshipType = relationshipType || 'unknown';
     const personA = buildSynastryPersonInfo(birthA, nameA);
     const personB = buildSynastryPersonInfo(birthB, nameB);
@@ -760,6 +803,7 @@ synastryRouter.get('/overview-section', authMiddleware, async (req, res) => {
     let shouldConsume = false;
 
     if (!isSupabaseConfigured()) {
+      // 开发环境：使用设备指纹检查权限
       const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
       if (!access.canAccess) {
         return res.status(403).json({
@@ -769,15 +813,16 @@ synastryRouter.get('/overview-section', authMiddleware, async (req, res) => {
         });
       }
       shouldConsume = true;
-    } else {
+    } else if (req.userId) {
+      // 生产环境且已登录
       const record = await entitlementServiceV2.checkSynastryHash(
-        userId,
+        req.userId,
         personA,
         personB,
         normalizedRelationshipType
       );
       if (!record.exists) {
-        const entitlements = await entitlementServiceV2.getEntitlements(userId, deviceFingerprint);
+        const entitlements = await entitlementServiceV2.getEntitlements(req.userId, deviceFingerprint);
         if (entitlements.synastry.totalLeft <= 0) {
           return res.status(403).json({
             error: 'Feature not available',
@@ -890,19 +935,23 @@ synastryRouter.get('/overview-section', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/synastry - 合盘分析
-synastryRouter.get('/', authMiddleware, async (req, res) => {
+// GET /api/synastry/full - 并行生成合盘综述、核心动态、亮点
+synastryRouter.get('/full', authMiddleware, async (req, res) => {
   try {
     const requestStart = performance.now();
     const lang = resolveLang(req.query.lang);
-    const tab = resolveTab(req.query.tab);
     const birthA = parseBirthInput(req.query as Record<string, unknown>, 'a');
     const birthB = parseBirthInput(req.query as Record<string, unknown>, 'b');
     const relationshipType = req.query.relationType as string | undefined;
     const nameA = (req.query.nameA as string) || 'A';
     const nameB = (req.query.nameB as string) || 'B';
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
-    const userId = req.userId!;
+
+    // 用户标识：必须有 userId 或 deviceFingerprint
+    const userId = req.userId || deviceFingerprint;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const normalizedRelationshipType = relationshipType || 'unknown';
     const personA = buildSynastryPersonInfo(birthA, nameA);
     const personB = buildSynastryPersonInfo(birthB, nameB);
@@ -919,15 +968,15 @@ synastryRouter.get('/', authMiddleware, async (req, res) => {
         });
       }
       shouldConsume = true;
-    } else {
+    } else if (req.userId) {
       const record = await entitlementServiceV2.checkSynastryHash(
-        userId,
+        req.userId,
         personA,
         personB,
         normalizedRelationshipType
       );
       if (!record.exists) {
-        const entitlements = await entitlementServiceV2.getEntitlements(userId, deviceFingerprint);
+        const entitlements = await entitlementServiceV2.getEntitlements(req.userId, deviceFingerprint);
         if (entitlements.synastry.totalLeft <= 0) {
           return res.status(403).json({
             error: 'Feature not available',
@@ -936,6 +985,386 @@ synastryRouter.get('/', authMiddleware, async (req, res) => {
           });
         }
         shouldRecord = true;
+      }
+    }
+
+    // 权益消耗（在 AI 调用前执行，避免消耗资源后扣费失败）
+    if (shouldRecord) {
+      await entitlementServiceV2.recordSynastryUsage(
+        userId, personA, personB, normalizedRelationshipType, true
+      );
+      const consumed = await entitlementServiceV2.consumeFeature(userId, 'synastry', deviceFingerprint);
+      if (!consumed) {
+        return res.status(403).json({
+          error: 'Failed to consume feature',
+          needPurchase: true,
+          price: PRICING.SYNASTRY_FULL,
+        });
+      }
+    } else if (shouldConsume) {
+      const consumed = await entitlementServiceV2.consumeFeature(userId, 'synastry', deviceFingerprint);
+      if (!consumed) {
+        return res.status(403).json({
+          error: 'Failed to consume feature',
+          needPurchase: true,
+          price: PRICING.SYNASTRY_FULL,
+        });
+      }
+    }
+
+    // 计算星盘核心数据
+    const coreStart = performance.now();
+    const { chartA, chartB, synastry, synastryAspects, overlaysAB, overlaysBA } = await buildSynastryCore(birthA, birthB);
+    const coreMs = performance.now() - coreStart;
+
+    // 构建种子摘要（从合盘信号提取关键特征）
+    const overviewSignals = buildOverviewSynastrySignals(synastryAspects, synastry.houseOverlays);
+    const seedParts: string[] = [];
+    const sweetAspects = overviewSignals.sweet_signals.map((s) => s.aspect).join(', ');
+    const frictionAspects = overviewSignals.friction_signals.map((s) => s.aspect).join(', ');
+    if (sweetAspects) seedParts.push(`甜蜜相位: ${sweetAspects}`);
+    if (frictionAspects) seedParts.push(`摩擦相位: ${frictionAspects}`);
+    const seedSummary = seedParts.join('; ');
+
+    // 为三个 prompt 分别构建上下文
+    const overviewContext = buildSynastrySummaryContext(
+      chartA, chartB, synastryAspects, synastry,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+    const coreDynamicsContext = buildCoreDynamicsContext(
+      chartA, chartB, synastryAspects, overlaysAB, overlaysBA,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+    const highlightsContext = buildHighlightsContext(
+      chartA, chartB, synastryAspects, synastry,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+
+    // 每个 prompt 使用独立上下文，避免字段覆盖冲突
+    const contextMap: Record<string, Record<string, unknown>> = {
+      'synastry-overview': overviewContext,
+      'synastry-core-dynamics': coreDynamicsContext,
+      'synastry-highlights': highlightsContext,
+    };
+
+    // 并行生成三个内容块
+    const aiStart = performance.now();
+    const parallelResult = await generateParallel({
+      promptIds: ['synastry-overview', 'synastry-core-dynamics', 'synastry-highlights'],
+      sharedContext: {},
+      contextMap,
+      seedSummary,
+      lang,
+      maxTokensMap: {
+        'synastry-overview': OVERVIEW_MAX_TOKENS,
+        'synastry-highlights': HIGHLIGHTS_MAX_TOKENS,
+      },
+    });
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+
+    // 提取各 prompt 结果
+    const overviewResult = parallelResult.results.get('synastry-overview');
+    const coreDynamicsResult = parallelResult.results.get('synastry-core-dynamics');
+    const highlightsResult = parallelResult.results.get('synastry-highlights');
+
+    const timing = {
+      core_ms: Math.round(coreMs),
+      ai_ms: Math.round(aiMs),
+      total_ms: Math.round(totalMs),
+      parallel_success: parallelResult.successCount,
+      parallel_fail: parallelResult.failCount,
+    };
+
+    res.setHeader(
+      'Server-Timing',
+      `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`
+    );
+
+    res.json({
+      chartA,
+      chartB,
+      synastryCore: synastry,
+      overview: overviewResult?.success ? overviewResult.content?.content : null,
+      coreDynamics: coreDynamicsResult?.success ? coreDynamicsResult.content?.content : null,
+      highlights: highlightsResult?.success ? highlightsResult.content?.content : null,
+      meta: {
+        overview: overviewResult?.meta ?? null,
+        coreDynamics: coreDynamicsResult?.meta ?? null,
+        highlights: highlightsResult?.meta ?? null,
+      },
+      timing,
+    });
+  } catch (error) {
+    if (error instanceof AIUnavailableError) {
+      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      return;
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// GET /api/synastry/full/stream - 模块级 SSE 流式输出
+synastryRouter.get('/full/stream', authMiddleware, async (req, res) => {
+  const requestStart = performance.now();
+  let headersSent = false;
+  try {
+    const lang = resolveLang(req.query.lang);
+    const birthA = parseBirthInput(req.query as Record<string, unknown>, 'a');
+    const birthB = parseBirthInput(req.query as Record<string, unknown>, 'b');
+    const relationshipType = req.query.relationType as string | undefined;
+    const nameA = (req.query.nameA as string) || 'A';
+    const nameB = (req.query.nameB as string) || 'B';
+    const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+
+    // 用户标识：必须有 userId 或 deviceFingerprint
+    const userId = req.userId || deviceFingerprint;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const normalizedRelationshipType = relationshipType || 'unknown';
+    const personA = buildSynastryPersonInfo(birthA, nameA);
+    const personB = buildSynastryPersonInfo(birthB, nameB);
+    let shouldRecord = false;
+    let shouldConsume = false;
+
+    if (!isSupabaseConfigured()) {
+      const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
+      if (!access.canAccess) {
+        return res.status(403).json({
+          error: 'Feature not available',
+          needPurchase: access.needPurchase,
+          price: access.price,
+        });
+      }
+      shouldConsume = true;
+    } else if (req.userId) {
+      const record = await entitlementServiceV2.checkSynastryHash(
+        req.userId,
+        personA,
+        personB,
+        normalizedRelationshipType
+      );
+      if (!record.exists) {
+        const entitlements = await entitlementServiceV2.getEntitlements(req.userId, deviceFingerprint);
+        if (entitlements.synastry.totalLeft <= 0) {
+          return res.status(403).json({
+            error: 'Feature not available',
+            needPurchase: true,
+            price: PRICING.SYNASTRY_FULL,
+          });
+        }
+        shouldRecord = true;
+      }
+    }
+
+    // 权益消耗（在 AI 调用前执行，避免消耗资源后扣费失败）
+    if (shouldRecord) {
+      await entitlementServiceV2.recordSynastryUsage(
+        userId, personA, personB, normalizedRelationshipType, true
+      );
+      const consumed = await entitlementServiceV2.consumeFeature(userId, 'synastry', deviceFingerprint);
+      if (!consumed) {
+        return res.status(403).json({
+          error: 'Failed to consume feature',
+          needPurchase: true,
+          price: PRICING.SYNASTRY_FULL,
+        });
+      }
+    } else if (shouldConsume) {
+      const consumed = await entitlementServiceV2.consumeFeature(userId, 'synastry', deviceFingerprint);
+      if (!consumed) {
+        return res.status(403).json({
+          error: 'Failed to consume feature',
+          needPurchase: true,
+          price: PRICING.SYNASTRY_FULL,
+        });
+      }
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader('Trailer', 'Server-Timing');
+    res.flushHeaders();
+    headersSent = true;
+
+    let disconnected = false;
+    req.on('close', () => { disconnected = true; });
+
+    // 计算星盘核心数据
+    const coreStart = performance.now();
+    const { chartA, chartB, synastry, synastryAspects, overlaysAB, overlaysBA } = await buildSynastryCore(birthA, birthB);
+    const coreMs = performance.now() - coreStart;
+
+    // 构建种子摘要（从合盘信号提取关键特征）
+    const overviewSignals = buildOverviewSynastrySignals(synastryAspects, synastry.houseOverlays);
+    const seedParts: string[] = [];
+    const sweetAspects = overviewSignals.sweet_signals.map((s) => s.aspect).join(', ');
+    const frictionAspects = overviewSignals.friction_signals.map((s) => s.aspect).join(', ');
+    if (sweetAspects) seedParts.push(`甜蜜相位: ${sweetAspects}`);
+    if (frictionAspects) seedParts.push(`摩擦相位: ${frictionAspects}`);
+    const seedSummary = seedParts.join('; ');
+
+    if (!disconnected) {
+      writeSSE(res, {
+        type: 'meta',
+        chartA,
+        chartB,
+        synastryCore: synastry,
+        timing: { coreMs: Math.round(coreMs) },
+      });
+    }
+
+    // 为三个 prompt 分别构建上下文
+    const overviewContext = buildSynastrySummaryContext(
+      chartA, chartB, synastryAspects, synastry,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+    const coreDynamicsContext = buildCoreDynamicsContext(
+      chartA, chartB, synastryAspects, overlaysAB, overlaysBA,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+    const highlightsContext = buildHighlightsContext(
+      chartA, chartB, synastryAspects, synastry,
+      relationshipType, birthA, birthB, nameA, nameB
+    );
+
+    const contextMap: Record<string, Record<string, unknown>> = {
+      'synastry-overview': overviewContext,
+      'synastry-core-dynamics': coreDynamicsContext,
+      'synastry-highlights': highlightsContext,
+    };
+
+    const aiStart = performance.now();
+    const tasks = Object.entries(contextMap).map(async ([promptId, context]) => {
+      const moduleStart = performance.now();
+      const moduleId = promptId === 'synastry-overview'
+        ? 'overview'
+        : promptId === 'synastry-core-dynamics'
+          ? 'coreDynamics'
+          : 'highlights';
+      const mergedContext = seedSummary ? { ...context, _seedSummary: seedSummary } : context;
+      try {
+        const result = await generateAIContentWithMeta({
+          promptId,
+          context: mergedContext,
+          lang,
+          maxTokens: promptId === 'synastry-overview' ? OVERVIEW_MAX_TOKENS : (promptId === 'synastry-highlights' ? HIGHLIGHTS_MAX_TOKENS : undefined),
+        });
+        if (!disconnected) {
+          writeSSE(res, {
+            type: 'module',
+            moduleId,
+            content: result.content.content,
+            meta: result.meta,
+            durationMs: Math.round(performance.now() - moduleStart),
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!disconnected) {
+          writeSSE(res, {
+            type: 'module',
+            moduleId,
+            content: null,
+            error: message,
+            durationMs: Math.round(performance.now() - moduleStart),
+          });
+        }
+      }
+    });
+
+    await Promise.all(tasks);
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+
+    if (!disconnected) {
+      writeSSE(res, { type: 'timing', timing: { coreMs: Math.round(coreMs), aiMs: Math.round(aiMs), totalMs: Math.round(totalMs) } });
+      res.write('data: [DONE]\n\n');
+    }
+    res.addTrailers({
+      'Server-Timing': `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`,
+    });
+    res.end();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (headersSent) {
+      writeSSE(res, { type: 'error', message });
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+    if (error instanceof AIUnavailableError) {
+      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      return;
+    }
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/synastry - 合盘分析
+synastryRouter.get('/', authMiddleware, async (req, res) => {
+  try {
+    const requestStart = performance.now();
+    const lang = resolveLang(req.query.lang);
+    const tab = resolveTab(req.query.tab);
+    const birthA = parseBirthInput(req.query as Record<string, unknown>, 'a');
+    const birthB = parseBirthInput(req.query as Record<string, unknown>, 'b');
+    const relationshipType = req.query.relationType as string | undefined;
+    const nameA = (req.query.nameA as string) || 'A';
+    const nameB = (req.query.nameB as string) || 'B';
+    const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+
+    // 用户标识：必须有 userId 或 deviceFingerprint
+    const userId = req.userId || deviceFingerprint;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const normalizedRelationshipType = relationshipType || 'unknown';
+    const personA = buildSynastryPersonInfo(birthA, nameA);
+    const personB = buildSynastryPersonInfo(birthB, nameB);
+    let shouldRecord = false;
+    let shouldConsume = false;
+
+    // 只在 overview tab 时检查和消耗权益
+    // 其他 tab 假设用户已通过 overview 验证，直接放行
+    const isOverviewTab = tab === 'overview';
+
+    if (!isSupabaseConfigured()) {
+      // 开发环境：只在 overview tab 时检查权益
+      if (isOverviewTab) {
+        const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
+        if (!access.canAccess) {
+          return res.status(403).json({
+            error: 'Feature not available',
+            needPurchase: access.needPurchase,
+            price: access.price,
+          });
+        }
+        shouldConsume = true;
+      }
+    } else if (req.userId) {
+      // 生产环境且已登录：只在 overview tab 时检查
+      if (isOverviewTab) {
+        const record = await entitlementServiceV2.checkSynastryHash(
+          req.userId,
+          personA,
+          personB,
+          normalizedRelationshipType
+        );
+        if (!record.exists) {
+          const entitlements = await entitlementServiceV2.getEntitlements(req.userId, deviceFingerprint);
+          if (entitlements.synastry.totalLeft <= 0) {
+            return res.status(403).json({
+              error: 'Feature not available',
+              needPurchase: true,
+              price: PRICING.SYNASTRY_FULL,
+            });
+          }
+          shouldRecord = true;
+        }
       }
     }
 

@@ -1,0 +1,97 @@
+.page-container {
+  min-height: 100vh;
+  background-color: var(--paper-100);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 表格头 */
+.table-header {
+  display: flex;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1rpx solid var(--border-color);
+  background: var(--paper-50);
+}
+
+.th-desc {
+  flex: 2;
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.th-date {
+  flex: 2;
+  font-size: 22rpx;
+  color: var(--ink-light);
+  text-align: center;
+}
+
+.th-amount {
+  flex: 1;
+  font-size: 22rpx;
+  color: var(--ink-light);
+  text-align: right;
+}
+
+/* 记录列表 */
+.record-list {
+  flex: 1;
+}
+
+.record-row {
+  display: flex;
+  padding: var(--spacing-lg);
+  border-bottom: 1rpx solid var(--border-color);
+  background: var(--paper-50);
+}
+
+.row-desc {
+  flex: 2;
+  font-size: 28rpx;
+  color: var(--ink-deep);
+}
+
+.row-date {
+  flex: 2;
+  font-size: 24rpx;
+  color: var(--ink-light);
+  text-align: center;
+}
+
+.row-amount {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--ink-dark);
+  text-align: right;
+  font-weight: 600;
+}
+
+.row-amount.positive {
+  color: #2D8A4E;
+}
+
+/* 状态提示 */
+.loading-state,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+}
+
+.loading-text,
+.empty-text {
+  font-size: 26rpx;
+  color: var(--ink-light);
+}
+
+.loading-more,
+.no-more {
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.no-more-text {
+  font-size: 22rpx;
+  color: var(--ink-water);
+}

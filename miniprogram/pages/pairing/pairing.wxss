@@ -6,7 +6,8 @@
   padding-bottom: 120rpx;
 }
 
-/* Header - 与 daily/self 页面一致 */
+/* ===== Step 1: 输入界面 ===== */
+
 .header {
   padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
   animation: fadeInUp 0.6s ease-out;
@@ -26,7 +27,6 @@
   letter-spacing: 2rpx;
 }
 
-/* Content */
 .content {
   padding: var(--spacing-lg);
 }
@@ -52,7 +52,6 @@
   margin-bottom: var(--spacing-sm);
 }
 
-/* Avatar Card - 增强版 */
 .avatar-card {
   width: 180rpx;
   height: 200rpx;
@@ -98,7 +97,7 @@
   text-align: center;
 }
 
-/* Center Decoration - 爱心动画 */
+/* Center Decoration */
 .center-decoration {
   width: 80rpx;
   display: flex;
@@ -113,24 +112,14 @@
 }
 
 @keyframes heartbeat {
-  0%, 100% {
-    transform: scale(1);
-  }
-  14% {
-    transform: scale(1.15);
-  }
-  28% {
-    transform: scale(1);
-  }
-  42% {
-    transform: scale(1.15);
-  }
-  56% {
-    transform: scale(1);
-  }
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.15); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.15); }
+  56% { transform: scale(1); }
 }
 
-/* Match Button - 爱情主题 */
+/* Match Button */
 .match-btn {
   width: 100%;
   height: 100rpx;
@@ -163,180 +152,260 @@
   line-height: 1.6;
 }
 
-/* Result Modal Overlay */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4rpx);
+/* ===== Step 2: 全屏报告 ===== */
+
+.report-page {
+  padding: var(--spacing-lg);
+  animation: fadeInUp 0.5s ease-out;
 }
 
-.overlay-bg {
-  position: absolute;
-  inset: 0;
-}
-
-/* Result Card */
-.result-card {
-  position: relative;
-  z-index: 101;
-  background-color: var(--paper-100);
-  padding: var(--spacing-xl);
-  width: 650rpx;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.close-btn {
-  position: absolute;
-  top: 20rpx;
-  right: 20rpx;
-  padding: 10rpx;
-  font-size: 32rpx;
-  color: var(--ink-light);
-}
-
-/* Result Heart Decoration */
-.result-heart-decoration {
+/* 报告顶部 */
+.report-header {
   text-align: center;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1rpx solid var(--border-color);
 }
 
-.result-heart {
-  font-size: 64rpx;
-  animation: heartbeat 1.5s ease-in-out infinite;
-}
-
-/* Result Pairing Info */
-.result-pairing-info {
+.report-pairing-row {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
 }
 
-.mini-avatar {
-  text-align: center;
+.report-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
 }
 
-.mini-sign {
-  font-size: 32rpx;
+.report-sign-icon {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.report-sign-name {
+  font-size: 36rpx;
   color: var(--ink-deep);
-  display: block;
 }
 
-.mini-animal {
-  font-size: 18rpx;
+.report-animal {
+  font-size: 20rpx;
   color: var(--ink-light);
 }
 
-.pairing-connector {
+.report-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-heart {
+  font-size: 48rpx;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.report-score-area {
+  margin-top: var(--spacing-md);
+}
+
+.report-score-label {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.report-score-value {
+  font-size: 96rpx;
+  color: var(--accent-red);
+  line-height: 1;
+}
+
+.report-score-unit {
+  font-size: 40rpx;
+  color: var(--accent-red);
+}
+
+/* 区域标题 */
+.report-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: 32rpx;
+  color: var(--ink-deep);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+/* 维度卡片 */
+.dim-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.dim-card {
+  background: var(--paper-50);
+  padding: var(--spacing-md);
+}
+
+.dim-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.dim-card-label {
+  font-size: 26rpx;
+  color: var(--ink-dark);
+  font-weight: 500;
+}
+
+.dim-card-score {
   font-size: 28rpx;
   color: var(--accent-red);
 }
 
-/* Result Header */
-.result-header {
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
-}
-
-.score-label {
-  font-size: 24rpx;
-  color: var(--ink-light);
-}
-
-.score-value {
-  font-size: 110rpx;
-  color: var(--accent-red);
-  display: block;
-}
-
-/* Dimensions Grid */
-.dimensions-grid {
-  margin-bottom: var(--spacing-xl);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-}
-
-.dim-item {
-  background: var(--paper-50);
-  padding: var(--spacing-md);
-}
-
-.dim-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4rpx;
-}
-
-.dim-label {
-  font-size: 20rpx;
-  color: var(--ink-medium);
-}
-
-.dim-val {
-  font-size: 24rpx;
-  color: var(--ink-deep);
-}
-
-.progress-bar-wrap {
-  height: 4rpx;
+.dim-card-bar {
+  height: 6rpx;
   background: var(--paper-200);
+  margin-bottom: var(--spacing-sm);
+  overflow: hidden;
 }
 
-.progress-bar-inner {
+.dim-card-bar-inner {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-red) 0%, #FF6B8A 100%);
+  transition: width 0.6s ease-out;
 }
 
-/* Analysis Box */
-.analysis-box {
-  background: var(--paper-50);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.analysis-text {
+.dim-card-desc {
   font-size: 24rpx;
+  color: var(--ink-medium);
+  line-height: 1.7;
+}
+
+/* 综合分析卡片 */
+.analysis-card {
+  background: var(--paper-50);
+  padding: var(--spacing-lg);
+}
+
+.analysis-content {
+  font-size: 26rpx;
   color: var(--ink-dark);
   line-height: 1.8;
+  white-space: pre-line;
+}
+
+.fallback-text {
+  color: var(--ink-light);
   font-style: italic;
 }
 
-/* Tips Section */
-.tips-section {
-  margin-bottom: var(--spacing-lg);
+/* 相处建议卡片 */
+.tip-card {
+  background: var(--paper-50);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
-.tip-title {
-  font-size: 24rpx;
+.tip-card-title {
+  font-size: 26rpx;
   color: var(--accent-red);
-  margin-bottom: 8rpx;
+  font-weight: 500;
   display: block;
+  margin-bottom: 8rpx;
 }
 
-.tip-text {
-  font-size: 22rpx;
+.tip-card-content {
+  font-size: 24rpx;
   color: var(--ink-medium);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-/* Confirm Button */
-.confirm-btn {
+/* 骨架屏 */
+.skeleton-line {
+  height: 24rpx;
+  background: linear-gradient(90deg, var(--paper-200) 25%, var(--paper-100) 50%, var(--paper-200) 75%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-short {
+  width: 60%;
+}
+
+.skeleton-title {
+  width: 30%;
+  height: 28rpx;
+  margin-bottom: 16rpx;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 底部操作区 */
+.report-actions {
+  margin-top: var(--spacing-lg);
+  padding-bottom: 60rpx;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ask-btn-wrapper,
+.back-btn-wrapper {
   width: 100%;
+}
+
+.ask-btn {
+  width: 100%;
+  height: 96rpx;
   background: linear-gradient(135deg, var(--accent-red) 0%, var(--love-pink) 100%);
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
 }
 
-.confirm-btn::after {
+.ask-btn::after {
   border: none;
+}
+
+.ask-btn-text {
+  font-size: 30rpx;
+  color: #fff;
+  letter-spacing: 2rpx;
+}
+
+.back-btn {
+  width: 100%;
+  height: 88rpx;
+  background: var(--paper-50);
+  border: 1rpx solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn::after {
+  border: none;
+}
+
+.back-btn-text {
+  font-size: 28rpx;
+  color: var(--ink-medium);
 }
 
 /* Animations */

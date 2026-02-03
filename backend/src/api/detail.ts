@@ -1,5 +1,5 @@
-// INPUT: 技术规格详情解读 API 路由。
-// OUTPUT: 导出 detail 路由（懒加载 AI 详情解读与 Server-Timing）。
+// INPUT: 技术规格详情解读 API 路由（含本我页面 Big3/深度解析类型）。
+// OUTPUT: 导出 detail 路由（懒加载 AI 详情解读与 Server-Timing，支持自我页扩展类型）。
 // POS: Detail 端点；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router } from 'express';
@@ -13,6 +13,7 @@ import { SIGNS } from '../data/sources.js';
 export const detailRouter = Router();
 
 type DetailType =
+  | 'big3'
   | 'elements'
   | 'aspects'
   | 'planets'
@@ -20,6 +21,7 @@ type DetailType =
   | 'rulers'
   | 'synthesis'
   | 'dimension'
+  | 'deep'
   | 'advice'
   | 'time-windows'
   | 'weekly-trend'
@@ -148,6 +150,7 @@ detailRouter.post('/', async (req, res) => {
     }
 
     const validTypes: DetailType[] = [
+      'big3',
       'elements',
       'aspects',
       'planets',
@@ -155,6 +158,7 @@ detailRouter.post('/', async (req, res) => {
       'rulers',
       'synthesis',
       'dimension',
+      'deep',
       'advice',
       'time-windows',
       'weekly-trend',
@@ -181,7 +185,7 @@ detailRouter.post('/', async (req, res) => {
     let specialEvents: Record<string, unknown> | null = null;
     let resolvedDate = date || transitDate || new Date().toISOString().split('T')[0];
 
-    if (!resolvedChartData && context === 'transit' && birth) {
+    if (context === 'transit' && birth) {
       const birthInput = await parseBirthInput({
         date: birth.date,
         time: birth.time,
@@ -207,18 +211,30 @@ detailRouter.post('/', async (req, res) => {
       transitAspects = (transits.aspects || []) as unknown as Record<string, unknown>[];
       specialEvents = { chiron_return: computeChironReturn(chart.positions, transits.positions) };
 
-      if (type === 'planets') {
-        resolvedChartData = transits.positions as unknown as Record<string, unknown>;
-      } else if (type === 'aspects' || type === 'aspect-matrix') {
-        resolvedChartData = transits.aspects as unknown as Record<string, unknown>;
-      } else if (type === 'asteroids') {
-        resolvedChartData = transits.positions.filter((p) => MINOR_BODIES.includes(p.name)) as unknown as Record<string, unknown>;
-      } else if (type === 'rulers') {
-        resolvedChartData = buildHouseRulers(chart.positions) as unknown as Record<string, unknown>;
+      if (!resolvedChartData) {
+        if (type === 'planets') {
+          resolvedChartData = transits.positions as unknown as Record<string, unknown>;
+        } else if (type === 'aspects' || type === 'aspect-matrix') {
+          resolvedChartData = transits.aspects as unknown as Record<string, unknown>;
+        } else if (type === 'asteroids') {
+          resolvedChartData = transits.positions.filter((p) => MINOR_BODIES.includes(p.name)) as unknown as Record<string, unknown>;
+        } else if (type === 'rulers') {
+          resolvedChartData = buildHouseRulers(chart.positions) as unknown as Record<string, unknown>;
+        }
       }
     }
 
-    const requiresChartData = ['elements', 'aspects', 'planets', 'asteroids', 'rulers', 'synthesis', 'aspect-matrix'].includes(type);
+    const requiresChartData = [
+      'big3',
+      'elements',
+      'aspects',
+      'planets',
+      'asteroids',
+      'rulers',
+      'synthesis',
+      'deep',
+      'aspect-matrix',
+    ].includes(type);
     if (requiresChartData && !resolvedChartData) {
       res.status(400).json({ error: 'Missing required fields: chartData or birth' });
       return;

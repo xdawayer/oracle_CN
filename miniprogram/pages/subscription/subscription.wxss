@@ -1,0 +1,240 @@
+.page-container {
+  min-height: 100vh;
+  background-color: var(--paper-100);
+}
+
+/* 用户信息头部 */
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.user-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--border-color);
+}
+
+.user-avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-200);
+  color: var(--ink-light);
+  font-size: 40rpx;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.user-name {
+  font-size: 36rpx;
+  color: var(--ink-deep);
+}
+
+.user-vip-status {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+/* 套餐选择 */
+.plans-section {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.plan-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-sm);
+  background: var(--paper-50);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.plan-card.selected {
+  border: 2rpx solid var(--ink-deep);
+  background: var(--paper-50);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -16rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink-deep);
+  color: var(--paper-50);
+  font-size: 16rpx;
+  padding: 4rpx 16rpx;
+  white-space: nowrap;
+}
+
+.plan-badge.best {
+  background: var(--ink-deep);
+}
+
+.plan-name {
+  font-size: 22rpx;
+  color: var(--ink-dark);
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.plan-price-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.plan-currency {
+  font-size: 24rpx;
+  color: var(--ink-deep);
+  font-weight: 600;
+}
+
+.plan-price {
+  font-size: 56rpx;
+  color: var(--ink-deep);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.plan-original {
+  font-size: 20rpx;
+  color: var(--ink-light);
+  text-decoration: line-through;
+  margin-top: var(--spacing-xs);
+}
+
+/* 会员权益 */
+.benefits-section {
+  margin: var(--spacing-lg);
+  background: var(--paper-50);
+  padding: var(--spacing-lg);
+}
+
+.benefits-title {
+  margin-bottom: var(--spacing-lg);
+}
+
+.benefits-title-text {
+  font-size: 32rpx;
+  color: var(--ink-deep);
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+}
+
+.benefit-item + .benefit-item {
+  border-top: 1rpx solid var(--border-color);
+}
+
+.benefit-icon-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  background: var(--paper-100);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.benefit-icon {
+  font-size: 28rpx;
+  color: var(--ink-dark);
+}
+
+.benefit-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.benefit-name {
+  font-size: 28rpx;
+  color: var(--ink-deep);
+  font-weight: 500;
+}
+
+.benefit-desc {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+/* 底部固定按钮 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--paper-50);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+  border-top: 1rpx solid var(--border-color);
+}
+
+.pay-btn {
+  background: var(--ink-deep);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+}
+
+.pay-btn.disabled {
+  opacity: 0.4;
+}
+
+.pay-btn-text {
+  font-size: 32rpx;
+  color: var(--paper-50);
+  font-weight: 600;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid var(--ink-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  color: var(--paper-50);
+}
+
+.checkbox.checked {
+  background: var(--ink-deep);
+  border-color: var(--ink-deep);
+}
+
+.terms-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.terms-link {
+  font-size: 22rpx;
+  color: var(--mountain-blue);
+}

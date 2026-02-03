@@ -1,4 +1,11 @@
 const { request } = require('../../utils/request');
+const storage = require('../../utils/storage');
+
+/** 检查是否已登录 */
+const isLoggedIn = () => {
+  const token = storage.get('access_token');
+  return !!token;
+};
 
 const getTypeText = (type) => {
   if (type === 'synastry') return '双人合盘';
@@ -24,10 +31,32 @@ Page({
   data: {
     loading: true,
     reports: [],
-    selectedReport: null
+    selectedReport: null,
+    needLogin: false,
   },
 
   onLoad() {
+    this.checkAndFetch();
+  },
+
+  onShow() {
+    // 返回页面时重新检查登录状态
+    if (this.data.needLogin && isLoggedIn()) {
+      this.checkAndFetch();
+    }
+  },
+
+  /** 检查登录状态并获取数据 */
+  checkAndFetch() {
+    if (!isLoggedIn()) {
+      this.setData({
+        loading: false,
+        needLogin: true,
+        reports: [],
+      });
+      return;
+    }
+    this.setData({ needLogin: false });
     this.fetchReports();
   },
 
@@ -37,7 +66,7 @@ Page({
       const res = await request({ url: '/api/reports' });
       // Map list data from { reports: [...] }
       const rawReports = res.reports || (Array.isArray(res) ? res : []);
-      
+
       const reports = rawReports.map(item => ({
         ...item,
         typeText: getTypeText(item.type),
@@ -46,17 +75,31 @@ Page({
         summary: ''
       }));
 
-      this.setData({ 
+      this.setData({
         reports,
-        loading: false 
+        loading: false
       });
     } catch (err) {
       console.error('Failed to fetch reports', err);
-      this.setData({ 
-        reports: [], 
-        loading: false 
+      // 如果是认证错误，显示登录提示
+      if (err.message && err.message.includes('refresh token')) {
+        this.setData({
+          reports: [],
+          loading: false,
+          needLogin: true,
+        });
+        return;
+      }
+      this.setData({
+        reports: [],
+        loading: false
       });
     }
+  },
+
+  /** 跳转到登录/个人中心 */
+  goToLogin() {
+    wx.switchTab({ url: '/pages/me/me' });
   },
 
   async onSelectReport(e) {

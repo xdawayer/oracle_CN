@@ -1,0 +1,192 @@
+<view class="page-container">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="header-title font-ancient">2026 流年运势</text>
+    <text class="header-desc">专属于你的年度星象解读</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && !hasContent}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在为你生成专属报告...</text>
+    <view class="progress-bar-container">
+      <view class="progress-bar" style="width: {{progress}}%;"></view>
+    </view>
+    <text class="progress-text">{{progressText}}</text>
+  </view>
+
+  <!-- 报告内容 -->
+  <view wx:if="{{hasContent}}" class="report-content">
+    <!-- 生成中提示 -->
+    <view wx:if="{{loading}}" class="generating-banner">
+      <view class="generating-dot"></view>
+      <text class="generating-text">{{progressText}}</text>
+    </view>
+
+    <!-- 模块1：年度总览 -->
+    <view wx:if="{{modules.overview}}" class="module-section module-overview">
+      <view class="module-accent module-accent-overview"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-overview">年度总览</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.overview}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.overview === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">年度总览生成中...</text>
+    </view>
+
+    <!-- 模块2：事业财运 -->
+    <view wx:if="{{modules.career}}" class="module-section module-career">
+      <view class="module-accent module-accent-career"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-career">事业财运</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.career}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.career === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">事业财运生成中...</text>
+    </view>
+
+    <!-- 模块3：感情关系 -->
+    <view wx:if="{{modules.love}}" class="module-section module-love">
+      <view class="module-accent module-accent-love"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-love">感情关系</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.love}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.love === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">感情关系生成中...</text>
+    </view>
+
+    <!-- 模块4：健康能量 -->
+    <view wx:if="{{modules.health}}" class="module-section module-health">
+      <view class="module-accent module-accent-health"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-health">健康能量</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.health}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.health === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">健康能量生成中...</text>
+    </view>
+
+    <!-- 模块5：人际社交 -->
+    <view wx:if="{{modules.social}}" class="module-section module-social">
+      <view class="module-accent module-accent-social"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-social">人际社交</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.social}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.social === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">人际社交生成中...</text>
+    </view>
+
+    <!-- 模块6：学习成长 -->
+    <view wx:if="{{modules.growth}}" class="module-section module-growth">
+      <view class="module-accent module-accent-growth"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-growth">学习成长</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.growth}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.growth === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">学习成长生成中...</text>
+    </view>
+
+    <!-- 模块7：第一季度 -->
+    <view wx:if="{{modules.q1}}" class="module-section module-q1">
+      <view class="module-accent module-accent-q1"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-q1">第一季度 (1-3月)</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.q1}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.q1 === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">第一季度详解生成中...</text>
+    </view>
+
+    <!-- 模块8：第二季度 -->
+    <view wx:if="{{modules.q2}}" class="module-section module-q2">
+      <view class="module-accent module-accent-q2"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-q2">第二季度 (4-6月)</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.q2}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.q2 === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">第二季度详解生成中...</text>
+    </view>
+
+    <!-- 模块9：第三季度 -->
+    <view wx:if="{{modules.q3}}" class="module-section module-q3">
+      <view class="module-accent module-accent-q3"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-q3">第三季度 (7-9月)</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.q3}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.q3 === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">第三季度详解生成中...</text>
+    </view>
+
+    <!-- 模块10：第四季度 -->
+    <view wx:if="{{modules.q4}}" class="module-section module-q4">
+      <view class="module-accent module-accent-q4"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-q4">第四季度 (10-12月)</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.q4}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.q4 === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">第四季度详解生成中...</text>
+    </view>
+
+    <!-- 模块11：开运指南 -->
+    <view wx:if="{{modules.lucky}}" class="module-section module-lucky">
+      <view class="module-accent module-accent-lucky"></view>
+      <view class="module-header">
+        <text class="module-title font-ancient module-title-lucky">开运指南</text>
+      </view>
+      <view class="module-body">
+        <rich-text class="markdown-content" nodes="{{modules.lucky}}"></rich-text>
+      </view>
+    </view>
+    <view wx:elif="{{moduleStatus.lucky === 'pending'}}" class="module-placeholder">
+      <text class="placeholder-text">开运指南生成中...</text>
+    </view>
+
+    <!-- 底部留白 -->
+    <view class="bottom-spacer"></view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{error}}" class="error-container">
+    <text class="error-title">生成失败</text>
+    <text class="error-message">{{error}}</text>
+    <view class="retry-btn" bindtap="onRetry">
+      <text>重新生成</text>
+    </view>
+  </view>
+</view>

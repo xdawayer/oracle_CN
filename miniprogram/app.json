@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/onboarding/onboarding",
     "pages/home/home",
     "pages/self/self",
     "pages/daily/daily",
@@ -14,19 +15,27 @@
     "pages/kline/kline",
     "pages/pairing/pairing",
     "pages/reports/reports",
-    "pages/records/records"
+    "pages/records/records",
+    "pages/annual-report/annual-report",
+    "pages/report/report",
+    "pages/subscription/subscription",
+    "pages/points/points",
+    "pages/points-history/points-history",
+    "pages/profile/profile",
+    "pages/agreement/agreement",
+    "pages/orders/orders"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#FAF9F6",
+    "navigationBarBackgroundColor": "#FDFBF7",
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "Astromind",
-    "backgroundColor": "#FAF9F6",
+    "backgroundColor": "#FDFBF7",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
-    "color": "#7A746B",
-    "selectedColor": "#C6A062",
-    "backgroundColor": "#FAF9F6",
+    "color": "#808080",
+    "selectedColor": "#C53929",
+    "backgroundColor": "#FDFBF7",
     "borderStyle": "white",
     "list": [
       {
@@ -66,5 +75,24 @@
   "lazyCodeLoading": "requiredComponents",
   "usingComponents": {
     "astro-chart": "/components/astro-chart/astro-chart"
+  },
+  "__private_config__": {
+    "owner_desc": "星智（AstroMind）占星应用",
+    "setting_desc": "在这里您可以查看星智的隐私政策并管理您的授权。",
+    "owner_setting_page": "pages/agreement/agreement?type=privacy",
+    "data": [
+      {
+        "type": "UserInfo",
+        "desc": "用于展示您的个人主页头像和昵称"
+      },
+      {
+        "type": "Location",
+        "desc": "用于确认出生城市的经纬度以计算星盘"
+      },
+      {
+        "type": "DeviceInfo",
+        "desc": "用于优化服务体验和排查技术问题"
+      }
+    ]
   }
 }

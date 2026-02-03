@@ -1,5 +1,6 @@
 <view class="page">
-  <view class="header">
+  <!-- 标题只在输入界面显示，结果界面使用顶部导航栏 -->
+  <view class="header" wx:if="{{step === 1}}">
     <text class="title font-ancient">双人合盘</text>
     <text class="subtitle">探索两颗星的引力法则</text>
   </view>
@@ -11,7 +12,7 @@
       <view class="intro-row">
         <text class="intro-text">分析两人星盘的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
         <view class="profile-manager-btn" bindtap="openManager">
-          <text class="manager-btn-text">档案管理</text>
+          <text class="manager-btn-text">新增档案</text>
         </view>
       </view>
     </view>
@@ -36,7 +37,7 @@
         
         <!-- Dropdown A -->
         <view class="dropdown" wx:if="{{openDropdown === 'A' && profiles.length > 0}}">
-          <scroll-view scroll-y class="dropdown-scroll">
+          <scroll-view scroll-y class="dropdown-scroll" show-scrollbar="false">
             <view 
               class="dropdown-item {{item.name === nameB ? 'disabled' : ''}}" 
               wx:for="{{profiles}}" 
@@ -71,7 +72,7 @@
 
         <!-- Dropdown B -->
         <view class="dropdown" wx:if="{{openDropdown === 'B' && profiles.length > 0}}">
-          <scroll-view scroll-y class="dropdown-scroll">
+          <scroll-view scroll-y class="dropdown-scroll" show-scrollbar="false">
             <view 
               class="dropdown-item {{item.name === nameA ? 'disabled' : ''}}" 
               wx:for="{{profiles}}" 
@@ -126,64 +127,59 @@
   <!-- Step 2: Results -->
   <view class="content result-container" wx:if="{{step === 2 && resultReady}}">
     <!-- Tabs -->
-    <scroll-view scroll-x class="tabs-scroll" enable-flex>
-      <view class="tabs-wrapper">
-        <view 
-          wx:for="{{resultTabs}}" 
-          wx:key="id"
-          class="tab-item {{activeTab === item.id ? 'active' : ''}}"
-          bindtap="switchTab"
-          data-id="{{item.id}}"
-        >
-          {{item.label}}
+    <view class="tabs-container">
+      <scroll-view scroll-x class="tabs-scroll" enable-flex show-scrollbar="{{false}}">
+        <view class="tabs-wrapper">
+          <view
+            wx:for="{{resultTabs}}"
+            wx:key="id"
+            class="tab-item {{activeTab === item.id ? 'active' : ''}} {{tabLoadStatus[item.id] === 'loading' ? 'tab-loading' : ''}}"
+            bindtap="switchTab"
+            data-id="{{item.id}}"
+          >
+            {{item.label}}
+            <view class="tab-loading-dot" wx:if="{{tabLoadStatus[item.id] === 'loading' && activeTab !== item.id}}"></view>
+          </view>
         </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
 
     <!-- Overview Content -->
-    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab === 'overview'}}">
-      <view class="score-card ink-border">
-        <text class="score-label">关系评分</text>
+    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab === 'overview'}}" show-scrollbar="false">
+      <!-- 综述加载中 -->
+      <view class="card loading-state" wx:if="{{tabLoadStatus.overview === 'loading'}}">
+        <view class="loading-dots">
+          <text class="dot dot1">·</text>
+          <text class="dot dot2">·</text>
+          <text class="dot dot3">·</text>
+        </view>
+        <text class="loading-hint">正在生成综述…</text>
+      </view>
+
+      <!-- 总分卡片 -->
+      <view class="score-card ink-border" wx:if="{{tabLoadStatus.overview === 'loaded'}}">
+        <text class="score-label">契合度评分</text>
         <text class="score-value font-ancient">{{overviewData.score || '--'}}</text>
         <view class="score-names">
           <text>{{nameA}}</text>
-          <text class="score-divider">与</text>
+          <text class="score-divider">×</text>
           <text>{{nameB}}</text>
         </view>
+        <text class="relationship-type" wx:if="{{overviewData.relationshipType}}">{{overviewData.relationshipType}}</text>
       </view>
 
-      <view class="card ink-border" wx:if="{{synastryChartData.innerPositions.length > 0}}">
-        <text class="section-title font-ancient">对比盘</text>
-        <view class="chart-container">
-          <astro-chart
-            type="synastry"
-            positions="{{synastryChartData.innerPositions}}"
-            outerPositions="{{synastryChartData.outerPositions}}"
-            aspects="{{synastryChartData.aspects}}"
-            houseCusps="{{synastryChartData.houseCusps}}"
-            width="350"
-            height="350"
-          ></astro-chart>
-        </view>
-        <text class="chart-desc">内环：{{nameA}} | 外环：{{nameB}}</text>
+      <!-- 一句话总结 -->
+      <view class="summary-card ink-border" wx:if="{{overviewData && overviewData.summary}}">
+        <text class="summary-text">「{{overviewData.summary}}」</text>
       </view>
 
-      <view class="card ink-border">
-        <text class="section-title font-ancient">关系关键词</text>
-        <view class="keyword-list">
-          <view wx:for="{{overviewData.keywords}}" wx:key="word" class="keyword-item">
-            <text class="keyword-word">{{item.word}}</text>
-            <text class="keyword-evidence">{{item.evidence}}</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="card ink-border">
-        <text class="section-title font-ancient">五维关系模型</text>
+      <!-- 五维关系模型 -->
+      <view class="card ink-border" wx:if="{{overviewData && overviewData.dimensions && overviewData.dimensions.length > 0}}">
+        <text class="section-title font-ancient">五维分析</text>
         <view class="dimension-list">
-          <view class="dimension-item" wx:for="{{overviewData.scores}}" wx:key="dim">
+          <view class="dimension-item" wx:for="{{overviewData.dimensions}}" wx:key="name">
             <view class="dim-header">
-              <text class="dim-label">{{item.dim}}</text>
+              <text class="dim-label">{{item.name}}</text>
               <text class="dim-score font-ancient">{{item.score}}</text>
             </view>
             <view class="progress-bg">
@@ -194,33 +190,241 @@
         </view>
       </view>
 
-      <view class="card ink-border" wx:if="{{overviewData.growthTask}}">
-        <text class="section-title font-ancient">成长任务</text>
-        <text class="body-text">{{overviewData.growthTask.task}}</text>
-        <text class="body-subtext">{{overviewData.growthTask.evidence}}</text>
+      <!-- 核心互动模式 -->
+      <view class="card ink-border" wx:if="{{overviewData && overviewData.coreDynamic}}">
+        <text class="section-title font-ancient">{{overviewData.coreDynamic.title || '核心互动'}}</text>
+        <text class="body-text">{{overviewData.coreDynamic.description}}</text>
       </view>
 
-      <view class="card ink-border">
-        <text class="section-title font-ancient">综合评语</text>
-        <text class="body-text">{{overviewData.summary}}</text>
-        <text class="body-subtext">{{overviewData.disclaimer}}</text>
+      <!-- 最合拍的地方 -->
+      <view class="card ink-border highlight-card best-match-card" wx:if="{{overviewData && overviewData.bestMatch}}">
+        <text class="section-title font-ancient">{{overviewData.bestMatch.title || '最合拍的地方'}}</text>
+        <text class="body-text">{{overviewData.bestMatch.description}}</text>
       </view>
 
-      <button class="reset-btn btn-outline" bindtap="reset">测试下一对</button>
+      <!-- 需要磨合的地方 -->
+      <view class="card ink-border highlight-card needs-work-card" wx:if="{{overviewData && overviewData.needsWork}}">
+        <text class="section-title font-ancient">{{overviewData.needsWork.title || '需要磨合的地方'}}</text>
+        <text class="body-text">{{overviewData.needsWork.description}}</text>
+      </view>
+
     </scroll-view>
 
     <!-- Other Sections -->
-    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab !== 'overview'}}">
-      <view class="card" wx:if="{{currentSectionText}}">
+    <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab !== 'overview'}}" show-scrollbar="false">
+      <!-- 本命盘 A（星盘数据已预加载，不受 AI loading 影响） -->
+      <view class="card ink-border chart-card" wx:if="{{activeTab === 'natal_a' && chartDataA.positions.length > 0 && !showDeepOverlay}}">
+        <text class="section-title font-ancient">{{nameA}}的本命盘</text>
+        <view class="chart-container">
+          <astro-chart
+            type="natal"
+            positions="{{chartDataA.positions}}"
+            aspects="{{chartDataA.aspects}}"
+            houseCusps="{{chartDataA.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+      </view>
+
+      <!-- 本命盘 B -->
+      <view class="card ink-border chart-card" wx:if="{{activeTab === 'natal_b' && chartDataB.positions.length > 0 && !showDeepOverlay}}">
+        <text class="section-title font-ancient">{{nameB}}的本命盘</text>
+        <view class="chart-container">
+          <astro-chart
+            type="natal"
+            positions="{{chartDataB.positions}}"
+            aspects="{{chartDataB.aspects}}"
+            houseCusps="{{chartDataB.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+      </view>
+
+      <!-- 对比盘 A-B -->
+      <view class="card ink-border chart-card" wx:if="{{activeTab === 'syn_ab' && synastryChartAB.innerPositions.length > 0 && !showDeepOverlay}}">
+        <text class="section-title font-ancient">对比盘</text>
+        <view class="chart-container">
+          <astro-chart
+            type="synastry"
+            positions="{{synastryChartAB.innerPositions}}"
+            outerPositions="{{synastryChartAB.outerPositions}}"
+            aspects="{{synastryChartAB.aspects}}"
+            houseCusps="{{synastryChartAB.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+        <text class="chart-desc">内环：{{nameA}} | 外环：{{nameB}}</text>
+      </view>
+
+      <!-- 对比盘 B-A -->
+      <view class="card ink-border chart-card" wx:if="{{activeTab === 'syn_ba' && synastryChartBA.innerPositions.length > 0 && !showDeepOverlay}}">
+        <text class="section-title font-ancient">对比盘</text>
+        <view class="chart-container">
+          <astro-chart
+            type="synastry"
+            positions="{{synastryChartBA.innerPositions}}"
+            outerPositions="{{synastryChartBA.outerPositions}}"
+            aspects="{{synastryChartBA.aspects}}"
+            houseCusps="{{synastryChartBA.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+        <text class="chart-desc">内环：{{nameB}} | 外环：{{nameA}}</text>
+      </view>
+
+      <!-- 组合盘 -->
+      <view class="card ink-border chart-card" wx:if="{{activeTab === 'composite' && compositeChart.positions.length > 0 && !showDeepOverlay}}">
+        <text class="section-title font-ancient">组合盘（中点盘）</text>
+        <view class="chart-container">
+          <astro-chart
+            type="natal"
+            positions="{{compositeChart.positions}}"
+            aspects="{{compositeChart.aspects}}"
+            houseCusps="{{compositeChart.houseCusps}}"
+            width="350"
+            height="350"
+          ></astro-chart>
+        </view>
+        <text class="chart-desc">{{nameA}} + {{nameB}} 的组合</text>
+      </view>
+
+      <!-- 卡片式内容 -->
+      <block wx:if="{{currentSectionCards.length > 0}}">
+        <view
+          wx:for="{{currentSectionCards}}"
+          wx:key="index"
+          class="card ink-border content-card card-{{item.color || 'neutral'}} {{item.dimensionKey ? 'card-tappable' : ''}}"
+          bindtap="{{item.dimensionKey ? 'onCardTap' : ''}}"
+          data-index="{{index}}"
+        >
+          <view class="card-header">
+            <text class="section-title font-ancient">{{item.title}}</text>
+            <view class="card-score" wx:if="{{item.score}}">
+              <text class="score-num">{{item.score}}</text>
+              <text class="score-unit">分</text>
+            </view>
+          </view>
+
+          <!-- 高亮标签 -->
+          <view class="card-highlight" wx:if="{{item.highlight}}">
+            <text>{{item.highlight}}</text>
+          </view>
+
+          <!-- 标签列表 -->
+          <view class="card-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+            <text class="tag" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag">{{tag}}</text>
+          </view>
+
+          <!-- 需要/能给 -->
+          <view class="needs-gives" wx:if="{{item.needs && item.needs.length > 0}}">
+            <view class="needs-row">
+              <text class="label">需要：</text>
+              <text>{{item.needs[0]}}{{item.needs[1] ? '、' + item.needs[1] : ''}}</text>
+            </view>
+            <view class="gives-row" wx:if="{{item.gives && item.gives.length > 0}}">
+              <text class="label">能给：</text>
+              <text>{{item.gives[0]}}{{item.gives[1] ? '、' + item.gives[1] : ''}}</text>
+            </view>
+          </view>
+
+          <!-- 匹配/不合 区域 -->
+          <view class="match-areas" wx:if="{{item.matchAreas && item.matchAreas.length > 0}}">
+            <view class="match-row">
+              <text class="label match-label">合拍：</text>
+              <text>{{item.matchAreas[0]}}{{item.matchAreas[1] ? '、' + item.matchAreas[1] : ''}}</text>
+            </view>
+            <view class="gap-row" wx:if="{{item.gapAreas && item.gapAreas.length > 0}}">
+              <text class="label gap-label">摩擦：</text>
+              <text>{{item.gapAreas[0]}}{{item.gapAreas[1] ? '、' + item.gapAreas[1] : ''}}</text>
+            </view>
+          </view>
+
+          <!-- 触发器/提示 -->
+          <view class="card-trigger" wx:if="{{item.trigger}}">
+            <text class="trigger-label">容易因为：</text>
+            <text>{{item.trigger}}</text>
+          </view>
+
+          <!-- 危险区域 -->
+          <view class="danger-zones" wx:if="{{item.dangerZones && item.dangerZones.length > 0}}">
+            <view class="danger-item" wx:for="{{item.dangerZones}}" wx:key="*this" wx:for-item="zone">
+              <text class="danger-icon">!</text>
+              <text>{{zone}}</text>
+            </view>
+          </view>
+
+          <!-- 雷区列表 -->
+          <view class="mines-list" wx:if="{{item.mines && item.mines.length > 0}}">
+            <view class="mine-item" wx:for="{{item.mines}}" wx:key="*this" wx:for-item="mine">
+              <text class="mine-icon">!</text>
+              <text>{{mine}}</text>
+            </view>
+          </view>
+
+          <!-- 主内容 -->
+          <text class="body-text" wx:if="{{item.content}}">{{item.content}}</text>
+
+          <!-- 比喻/一句话 -->
+          <view class="card-metaphor" wx:if="{{item.metaphor}}">
+            <text>「{{item.metaphor}}」</text>
+          </view>
+          <view class="card-oneliner" wx:if="{{item.oneLiner}}">
+            <text>「{{item.oneLiner}}」</text>
+          </view>
+
+          <!-- 判定/建议 -->
+          <view class="card-verdict" wx:if="{{item.verdict}}">
+            <text>{{item.verdict}}</text>
+          </view>
+          <view class="card-advice" wx:if="{{item.advice}}">
+            <text class="advice-label">建议：</text>
+            <text>{{item.advice}}</text>
+          </view>
+
+          <!-- 提示列表 -->
+          <view class="tips-list" wx:if="{{item.tips && item.tips.length > 0}}">
+            <view class="tip-item" wx:for="{{item.tips}}" wx:key="*this" wx:for-item="tip">
+              <text class="tip-bullet">·</text>
+              <text>{{tip}}</text>
+            </view>
+          </view>
+
+          <!-- 星象依据 -->
+          <view class="card-astro-basis" wx:if="{{item.astroBasis}}">
+            <text class="astro-label">星象依据</text>
+            <text class="astro-text">{{item.astroBasis}}</text>
+          </view>
+
+          <!-- 深度解读提示 -->
+          <view class="card-deep-hint" wx:if="{{item.dimensionKey}}">
+            <text>点击查看深度解读 ></text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 旧格式文字内容（兼容） -->
+      <view class="card ink-border" wx:elif="{{currentSectionText}}">
         <view class="section-header">
-          <text class="section-title">{{currentSectionTitle}}</text>
+          <text class="section-title font-ancient">{{currentSectionTitle}}</text>
         </view>
         <text class="body-text">{{currentSectionText}}</text>
       </view>
-      <view class="card empty-state" wx:else>
+      <!-- AI 内容加载中 -->
+      <view class="card loading-state" wx:elif="{{tabLoadStatus[activeTab] === 'loading' || loading}}">
+        <view class="loading-dots">
+          <text class="dot dot1">·</text>
+          <text class="dot dot2">·</text>
+          <text class="dot dot3">·</text>
+        </view>
+        <text class="loading-hint">正在生成分析内容…</text>
+      </view>
+      <view class="card empty-state" wx:elif="{{!loading && currentSectionCards.length === 0}}">
         <text>暂无数据</text>
       </view>
-      <button class="reset-btn" bindtap="reset">测试下一对</button>
     </scroll-view>
   </view>
 
@@ -235,7 +439,7 @@
           <view class="close-btn" bindtap="closeManager">关闭</view>
         </view>
         
-        <scroll-view scroll-y class="profile-list">
+        <scroll-view scroll-y class="profile-list" show-scrollbar="false">
           <view wx:if="{{profiles.length === 0}}" class="empty-list">
             暂无档案，请添加
           </view>
@@ -262,9 +466,10 @@
         <view class="modal-header">
           <view class="back-btn" bindtap="setListMode">返回</view>
           <text class="modal-title">{{formData.id ? '编辑档案' : '新增档案'}}</text>
+          <view class="back-btn placeholder">返回</view>
         </view>
 
-        <scroll-view scroll-y class="form-scroll">
+        <scroll-view scroll-y class="form-scroll" show-scrollbar="false">
           <view class="form-group">
             <text class="form-label">姓名/昵称</text>
             <input class="form-input" value="{{formData.name}}" bindinput="onFormName" placeholder="请输入..." />
@@ -329,7 +534,7 @@
                 bindblur="onCurrentCityBlur"
                 placeholder="输入城市名、拼音或首字母"
               />
-              <view class="city-dropdown" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length > 0}}">
+              <view class="city-dropdown city-dropdown-up" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length > 0}}">
                 <view
                   class="city-dropdown-item"
                   wx:for="{{currentCitySuggestions}}"
@@ -341,7 +546,7 @@
                   <text class="city-region">{{item.province}}, {{item.country}}</text>
                 </view>
               </view>
-              <view class="city-dropdown city-no-result" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length === 0 && formData.currentCity}}">
+              <view class="city-dropdown city-dropdown-up city-no-result" wx:if="{{showCurrentCitySuggestions && currentCitySuggestions.length === 0 && formData.currentCity}}">
                 <text>未找到匹配城市</text>
               </view>
             </view>
@@ -358,6 +563,45 @@
       </view>
 
     </view>
+  </view>
+
+  <!-- 深度解读全屏 overlay -->
+  <view class="deep-overlay" wx:if="{{showDeepOverlay}}">
+    <view class="deep-overlay-header">
+      <view class="deep-back-btn" bindtap="closeDeepOverlay">
+        <text class="deep-back-arrow">&lt;</text>
+        <text>返回</text>
+      </view>
+      <text class="deep-overlay-title" wx:if="{{deepOverlayData}}">{{deepOverlayData.title}}</text>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="deep-loading" wx:if="{{deepOverlayLoading}}">
+      <view class="loading-dots">
+        <text class="dot dot1">·</text>
+        <text class="dot dot2">·</text>
+        <text class="dot dot3">·</text>
+      </view>
+      <text class="loading-hint">正在生成深度解读…</text>
+    </view>
+
+    <!-- 内容 -->
+    <scroll-view scroll-y class="deep-overlay-scroll" wx:if="{{deepOverlayData && !deepOverlayLoading}}" show-scrollbar="false">
+      <view class="detail-card detail-card--{{item.cardColor || 'default'}}"
+            wx:for="{{deepOverlayData.sections}}" wx:key="title">
+        <view class="detail-card__accent"></view>
+        <view class="detail-card__body">
+          <text class="detail-card__title">{{item.title}}</text>
+          <text class="detail-card__text" wx:if="{{item.text}}">{{item.text}}</text>
+          <view class="detail-card__list" wx:if="{{item.list && item.list.length > 0}}">
+            <view class="detail-card__list-item" wx:for="{{item.list}}" wx:for-item="listItem" wx:for-index="idx" wx:key="idx">
+              <text class="detail-card__list-num">{{idx + 1}}.</text>
+              <text class="detail-card__list-text">{{listItem}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 全屏加载遮罩 -->

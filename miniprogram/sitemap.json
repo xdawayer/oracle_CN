@@ -1,7 +1,21 @@
 {
   "desc": "Astromind Miniprogram",
-  "rules": [{
-    "action": "allow",
-    "page": "*"
-  }]
+  "rules": [
+    {
+      "action": "allow",
+      "page": "pages/home/home"
+    },
+    {
+      "action": "allow",
+      "page": "pages/discovery/discovery"
+    },
+    {
+      "action": "allow",
+      "page": "pages/wiki/wiki"
+    },
+    {
+      "action": "disallow",
+      "page": "*"
+    }
+  ]
 }

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { performance } from 'perf_hooks';
 import { generateAIContentWithMeta } from '../services/ai.js';
 import type { Language } from '../types/api.js';
 import { optionalAuthMiddleware } from './auth.js';
@@ -160,6 +161,7 @@ const getContextInstruction = (context: ContextFilter, lang: Language): string =
 
 syntheticaRouter.post('/generate', optionalAuthMiddleware, async (req, res) => {
   try {
+    const requestStart = performance.now();
     const payload = req.body as GeneratePayload;
     const { planet, sign, house, context, aspects } = payload;
     const lang: Language = payload.lang === 'en' || payload.language === 'en' ? 'en' : 'zh';
@@ -202,6 +204,7 @@ syntheticaRouter.post('/generate', optionalAuthMiddleware, async (req, res) => {
     const houseLabel = house ? house.name : (lang === 'en' ? 'Not selected' : '未选择');
 
     // 3. Generate Content
+    const aiStart = performance.now();
     const result = await generateAIContentWithMeta({
       promptId: 'synthetica-analysis',
       context: {
@@ -216,6 +219,9 @@ syntheticaRouter.post('/generate', optionalAuthMiddleware, async (req, res) => {
       lang,
       timeoutMs: 60000,
     });
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+    res.setHeader('Server-Timing', `core;dur=0,ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
     const consumed = await entitlementServiceV2.consumeFeature(
       req.userId || null,

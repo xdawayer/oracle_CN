@@ -1,15 +1,64 @@
 <view class="container">
+  <!-- Fullscreen Loading -->
+  <view wx:if="{{viewState === 'loading'}}" class="overlay overlay-loading">
+    <view class="loading-card ink-border">
+      <view class="loading-spinner"></view>
+      <view class="loading-title font-ancient">正在解码星象</view>
+      <view class="loading-subtitle">请稍候，洞察即将呈现</view>
+    </view>
+  </view>
+
+  <!-- Fullscreen Report -->
+  <view wx:if="{{viewState === 'report' && result}}" class="overlay overlay-report">
+    <scroll-view scroll-y class="report-scroll" show-scrollbar="false">
+      <view class="report-header">
+        <view class="report-title font-ancient">{{result.report_title}}</view>
+        <view class="report-tags">
+          <view class="result-tag ink-border">{{params.planet.name}} · {{params.sign.name}}</view>
+          <view class="result-tag ink-border">{{params.house.name}}</view>
+          <block wx:for="{{params.aspects}}" wx:key="index">
+            <view class="result-tag ink-border">{{item.type.name}} {{item.target.name}}</view>
+          </block>
+        </view>
+      </view>
+
+      <view wx:if="{{result.synthesis}}" class="report-section ink-border">
+        <view class="section-title font-ancient">命格总论</view>
+        <text class="section-text">“{{result.synthesis}}”</text>
+      </view>
+
+      <block wx:for="{{result.modules}}" wx:key="index">
+        <view class="report-section ink-border">
+          <view class="section-title font-ancient">{{item.headline}}</view>
+          <block wx:if="{{item.analysis}}">
+            <view class="section-subtitle">解读要点</view>
+            <text class="section-text">{{item.analysis}}</text>
+          </block>
+          <block wx:if="{{item.shadow_side}}">
+            <view class="section-subtitle danger">需要注意</view>
+            <text class="section-text">{{item.shadow_side}}</text>
+          </block>
+          <block wx:if="{{item.actionable_advice}}">
+            <view class="section-subtitle success">实用建议</view>
+            <text class="section-text">{{item.actionable_advice}}</text>
+          </block>
+        </view>
+      </block>
+
+      <view class="report-actions">
+        <button class="close-btn btn-outline" bindtap="closeReport">返回选择</button>
+      </view>
+    </scroll-view>
+  </view>
   <view class="banner">
-    <text class="banner-label">提示</text>
     <text class="banner-text">自由组合星象，AI 深度洞察心理机制与未来时机</text>
   </view>
 
-  <view class="card form-card">
+  <view class="card form-card ink-border">
     <!-- 01. Context -->
     <view class="section">
       <view class="section-header">
-        <view class="tag tag-rose">01</view>
-        <text class="section-title">咨询目标</text>
+        <text class="section-title font-ancient">咨询目标</text>
       </view>
       <picker range="{{CONTEXTS}}" range-key="label" value="{{contextIndex}}" bindchange="onContextChange">
         <view class="picker-box">
@@ -24,40 +73,30 @@
     <!-- 02. Foundation -->
     <view class="section">
       <view class="section-header">
-        <view class="tag tag-blue">02</view>
-        <text class="section-title">本命配置</text>
+        <text class="section-title font-ancient">本命配置</text>
       </view>
       
       <view class="input-group">
-        <view class="input-row">
-          <text class="input-label">行星</text>
-          <picker range="{{PLANETS}}" range-key="name" value="{{planetIndex}}" bindchange="onPlanetChange" class="picker-flex">
-            <view class="picker-box">
-              <text class="picker-text">{{params.planet.name}}</text>
-              <text class="picker-arrow">选择</text>
-            </view>
-          </picker>
-        </view>
+        <picker range="{{PLANETS}}" range-key="name" value="{{planetIndex}}" bindchange="onPlanetChange">
+          <view class="picker-box">
+            <text class="picker-text">{{params.planet.name}}</text>
+            <text class="picker-arrow">选择</text>
+          </view>
+        </picker>
 
-        <view class="input-row">
-          <text class="input-label">星座</text>
-          <picker range="{{SIGNS}}" range-key="name" value="{{signIndex}}" bindchange="onSignChange" class="picker-flex">
-            <view class="picker-box">
-              <text class="picker-text">{{params.sign.name}}</text>
-              <text class="picker-arrow">选择</text>
-            </view>
-          </picker>
-        </view>
+        <picker range="{{SIGNS}}" range-key="name" value="{{signIndex}}" bindchange="onSignChange">
+          <view class="picker-box">
+            <text class="picker-text">{{params.sign.name}}</text>
+            <text class="picker-arrow">选择</text>
+          </view>
+        </picker>
 
-        <view class="input-row">
-          <text class="input-label">宫位</text>
-          <picker range="{{HOUSES}}" range-key="name" value="{{houseIndex}}" bindchange="onHouseChange" class="picker-flex">
-            <view class="picker-box">
-              <text class="picker-text">{{params.house.name}}</text>
-              <text class="picker-arrow">选择</text>
-            </view>
-          </picker>
-        </view>
+        <picker range="{{HOUSES}}" range-key="name" value="{{houseIndex}}" bindchange="onHouseChange">
+          <view class="picker-box">
+            <text class="picker-text">{{params.house.name}}</text>
+            <text class="picker-arrow">选择</text>
+          </view>
+        </picker>
       </view>
     </view>
 
@@ -67,10 +106,9 @@
     <view class="section">
       <view class="section-header space-between">
         <view class="header-left">
-          <view class="tag tag-purple">03</view>
-          <text class="section-title">相位关系</text>
+          <text class="section-title font-ancient">相位关系</text>
         </view>
-        <view class="add-btn" bindtap="addAspect">
+        <view class="add-btn btn-outline" bindtap="addAspect">
           <text>+ 添加相位</text>
         </view>
       </view>
@@ -87,43 +125,32 @@
               <picker range="{{ASPECT_TYPES}}" range-key="name" value="{{item.typeIndex}}" data-index="{{index}}" bindchange="onAspectTypeChange" class="picker-half">
                 <view class="picker-box small">
                   <text class="picker-text">{{item.type.name}}</text>
-                  <text class="picker-arrow">选择</text>
                 </view>
               </picker>
               <picker range="{{PLANETS}}" range-key="name" value="{{item.targetIndex}}" data-index="{{index}}" bindchange="onAspectTargetChange" class="picker-half">
                 <view class="picker-box small">
                   <text class="picker-text">{{item.target.name}}</text>
-                  <text class="picker-arrow">选择</text>
                 </view>
               </picker>
             </view>
-            <view class="delete-btn" data-index="{{index}}" bindtap="removeAspect">
-              <text>删除</text>
-            </view>
+            <view class="delete-btn" data-index="{{index}}" bindtap="removeAspect">×</view>
           </view>
         </block>
       </view>
     </view>
   </view>
 
-  <!-- Result -->
-  <view wx:if="{{result}}" class="card result-card">
+  <!-- Error -->
+  <view wx:if="{{viewState === 'error' && error}}" class="card result-card">
     <view class="result-header">
-      <view class="icon-box">AI</view>
+      <view class="icon-box">!</view>
       <view>
-        <view class="result-title">深度洞察报告</view>
-        <view class="result-subtitle">SYNTHESIS REPORT</view>
+        <view class="result-title">生成失败</view>
+        <view class="result-subtitle">PLEASE TRY AGAIN</view>
       </view>
     </view>
     <view class="result-content">
-      <text>{{result}}</text>
-    </view>
-    <view class="result-tags">
-      <view class="result-tag tag-indigo">{{params.planet.name}} · {{params.sign.name}}</view>
-      <view class="result-tag tag-blue">{{params.house.name}}</view>
-      <block wx:for="{{params.aspects}}" wx:key="index">
-        <view class="result-tag tag-rose">{{item.type.name}} {{item.target.name}}</view>
-      </block>
+      <text>{{error}}</text>
     </view>
   </view>
 
@@ -132,7 +159,7 @@
 
 <!-- Fixed Bottom Button -->
 <view class="bottom-bar">
-  <button class="generate-btn {{loading ? 'disabled' : ''}}" bindtap="handleGenerate" disabled="{{loading}}">
-    {{loading ? '正在解码星象...' : '生成深度洞察'}}
+  <button class="generate-btn {{viewState === 'loading' ? 'disabled' : ''}}" bindtap="handleGenerate" disabled="{{viewState === 'loading'}}">
+    {{viewState === 'loading' ? '正在解码星象...' : '生成深度洞察'}}
   </button>
 </view>

@@ -1,0 +1,38 @@
+<view class="page-container">
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && orders.length === 0}}">
+    <text class="empty-text">暂无订单记录</text>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="order-list" wx:if="{{orders.length > 0}}">
+    <view class="order-card ink-border" wx:for="{{orders}}" wx:key="orderId">
+      <view class="order-header">
+        <text class="order-type">{{item.orderTypeText}}</text>
+        <text class="order-status {{item.statusClass}}">{{item.statusText}}</text>
+      </view>
+
+      <view class="order-detail">
+        <text class="order-desc">{{item.description}}</text>
+        <text class="order-amount font-ancient">¥{{item.amountText}}</text>
+      </view>
+
+      <view class="order-footer">
+        <text class="order-time">{{item.timeText}}</text>
+        <view
+          class="refund-btn"
+          wx:if="{{item.canRefund}}"
+          bindtap="onRefund"
+          data-order-id="{{item.orderId}}"
+        >
+          <text class="refund-btn-text">申请退款</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+</view>

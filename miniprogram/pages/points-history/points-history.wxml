@@ -1,0 +1,42 @@
+<view class="page-container">
+  <!-- 表格头 -->
+  <view class="table-header">
+    <text class="th-desc">详情</text>
+    <text class="th-date">日期</text>
+    <text class="th-amount">积分变更</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <scroll-view
+    scroll-y
+    class="record-list"
+    show-scrollbar="false"
+    bindscrolltolower="onLoadMore"
+  >
+    <view wx:if="{{loading && records.length === 0}}" class="loading-state">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view wx:elif="{{records.length === 0}}" class="empty-state">
+      <text class="empty-text">暂无积分记录</text>
+    </view>
+
+    <view
+      class="record-row"
+      wx:for="{{records}}"
+      wx:key="id"
+    >
+      <text class="row-desc">{{item.description}}</text>
+      <text class="row-date">{{item.dateFormatted}}</text>
+      <text class="row-amount {{item.amount > 0 ? 'positive' : ''}}">{{item.amount > 0 ? '+' : ''}}{{item.amount}}</text>
+    </view>
+
+    <view wx:if="{{loading && records.length > 0}}" class="loading-more">
+      <text class="loading-text">加载更多...</text>
+    </view>
+
+    <view wx:if="{{!hasMore && records.length > 0}}" class="no-more">
+      <text class="no-more-text">没有更多了</text>
+    </view>
+  </scroll-view>
+</view>

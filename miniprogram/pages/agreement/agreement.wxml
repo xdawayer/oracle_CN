@@ -1,0 +1,14 @@
+<view class="page-container">
+  <view class="agreement-content">
+    <text class="agreement-title font-ancient">{{agreement.title}}</text>
+    <text class="update-date">更新日期：{{agreement.updateDate}}</text>
+
+    <view class="section" wx:for="{{agreement.sections}}" wx:key="title">
+      <text class="section-title">{{item.title}}</text>
+      <text class="section-content">{{item.content}}</text>
+      <view class="section-items" wx:if="{{item.items}}">
+        <text class="section-item" wx:for="{{item.items}}" wx:for-item="line" wx:key="*this">{{line}}</text>
+      </view>
+    </view>
+  </view>
+</view>

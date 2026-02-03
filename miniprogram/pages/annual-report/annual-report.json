@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "2026 流年运势",
+  "navigationBarBackgroundColor": "#FDFBF7",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FDFBF7",
+  "enablePullDownRefresh": false,
+  "usingComponents": {}
+}

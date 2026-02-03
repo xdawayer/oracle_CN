@@ -1,162 +1,236 @@
 <view class="container">
+  <!-- Subtle Ink Splash Background -->
+  <view class="ink-splash-bg" style="top: 10%; left: -10%; width: 400rpx; height: 400rpx;"></view>
+  <view class="ink-splash-bg" style="bottom: 20%; right: -15%; width: 500rpx; height: 500rpx; opacity: 0.03;"></view>
+
   <view class="header">
     <view class="header-text">
-      <text class="greeting">{{greeting}}</text>
-      <text class="date">{{currentDate}}</text>
+      <text class="greeting font-ancient">{{greeting}}</text>
+      <text class="date font-body">{{currentDate}}</text>
+      <text class="date-lunar font-body" wx:if="{{lunarDate}}">{{lunarDate}}</text>
     </view>
-    <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
-    <view class="avatar placeholder" wx:else>
+    <image class="avatar ink-border" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+    <view class="avatar placeholder ink-border" wx:else>
       <text class="avatar-text">☉</text>
     </view>
   </view>
 
-  <view class="daily-card" bindtap="onChangeTab" data-tab="daily" style="{{cardStyle}} color: {{cardTextColor}}">
-    <view class="sparkles"></view>
-    <view class="glow-effect"></view>
-
-    <view class="share-btn" catchtap="showShareModal" style="color: {{cardTextColor}}; border-color: {{cardTextColor}}20">
-      <text class="icon-share">分享</text>
-    </view>
-
+  <view class="daily-card">
     <view class="card-content">
-      <view class="score-section">
-        <view class="score-box">
-          <text class="score-label" style="color: {{cardTextColor}}80">运势评分</text>
-          <text class="score-value" style="color: {{cardTextColor}}">{{shareData.score}}</text>
-        </view>
-        <view class="summary-box">
-          <text class="summary-text" style="color: {{cardTextColor}}">{{shareData.summary}}</text>
-        </view>
+      <!-- 大数字评分 + 金句 -->
+      <view class="card-hero">
+        <text class="card-score font-data">{{shareData.score}}</text>
+        <text class="card-quote font-ancient">{{shareData.quote}}</text>
       </view>
 
+      <view class="ink-divider"></view>
+
+      <!-- 正文描述 -->
       <view class="desc-box">
-        <text class="desc-text" style="color: {{cardTextColor}}">{{shareData.description}}</text>
+        <text class="desc-text font-body">{{shareData.body}}</text>
       </view>
 
-      <view class="lucky-section" style="background: {{cardTextColor}}10">
+      <view class="ink-divider"></view>
+
+      <!-- 幸运元素行 -->
+      <view class="lucky-section">
         <view class="lucky-item">
-          <view class="lucky-label-row">
-            <text class="lucky-label" style="color: {{cardTextColor}}80">幸运色</text>
-          </view>
-          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.color}}</text>
+          <text class="lucky-label font-body">幸运色</text>
+          <text class="lucky-value">{{shareData.lucky.color}}</text>
         </view>
 
-        <view class="divider" style="background: {{cardTextColor}}20"></view>
+        <view class="lucky-divider-line"></view>
 
         <view class="lucky-item">
-          <view class="lucky-label-row">
-            <text class="lucky-label" style="color: {{cardTextColor}}80">幸运数</text>
-          </view>
-          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.number}}</text>
+          <text class="lucky-label font-body">幸运数</text>
+          <text class="lucky-value">{{shareData.lucky.number}}</text>
         </view>
 
-        <view class="divider" style="background: {{cardTextColor}}20"></view>
+        <view class="lucky-divider-line"></view>
 
         <view class="lucky-item">
-          <view class="lucky-label-row">
-            <text class="lucky-label" style="color: {{cardTextColor}}80">吉位</text>
-          </view>
-          <text class="lucky-value" style="color: {{cardTextColor}}">{{shareData.lucky.direction}}</text>
+          <text class="lucky-label font-body">吉位</text>
+          <text class="lucky-value">{{shareData.lucky.direction}}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="quick-access">
+  <view class="section-group">
     <view class="section-header">
-      <text class="section-title">快速体验</text>
+      <text class="section-title font-ancient">快速体验</text>
     </view>
-    <view class="quick-access-grid">
-      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="synastry">
-        <view class="quick-access-icon-box accent-love">
-          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/love.svg'); mask-image: url('/images/icons/love.svg');"></view>
+    <view class="quick-grid">
+      <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="synastry">
+        <view class="quick-grid-icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/love.svg'); mask-image: url('/images/icons/love.svg');"></view>
         </view>
-        <text class="quick-access-title">双人合盘</text>
-        <text class="quick-access-subtitle">关系能量解析</text>
+        <text class="quick-grid-title">双人合盘</text>
+        <text class="quick-grid-desc font-body">关系能量解析</text>
       </view>
-      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="cbt">
-        <view class="quick-access-icon-box accent-psycho">
-          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/health.svg'); mask-image: url('/images/icons/health.svg');"></view>
+      <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="cbt">
+        <view class="quick-grid-icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/health.svg'); mask-image: url('/images/icons/health.svg');"></view>
         </view>
-        <text class="quick-access-title">CBT日记</text>
-        <text class="quick-access-subtitle">情绪觉察记录</text>
+        <text class="quick-grid-title">CBT日记</text>
+        <text class="quick-grid-desc font-body">情绪觉察记录</text>
       </view>
-      <view class="quick-access-item" bindtap="onNavigateToQuickAccess" data-type="ask">
-        <view class="quick-access-icon-box accent-mystic">
-          <view class="quick-access-icon colored-icon" style="-webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
+      <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="ask">
+        <view class="quick-grid-icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
         </view>
-        <text class="quick-access-title">AI问答</text>
-        <text class="quick-access-subtitle">星象即时咨询</text>
+        <text class="quick-grid-title">AI问答</text>
+        <text class="quick-grid-desc font-body">AI 深度咨询</text>
+      </view>
+      <view class="quick-grid-item" bindtap="onNavigateToChart" data-type="kline">
+        <view class="quick-grid-icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+        </view>
+        <text class="quick-grid-title">人生K线</text>
+        <text class="quick-grid-desc font-body">命运起伏趋势</text>
       </view>
     </view>
   </view>
 
-  <view class="my-chart">
-    <view class="section-header">
-      <text class="section-title">我的星盘</text>
-    </view>
-    <view class="my-chart-grid">
-      <view class="my-chart-card" bindtap="onNavigateToChart" data-type="natal">
-        <view class="my-chart-icon-box accent-gold">
-          <view class="my-chart-icon colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
+  <view class="home-annual-entry">
+    <view class="premium-banner annual-banner {{annualTaskStatus === 'processing' ? 'processing' : annualTaskStatus === 'completed' ? 'completed' : ''}}" bindtap="onAnnualReportTap">
+      <view class="premium-info">
+        <text class="premium-title">2026 流年大运报告</text>
+        <text class="premium-desc">
+          {{annualTaskStatus === 'none' ? '解锁全年运势指南' :
+            annualTaskStatus === 'pending' ? '任务排队中，请稍候...' :
+            annualTaskStatus === 'processing' ? '正在为你生成专属报告...' :
+            annualTaskStatus === 'completed' ? '查看你的专属年度运势' :
+            annualTaskStatus === 'failed' ? '生成失败，点击重试' : '解锁全年运势指南'}}
+        </text>
+        <view wx:if="{{annualTaskStatus === 'processing' || annualTaskStatus === 'pending'}}" class="banner-progress">
+          <view class="banner-progress-bar">
+            <view class="banner-progress-fill" style="width: {{annualTaskProgress || 0}}%"></view>
+          </view>
+          <text class="banner-progress-text">{{annualTaskProgress || 0}}%</text>
         </view>
-        <text class="my-chart-title">本命盘解读</text>
-        <text class="my-chart-subtitle">了解核心人格</text>
       </view>
-      <view class="my-chart-card" bindtap="onNavigateToChart" data-type="kline">
-        <view class="my-chart-icon-box accent-psycho">
-          <view class="my-chart-icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+      <view class="premium-btn {{annualTaskStatus === 'processing' || annualTaskStatus === 'pending' ? 'btn-processing' : ''}}">
+        {{annualTaskStatus === 'none' ? '立即解锁' :
+          annualTaskStatus === 'pending' ? '排队中' :
+          annualTaskStatus === 'processing' ? '生成中' :
+          annualTaskStatus === 'completed' ? '查看报告' :
+          annualTaskStatus === 'failed' ? '重试' : '立即解锁'}}
+      </view>
+    </view>
+  </view>
+
+  <view class="section-group">
+    <view class="section-header">
+      <text class="section-title font-ancient">我的星盘</text>
+    </view>
+    <view class="chart-grid">
+      <view class="chart-card" bindtap="onNavigateToChart" data-type="natal">
+        <view class="icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
         </view>
-        <text class="my-chart-title">人生k线图</text>
-        <text class="my-chart-subtitle">命运起伏趋势</text>
+        <view class="text-box">
+          <text class="item-title">本命盘解读</text>
+          <text class="item-subtitle font-body">了解核心人格</text>
+        </view>
+      </view>
+      <view class="chart-card" bindtap="onNavigateToChart" data-type="kline">
+        <view class="icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+        </view>
+        <view class="text-box">
+          <text class="item-title">人生k线图</text>
+          <text class="item-subtitle font-body">命运起伏趋势</text>
+        </view>
       </view>
     </view>
   </view>
 
   <view class="recommendations">
     <view class="section-header">
-      <text class="section-title">为你推荐</text>
+      <text class="section-title font-ancient">为你推荐</text>
     </view>
+
     <view class="recommendations-loading" wx:if="{{isLoadingRecommendations}}">
-      <text class="loading-text">推荐生成中...</text>
+      <text class="loading-text font-body">推荐生成中...</text>
     </view>
-    <view class="recommendations-empty" wx:if="{{!isLoadingRecommendations && recommendations.length === 0}}">
-      <text class="loading-text">暂无推荐</text>
-    </view>
-    <view class="recommendations-list" wx:if="{{!isLoadingRecommendations && recommendations.length > 0}}">
+
+    <view class="recommendations-list" wx:else>
       <block wx:for="{{recommendations}}" wx:key="id">
         <view class="recommendation-card" bindtap="onNavigateToRecommendation" data-route="{{item.route}}">
-          <view class="recommendation-icon-box {{item.accentClass}}">
-            <view class="recommendation-icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
+          <view class="recommendation-icon-box">
+            <view class="icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
           </view>
           <view class="recommendation-text">
             <text class="recommendation-title">{{item.title}}</text>
-            <text class="recommendation-subtitle">{{item.subtitle}}</text>
-            <text class="recommendation-category">{{item.category}}</text>
+            <text class="recommendation-category font-body">{{item.category}}</text>
           </view>
         </view>
+        <view class="ink-divider" wx:if="{{index < recommendations.length - 1}}"></view>
       </block>
     </view>
   </view>
 
-  <view class="modal-overlay" wx:if="{{showShareModal}}" bindtap="hideShareModal">
-    <view class="modal-content" catchtap="preventBubble">
-      <view class="modal-header">
-        <view class="modal-sparkle"></view>
-        <text class="modal-title">今日好运签</text>
-        <text class="modal-date">{{shareData.date}}</text>
+  <!-- Bottom breathing space -->
+  <view style="height: var(--breath-xxl);"></view>
+
+  <!-- 支付弹窗 -->
+  <view class="payment-mask" wx:if="{{showPayment}}" bindtap="closePayment" catchtouchmove="true"></view>
+  <view class="payment-sheet {{showPayment ? 'show' : ''}}" wx:if="{{showPayment}}">
+    <view class="payment-body">
+      <view class="payment-handle"></view>
+
+      <view class="payment-header">
+        <text class="payment-title font-ancient">{{paymentMeta.title}}</text>
+        <text class="payment-subtitle">{{paymentMeta.subtitle}}</text>
       </view>
-      <view class="modal-body">
-        <view class="modal-score-section">
-          <text class="modal-score">{{shareData.score}}</text>
-          <text class="modal-summary">{{shareData.summary}}</text>
+
+      <view class="payment-features">
+        <block wx:for="{{paymentMeta.features}}" wx:key="title">
+          <view class="payment-feature-item">
+            <view class="feature-icon">◈</view>
+            <view class="feature-content">
+              <text class="feature-title">{{item.title}}</text>
+              <text class="feature-desc">{{item.desc}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="payment-price-section">
+        <view class="payment-price-row">
+          <text class="payment-price-label">报告价格</text>
+          <view class="payment-price-value">
+            <text class="payment-price-num">{{paymentMeta.price}}</text>
+            <text class="payment-price-unit">积分</text>
+          </view>
         </view>
-        <text class="modal-desc">"{{shareData.description}}"</text>
-        <button class="save-btn" bindtap="onSaveShare">
-          <text>保存并分享</text>
-        </button>
+        <text class="payment-price-note">{{paymentMeta.note}}</text>
       </view>
-      <view class="close-btn" catchtap="hideShareModal">×</view>
+    </view>
+
+    <view class="payment-actions">
+      <button class="payment-btn-primary" bindtap="handlePay" loading="{{paymentLoading}}">
+        {{paymentLoading ? '生成中...' : '立即解锁'}}
+      </button>
+      <view class="payment-btn-cancel" bindtap="closePayment">稍后再说</view>
+    </view>
+  </view>
+
+  <!-- 全屏分享卡片弹窗 -->
+  <view class="share-overlay" wx:if="{{showShareModal}}" bindtap="hideShareModal">
+    <view class="share-card" catchtap="preventBubble">
+      <!-- 关闭按钮 -->
+      <view class="share-close" catchtap="hideShareModal">×</view>
+
+      <!-- 卡片内容 -->
+      <view class="share-card-body">
+        <text class="share-sign font-body">{{shareData.sunSign}}</text>
+        <text class="share-date font-body">{{shareData.date}}</text>
+        <text class="share-score-label font-body">运势</text>
+        <text class="share-score font-data">{{shareData.score}}分</text>
+        <text class="share-quote font-ancient">{{shareData.quote}}</text>
+      </view>
     </view>
   </view>
 </view>

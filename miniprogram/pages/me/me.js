@@ -1,25 +1,9 @@
 const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
-
-const ROUTE_TITLES = {
-  editProfile: '个人资料',
-  subscription: 'VIP 会员',
-  pointsRecharge: '积分充值',
-  reports: '我的报告',
-  records: '合盘记录',
-  settings: '偏好设置',
-  help: '帮助与反馈',
-};
-
-const NAVIGATE_ROUTES = {
-  reports: '/pages/reports/reports',
-  records: '/pages/records/records',
-};
+const { request } = require('../../utils/request');
 
 Page({
   data: {
-    currentRoute: 'menu',
-    routeTitle: '',
     userProfile: {},
     avatarUrl: '',
     isLoggedIn: false,
@@ -30,7 +14,7 @@ Page({
   onLoad() {
     const sysInfo = wx.getSystemInfoSync();
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight
+      statusBarHeight: sysInfo.statusBarHeight,
     });
   },
 
@@ -40,20 +24,48 @@ Page({
 
   loadUserProfile() {
     const profile = storage.get('user_profile') || {
-      name: 'Astrology Fan',
-      points: 8422,
-      reportCount: 12,
-      matchCount: 5,
-      isVip: true,
-      vipExpireDate: '2026-12-31'
+      name: '星智用户',
+      points: 0,
+      reportCount: 0,
+      matchCount: 0,
+      isVip: false,
+      vipExpireDate: '',
     };
-    const avatarUrl = storage.get('user_avatar') || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0';
+    const avatarUrl = storage.get('user_avatar') || '';
     const isLoggedIn = Boolean(storage.get('access_token'));
     this.setData({
       userProfile: profile,
       avatarUrl,
       isLoggedIn,
     });
+
+    // 尝试从后端同步最新数据
+    if (isLoggedIn) {
+      this.syncProfile();
+    }
+  },
+
+  async syncProfile() {
+    try {
+      const res = await request({ url: '/api/user/profile' });
+      if (res) {
+        const profile = storage.get('user_profile') || {};
+        profile.name = res.name || profile.name;
+        profile.points = res.points !== undefined ? res.points : profile.points;
+        profile.isVip = res.isVip !== undefined ? res.isVip : profile.isVip;
+        profile.vipExpireDate = res.vipExpireDate || profile.vipExpireDate;
+        storage.set('user_profile', profile);
+        if (res.avatarUrl) {
+          storage.set('user_avatar', res.avatarUrl);
+        }
+        this.setData({
+          userProfile: profile,
+          avatarUrl: res.avatarUrl || this.data.avatarUrl,
+        });
+      }
+    } catch (err) {
+      // 静默失败，使用本地数据
+    }
   },
 
   handleLogin() {
@@ -91,40 +103,94 @@ Page({
     });
   },
 
-  handleNav(e) {
-    const route = e.currentTarget.dataset.route;
-    if (!route) return;
-    if (NAVIGATE_ROUTES[route]) {
-      wx.navigateTo({ url: NAVIGATE_ROUTES[route] });
-      return;
-    }
-    this.setData({
-      currentRoute: route,
-      routeTitle: ROUTE_TITLES[route] || '',
-    });
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
   },
 
-  handleBack() {
-    this.setData({
-      currentRoute: 'menu',
-      routeTitle: '',
+  goToSubscription() {
+    wx.navigateTo({ url: '/pages/subscription/subscription' });
+  },
+
+  goToPoints() {
+    wx.navigateTo({ url: '/pages/points/points' });
+  },
+
+  goToReports() {
+    wx.navigateTo({ url: '/pages/reports/reports' });
+  },
+
+  goToRecords() {
+    wx.navigateTo({ url: '/pages/records/records' });
+  },
+
+  handleEditBirthInfo() {
+    wx.navigateTo({ url: '/pages/onboarding/onboarding?mode=edit' });
+  },
+
+  goToOrders() {
+    wx.navigateTo({ url: '/pages/orders/orders' });
+  },
+
+  goToAgreement(e) {
+    const type = e.currentTarget.dataset.type || 'terms';
+    wx.navigateTo({ url: `/pages/agreement/agreement?type=${type}` });
+  },
+
+  handleDeleteAccount() {
+    wx.showModal({
+      title: '注销账号',
+      content: '注销后您的所有数据（包括星盘报告、会员权益、积分余额）将被清除且无法恢复。请在输入框中输入"确认注销"以继续。',
+      editable: true,
+      placeholderText: '请输入"确认注销"',
+      confirmText: '注销',
+      confirmColor: '#8B0000',
+      success: async (res) => {
+        if (res.confirm) {
+          if (res.content !== '确认注销') {
+            wx.showToast({ title: '输入内容不正确', icon: 'none' });
+            return;
+          }
+          try {
+            await request({
+              url: '/api/user/delete-account',
+              method: 'DELETE',
+              data: { confirmText: '确认注销' },
+            });
+            // 清除本地缓存
+            auth.logout();
+            storage.remove('user_profile');
+            storage.remove('user_avatar');
+            wx.showToast({ title: '账号已注销', icon: 'success' });
+            setTimeout(() => {
+              wx.reLaunch({ url: '/pages/onboarding/onboarding' });
+            }, 1500);
+          } catch (err) {
+            wx.showToast({ title: '注销失败，请重试', icon: 'none' });
+          }
+        }
+      },
     });
   },
 
   handleLogout() {
-    auth.logout();
-    storage.remove('user_profile');
-    storage.remove('user_avatar');
-    this.setData({
-      currentRoute: 'menu',
-      routeTitle: '',
-      userProfile: {},
-      avatarUrl: '',
-      isLoggedIn: false,
-    });
-    wx.showToast({
-      title: '已退出登录',
-      icon: 'success',
+    wx.showModal({
+      title: '确认退出',
+      content: '退出登录后部分数据将无法同步',
+      confirmText: '退出',
+      confirmColor: '#333',
+      success: (res) => {
+        if (res.confirm) {
+          auth.logout();
+          storage.remove('user_profile');
+          storage.remove('user_avatar');
+          this.setData({
+            userProfile: {},
+            avatarUrl: '',
+            isLoggedIn: false,
+          });
+          wx.showToast({ title: '已退出登录', icon: 'success' });
+        }
+      },
     });
   },
 });

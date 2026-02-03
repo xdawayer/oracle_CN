@@ -4,6 +4,7 @@
 
 import path from 'path';
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { natalRouter } from './api/natal.js';
@@ -23,6 +24,14 @@ import entitlementsRouter from './api/entitlements.js';
 import entitlementsV2Router from './api/entitlementsV2.js';
 import reportsRouter from './api/reports.js';
 import gmRouter from './api/gm.js';
+import { calendarRouter } from './api/calendar.js';
+import { annualReportRouter } from './api/annual-report.js';
+import { annualTaskRouter } from './api/annual-task.js';
+import klineRouter from './api/kline.js';
+import { pairingRouter } from './api/pairing.js';
+import { reportRouter } from './api/report.js';
+import wxpayRouter from './api/wxpay.js';
+import { userRouter } from './api/user.js';
 import { apiResponseMiddleware } from './utils/apiResponse.js';
 
 const envPaths = [
@@ -40,10 +49,34 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
+app.use(compression({
+  filter: (req, res) => {
+    // SSE 流式端点不压缩，避免缓冲导致 ERR_INCOMPLETE_CHUNKED_ENCODING
+    // 注意：不能用 res.getHeader('Content-Type') 判断，因为 compression 中间件
+    // 在请求进入时就决定是否包装 response stream，此时 Content-Type 尚未设置
+    if (req.path.endsWith('/stream')) return false;
+    return compression.filter(req, res);
+  },
+}));
 
-// Raw body parser for Stripe webhook (must be before express.json())
+// 全局请求超时中间件（120s，与 AI 超时一致）
+// SSE 流式端点不设超时（由 AI 超时自身控制）
+app.use((req, res, next) => {
+  if (req.path.endsWith('/stream')) {
+    return next();
+  }
+  res.setTimeout(120_000, () => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Request timeout' });
+    }
+  });
+  next();
+});
+
+// Raw body parser for webhooks (must be before express.json())
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/payment/v2/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/wxpay/notify', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(apiResponseMiddleware);
@@ -68,9 +101,39 @@ app.use('/api/entitlements', entitlementsRouter);
 app.use('/api/entitlements', entitlementsV2Router);  // V2 路由挂载在 /v2 子路径
 app.use('/api/reports', reportsRouter);
 app.use('/api/gm', gmRouter);  // GM 测试命令
+app.use('/api/calendar', calendarRouter);  // 农历日历转换
+app.use('/api/annual-report', annualReportRouter);  // 2026 流年运势报告（SSE实时生成，已废弃）
+app.use('/api/annual-task', annualTaskRouter);  // 2026 流年运势报告（异步任务模式）
+app.use('/api/kline', klineRouter);  // 人生K线
+app.use('/api/pairing', pairingRouter);  // 星座配对
+app.use('/api/report', reportRouter);   // 通用报告（本命深度解读、流年运势等）
+app.use('/api/wxpay', wxpayRouter);    // 微信支付
+app.use('/api/user', userRouter);      // 用户资料
 
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
+
+// 启动时检查关键环境变量
+const checkEnvVars = () => {
+  const required = ['JWT_SECRET', 'WECHAT_APPID', 'WECHAT_APPSECRET'];
+  const wxpayVars = ['WECHAT_MCH_ID', 'WECHAT_API_KEY_V3', 'WECHAT_PRIVATE_KEY', 'WECHAT_NOTIFY_URL'];
+  const dbVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+
+  for (const v of required) {
+    if (!process.env[v]) console.warn(`[WARN] 缺少必需环境变量: ${v}`);
+  }
+
+  const missingWxpay = wxpayVars.filter(v => !process.env[v]);
+  if (missingWxpay.length > 0) {
+    console.warn(`[WARN] 微信支付未完整配置 (${missingWxpay.join(', ')})，支付功能将不可用`);
+  }
+
+  const missingDb = dbVars.filter(v => !process.env[v]);
+  if (missingDb.length > 0) {
+    console.warn(`[WARN] Supabase 未配置 (${missingDb.join(', ')})，使用内存存储`);
+  }
+};
+checkEnvVars();
 
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);

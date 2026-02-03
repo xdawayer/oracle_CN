@@ -1,0 +1,338 @@
+.page-container {
+  min-height: 100vh;
+  background-color: var(--paper-100);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-lg);
+  padding-bottom: 280rpx;
+}
+
+/* 步骤指示器 */
+.step-indicator {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.step-text {
+  font-size: 24rpx;
+  color: var(--ink-light);
+  letter-spacing: 4rpx;
+}
+
+/* 步骤内容区 */
+.step-content {
+  flex: 1;
+  animation: fadeIn 0.3s ease;
+}
+
+.step-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.step-title {
+  font-size: 44rpx;
+  color: var(--ink-deep);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 4rpx;
+}
+
+.step-desc {
+  font-size: 26rpx;
+  color: var(--ink-light);
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* 表单组 */
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-label {
+  font-size: 24rpx;
+  color: var(--ink-medium);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 2rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+.form-hint {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* Picker 样式 */
+.picker-display {
+  background: var(--paper-50);
+  border: 1rpx solid var(--border-color);
+  padding: 24rpx var(--spacing-lg);
+  height: 88rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.picker-display:active {
+  border-color: var(--ink-medium);
+}
+
+.picker-display.disabled {
+  background: var(--paper-200);
+  opacity: 0.6;
+}
+
+.picker-value {
+  font-size: 28rpx;
+  line-height: 40rpx;
+  color: var(--ink-deep);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+.picker-value.placeholder {
+  color: var(--ink-light);
+  line-height: 40rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: var(--ink-light);
+}
+
+/* 勾选框 */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+}
+
+.checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border: 1rpx solid var(--ink-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked {
+  background: var(--ink-deep);
+  border-color: var(--ink-deep);
+}
+
+.checkbox-mark {
+  font-size: 24rpx;
+  color: var(--paper-50);
+}
+
+.checkbox-label {
+  font-size: 26rpx;
+  color: var(--ink-medium);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* 城市搜索 */
+.city-search-wrap {
+  position: relative;
+}
+
+.city-input {
+  background: var(--paper-50);
+  border: 1rpx solid var(--border-color);
+  padding: 24rpx var(--spacing-lg);
+  font-size: 28rpx;
+  color: var(--ink-deep);
+  width: 100%;
+  height: 88rpx;
+  line-height: 40rpx;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* Input placeholder 样式 - 使用系统字体避免乱码 */
+.input-placeholder {
+  color: var(--ink-light);
+  font-size: 28rpx;
+  line-height: 40rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+.city-input:focus {
+  border-color: var(--ink-medium);
+}
+
+.city-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--paper-50);
+  border: 1rpx solid var(--border-color);
+  border-top: none;
+  z-index: 100;
+  max-height: 400rpx;
+  overflow-y: auto;
+  box-shadow: var(--shadow-md);
+}
+
+.city-item {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.city-item:last-child {
+  border-bottom: none;
+}
+
+.city-item:active {
+  background: var(--paper-200);
+}
+
+.city-item.no-result {
+  color: var(--ink-light);
+}
+
+.city-name {
+  font-size: 28rpx;
+  line-height: 40rpx;
+  color: var(--ink-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* 底部区域 */
+.bottom-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--paper-100);
+  padding: var(--spacing-lg);
+  border-top: 1rpx solid var(--border-color);
+}
+
+/* 信任标识 */
+.trust-badge {
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.trust-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  display: block;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+}
+
+/* 协议提示 */
+.agreement-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-sm);
+}
+
+.agreement-hint-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.agreement-link {
+  font-size: 22rpx;
+  color: var(--mountain-blue);
+}
+
+/* 按钮组 */
+.btn-group {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: stretch;
+}
+
+.btn-primary {
+  flex: 1;
+  background: var(--ink-deep);
+  color: var(--paper-50);
+  padding: 0 var(--spacing-lg);
+  text-align: center;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+}
+
+.btn-primary.disabled {
+  background: var(--ink-light);
+  opacity: 0.5;
+}
+
+.btn-back {
+  background: transparent;
+  border: 1rpx solid var(--ink-deep);
+  color: var(--ink-deep);
+  padding: 0 var(--spacing-lg);
+  text-align: center;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+}
+
+.btn-primary,
+.btn-back {
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-back:active {
+  background: var(--paper-200);
+}
+
+/* 加载状态 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(253, 251, 247, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: var(--ink-medium);
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

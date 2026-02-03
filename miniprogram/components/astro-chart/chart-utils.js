@@ -23,7 +23,11 @@ export function stripOuterPrefix(name) {
  */
 export function getAbsoluteAngle(sign, degree, minute = 0) {
   const signIndex = SIGN_NAMES.indexOf(sign);
-  return (signIndex * 30) + degree + (minute || 0) / 60;
+  if (signIndex < 0) {
+    console.warn(`[getAbsoluteAngle] Unknown sign: "${sign}", returning 0`);
+    return (Number(degree) || 0) + (Number(minute) || 0) / 60;
+  }
+  return (signIndex * 30) + (Number(degree) || 0) + (Number(minute) || 0) / 60;
 }
 
 /**

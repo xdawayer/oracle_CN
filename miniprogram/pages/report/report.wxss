@@ -1,0 +1,297 @@
+/* report.wxss - 通用报告页面样式 */
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--paper-100);
+}
+
+/* 头部 */
+.header {
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  text-align: center;
+  background-color: var(--paper-50);
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.header-title {
+  font-size: 56rpx;
+  color: var(--ink-deep);
+  margin-bottom: var(--spacing-xs);
+  display: block;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  color: var(--ink-light);
+  line-height: 1.6;
+  display: block;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl) var(--spacing-lg);
+  min-height: 400rpx;
+  flex: 1;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid var(--border-color);
+  border-top-color: var(--ink-deep);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: var(--spacing-md);
+  font-size: 28rpx;
+  color: var(--ink-medium);
+}
+
+/* 进度条 */
+.progress-bar-container {
+  width: 100%;
+  max-width: 500rpx;
+  height: 8rpx;
+  background: var(--border-color);
+  border-radius: 4rpx;
+  margin-top: var(--spacing-lg);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--ink-deep);
+  border-radius: 4rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  margin-top: var(--spacing-sm);
+  font-size: 24rpx;
+  color: var(--ink-light);
+}
+
+/* 报告内容区域 */
+.report-content {
+  flex: 1;
+}
+
+/* 生成中提示 */
+.generating-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: linear-gradient(90deg, var(--paper-50), var(--paper-100), var(--paper-50));
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.generating-dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: var(--ink-deep);
+  border-radius: 50%;
+  margin-right: var(--spacing-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.generating-text {
+  font-size: 24rpx;
+  color: var(--ink-medium);
+}
+
+/* 模块区块 */
+.module-section {
+  margin: var(--spacing-lg) var(--spacing-lg);
+  background: var(--paper-50);
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.module-header {
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.module-title {
+  font-size: 36rpx;
+  color: var(--ink-deep);
+  font-weight: 500;
+}
+
+.module-body {
+  padding: var(--spacing-lg);
+}
+
+/* ========== 模块顶部色条 ========== */
+.module-accent {
+  height: 6rpx;
+  border-radius: 16rpx 16rpx 0 0;
+  background: var(--ink-deep);
+}
+
+/* 本命盘模块配色 */
+.module-accent-overview  { background: linear-gradient(90deg, #5b6abf, #7b8ad0); }
+.module-accent-love      { background: linear-gradient(90deg, #d4707a, #e8939b); }
+.module-accent-career    { background: linear-gradient(90deg, #4a7fb5, #6a9fd0); }
+.module-accent-emotion   { background: linear-gradient(90deg, #8b6daf, #a88bc6); }
+.module-accent-mind      { background: linear-gradient(90deg, #4a9b8e, #6ab5a8); }
+.module-accent-wealth    { background: linear-gradient(90deg, #c49a3c, #d4b35c); }
+.module-accent-health    { background: linear-gradient(90deg, #5a9e5a, #7ab87a); }
+.module-accent-soul      { background: linear-gradient(90deg, #6b5b95, #8b7bb5); }
+
+/* 流年报告模块配色 */
+.module-accent-social    { background: linear-gradient(90deg, #d4855a, #e8a57a); }
+.module-accent-growth    { background: linear-gradient(90deg, #4a9b8e, #6ab5a8); }
+.module-accent-q1        { background: linear-gradient(90deg, #6aaa6a, #8ac48a); }
+.module-accent-q2        { background: linear-gradient(90deg, #d4a03c, #e8c05c); }
+.module-accent-q3        { background: linear-gradient(90deg, #d47a3c, #e89a5c); }
+.module-accent-q4        { background: linear-gradient(90deg, #5b82bf, #7ba2d0); }
+.module-accent-lucky     { background: linear-gradient(90deg, #c49a3c, #d4b35c); }
+
+/* 爱情专题模块配色（粉红→玫瑰色渐变） */
+.module-accent-personality { background: linear-gradient(90deg, #E8A0BF, #F0B8CF); }
+.module-accent-partner     { background: linear-gradient(90deg, #D4707A, #E8939B); }
+/* growth 已有定义，爱情专题复用 */
+.module-accent-forecast    { background: linear-gradient(90deg, #8B6DAF, #A88BC6); }
+
+/* 事业专题模块配色（蓝紫色系） */
+.module-accent-talent      { background: linear-gradient(90deg, #7B8CDE, #9AABE8); }
+.module-accent-workplace   { background: linear-gradient(90deg, #5B6ABF, #7B8AD0); }
+.module-accent-mission     { background: linear-gradient(90deg, #6B5B95, #8B7BB5); }
+
+/* 财富专题模块配色（金色系） */
+.module-accent-money-relation { background: linear-gradient(90deg, #D4A853, #E8C273); }
+.module-accent-potential      { background: linear-gradient(90deg, #C49A3C, #D4B35C); }
+.module-accent-blindspot      { background: linear-gradient(90deg, #B88A2C, #C8A44C); }
+
+/* 月度报告模块配色 */
+.module-accent-tone        { background: linear-gradient(90deg, #5b6abf, #7b8ad0); }
+.module-accent-dimensions  { background: linear-gradient(90deg, #8b6daf, #a88bc6); }
+.module-accent-rhythm      { background: linear-gradient(90deg, #4a9b8e, #6ab5a8); }
+.module-accent-lunar       { background: linear-gradient(90deg, #6b5b95, #8b7bb5); }
+.module-accent-dates       { background: linear-gradient(90deg, #d4855a, #e8a57a); }
+.module-accent-actions     { background: linear-gradient(90deg, #5a9e5a, #7ab87a); }
+
+/* 模块标题着色 */
+.module-title-overview   { color: #5b6abf; }
+.module-title-love       { color: #d4707a; }
+.module-title-career     { color: #4a7fb5; }
+.module-title-emotion    { color: #8b6daf; }
+.module-title-mind       { color: #4a9b8e; }
+.module-title-wealth     { color: #c49a3c; }
+.module-title-health     { color: #5a9e5a; }
+.module-title-soul       { color: #6b5b95; }
+.module-title-social     { color: #d4855a; }
+.module-title-growth     { color: #4a9b8e; }
+.module-title-q1         { color: #6aaa6a; }
+.module-title-q2         { color: #d4a03c; }
+.module-title-q3         { color: #d47a3c; }
+.module-title-q4         { color: #5b82bf; }
+.module-title-lucky      { color: #c49a3c; }
+
+/* 爱情专题模块标题色 */
+.module-title-personality { color: #E8A0BF; }
+.module-title-partner     { color: #D4707A; }
+.module-title-forecast    { color: #8B6DAF; }
+
+/* 事业专题模块标题色 */
+.module-title-talent      { color: #7B8CDE; }
+.module-title-workplace   { color: #5B6ABF; }
+.module-title-mission     { color: #6B5B95; }
+
+/* 财富专题模块标题色 */
+.module-title-money-relation { color: #D4A853; }
+.module-title-potential      { color: #C49A3C; }
+.module-title-blindspot      { color: #B88A2C; }
+
+/* 月度报告模块标题色 */
+.module-title-tone        { color: #5b6abf; }
+.module-title-dimensions  { color: #8b6daf; }
+.module-title-rhythm      { color: #4a9b8e; }
+.module-title-lunar       { color: #6b5b95; }
+.module-title-dates       { color: #d4855a; }
+.module-title-actions     { color: #5a9e5a; }
+
+/* Markdown 内容样式 */
+.markdown-content {
+  font-size: 28rpx;
+  color: var(--ink-medium);
+  line-height: 1.8;
+  word-break: break-all;
+}
+
+/* 模块占位符 */
+.module-placeholder {
+  margin: var(--spacing-lg) var(--spacing-lg);
+  padding: var(--spacing-xxl);
+  background: var(--paper-50);
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx dashed var(--border-color);
+}
+
+.placeholder-text {
+  font-size: 26rpx;
+  color: var(--ink-light);
+}
+
+/* 底部留白 */
+.bottom-spacer {
+  height: 120rpx;
+}
+
+/* 错误容器 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xxl);
+  flex: 1;
+  justify-content: center;
+}
+
+.error-title {
+  font-size: 32rpx;
+  color: var(--ink-deep);
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-message {
+  font-size: 26rpx;
+  color: var(--ink-light);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+/* 重试按钮 */
+.retry-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--ink-deep);
+  border-radius: 8rpx;
+}
+
+.retry-btn text {
+  font-size: 26rpx;
+  color: var(--paper-50);
+}

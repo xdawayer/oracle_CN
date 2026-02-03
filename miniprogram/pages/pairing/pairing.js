@@ -1,3 +1,6 @@
+const { request } = require('../../utils/request');
+const { API_ENDPOINTS } = require('../../services/api');
+
 const ZODIAC_SIGNS = [
   { id: 'aries', name: '白羊座', emoji: 'ARI', element: 'fire' },
   { id: 'taurus', name: '金牛座', emoji: 'TAU', element: 'earth' },
@@ -43,22 +46,17 @@ Page({
   data: {
     zodiacSigns: ZODIAC_SIGNS,
     animalSigns: ANIMAL_SIGNS,
-    
+
     signAIndex: 0,
     animalAIndex: 0,
     signBIndex: 1,
     animalBIndex: 1,
-    
+
+    step: 1,
     loading: false,
-    loadingText: '同步星盘数据...',
-    showResult: false,
+    aiLoading: false,
     finalData: null,
-    dimensionLabels: [
-      { key: 'emotional', label: '情感' },
-      { key: 'personality', label: '性格' },
-      { key: 'communication', label: '沟通' },
-      { key: 'potential', label: '潜力' }
-    ],
+    aiData: null,
     iconErrorA: false,
     iconErrorB: false
   },
@@ -67,13 +65,13 @@ Page({
   },
 
   bindSignAChange(e) {
-    this.setData({ signAIndex: parseInt(e.detail.value) });
+    this.setData({ signAIndex: parseInt(e.detail.value), iconErrorA: false });
   },
   bindAnimalAChange(e) {
     this.setData({ animalAIndex: parseInt(e.detail.value) });
   },
   bindSignBChange(e) {
-    this.setData({ signBIndex: parseInt(e.detail.value) });
+    this.setData({ signBIndex: parseInt(e.detail.value), iconErrorB: false });
   },
   bindAnimalBChange(e) {
     this.setData({ animalBIndex: parseInt(e.detail.value) });
@@ -87,7 +85,8 @@ Page({
     this.setData({ iconErrorB: true });
   },
 
-  calculateResult() {
+  // 前端快速预计算（作为兜底和即时反馈）
+  calculateQuickResult() {
     const signA = ZODIAC_SIGNS[this.data.signAIndex];
     const animalA = ANIMAL_SIGNS[this.data.animalAIndex];
     const signB = ZODIAC_SIGNS[this.data.signBIndex];
@@ -98,7 +97,9 @@ Page({
       emotional: 60,
       personality: 60,
       communication: 60,
-      potential: 60
+      potential: 60,
+      rhythm: 60,
+      values: 60
     };
 
     const match = ZODIAC_MATCH_DATA[signA.id];
@@ -106,58 +107,146 @@ Page({
       score += 20;
       dims.emotional += 30;
       dims.communication += 25;
+      dims.personality += 15;
     } else if (match.poor.includes(signB.id)) {
       score -= 10;
       dims.potential -= 20;
+      dims.rhythm -= 10;
     } else {
       score += 5;
       dims.personality += 10;
+      dims.values += 10;
     }
 
     if (ANIMAL_BONUS[animalA] && ANIMAL_BONUS[animalA].includes(animalB)) {
       score += 8;
       dims.potential += 15;
+      dims.values += 10;
     }
 
     const finalScore = Math.min(98, Math.max(50, score));
-
     Object.keys(dims).forEach(k => {
       dims[k] = Math.min(100, Math.max(35, dims[k]));
     });
 
-    const isHighScore = finalScore >= 85;
-    const analysisText = isHighScore
-      ? `你们的能量场在接触的一瞬间便产生了某种“跨越时空的既视感”。${signA.name}与${signB.name}的结合，往往在价值观上有着天然的共振，即便是在沉默中，你们也能感知到对方的频率。属${animalA}与属${animalB}的生肖加持，让这段关系多了一层“天注定”的稳固感。`
-      : `这是一段充满“挑战性魅力”的关系。你们在某些核心层面上存在差异，但这正是吸引力产生的根源。虽然在${dims.communication < 60 ? '日常沟通中可能存在某些微妙的错位' : '生活习惯上需要更多的耐心'}，但只要愿意尝试站在对方的视角看世界，这段关系将带来巨大的自我突破。`;
-
     return {
       score: finalScore,
-      dims,
+      dimensions: [
+        { key: 'emotional', label: '情感共鸣', score: dims.emotional, desc: '' },
+        { key: 'personality', label: '性格互补', score: dims.personality, desc: '' },
+        { key: 'communication', label: '沟通默契', score: dims.communication, desc: '' },
+        { key: 'potential', label: '长期潜力', score: dims.potential, desc: '' },
+        { key: 'rhythm', label: '生活节奏', score: dims.rhythm, desc: '' },
+        { key: 'values', label: '价值观', score: dims.values, desc: '' }
+      ],
+      analysis: '',
+      tips: [],
       signA,
       signB,
       animalA,
-      animalB,
-      analysisText
+      animalB
     };
   },
 
   handleMatch() {
     if (this.data.loading) return;
 
-    this.setData({ 
-      loading: true,
-      loadingText: '正在计算...'
+    this.setData({ loading: true });
+
+    const quickResult = this.calculateQuickResult();
+
+    // 立即切换到报告页面，显示快速预计算结果
+    this.setData({
+      step: 2,
+      loading: false,
+      aiLoading: true,
+      finalData: quickResult,
+      aiData: null
     });
 
-    const result = this.calculateResult();
-    this.setData({
-      finalData: result,
-      loading: false,
-      showResult: true
-    });
+    wx.setNavigationBarTitle({ title: '配对报告' });
+
+    // 异步请求 AI 深度分析
+    this.fetchAIAnalysis(quickResult);
   },
 
-  closeResult() {
-    this.setData({ showResult: false });
+  async fetchAIAnalysis(quickResult) {
+    try {
+      const res = await request({
+        url: API_ENDPOINTS.PAIRING,
+        method: 'POST',
+        data: {
+          signA: quickResult.signA.id,
+          signB: quickResult.signB.id,
+          animalA: quickResult.animalA,
+          animalB: quickResult.animalB
+        }
+      });
+
+      if (res && res.content) {
+        const aiContent = res.content;
+        // 用 AI 结果替换维度描述、分析文字和建议
+        // 以 quickResult 维度为基准合并，防止 AI 返回数量不一致
+        const aiDims = aiContent.dimensions || [];
+        const merged = {
+          ...quickResult,
+          score: aiContent.score || quickResult.score,
+          dimensions: quickResult.dimensions.map((qd, i) => {
+            const ad = aiDims[i];
+            return ad
+              ? { ...qd, score: ad.score || qd.score, desc: ad.desc || '' }
+              : qd;
+          }),
+          analysis: aiContent.analysis || '',
+          tips: aiContent.tips || []
+        };
+
+        this.setData({
+          finalData: merged,
+          aiData: aiContent,
+          aiLoading: false
+        });
+      } else {
+        this.setData({ aiLoading: false });
+      }
+    } catch (error) {
+      console.error('Pairing AI Error:', error);
+      this.setData({ aiLoading: false });
+    }
+  },
+
+  goBack() {
+    this.setData({
+      step: 1,
+      finalData: null,
+      aiData: null,
+      aiLoading: false
+    });
+    wx.setNavigationBarTitle({ title: '星缘速配' });
+  },
+
+  goToAsk() {
+    const { finalData, aiData } = this.data;
+    if (!finalData) return;
+
+    const summary = aiData
+      ? (aiData.analysis || '').substring(0, 100)
+      : `${finalData.signA.name}与${finalData.signB.name}的配对契合度${finalData.score}%`;
+
+    const params = [
+      `from=pairing`,
+      `signA=${finalData.signA.id}`,
+      `signB=${finalData.signB.id}`,
+      `signAName=${encodeURIComponent(finalData.signA.name)}`,
+      `signBName=${encodeURIComponent(finalData.signB.name)}`,
+      `animalA=${encodeURIComponent(finalData.animalA)}`,
+      `animalB=${encodeURIComponent(finalData.animalB)}`,
+      `score=${finalData.score}`,
+      `summary=${encodeURIComponent(summary)}`
+    ].join('&');
+
+    wx.navigateTo({
+      url: `/pages/ask/ask?${params}`
+    });
   }
 });

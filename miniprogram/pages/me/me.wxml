@@ -1,132 +1,94 @@
 <view class="page-container">
-  <!-- 顶部状态栏和导航栏占位 -->
   <view class="nav-placeholder" style="height: {{statusBarHeight + 44}}px"></view>
-  
-  <view wx:if="{{currentRoute === 'menu'}}" class="menu-view">
-    <!-- 用户信息头部 -->
-    <view class="user-header">
+
+  <view class="menu-view">
+    <!-- 用户头部 -->
+    <view class="user-header ink-border" bindtap="goToProfile">
       <view class="avatar-wrap">
         <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
         <view class="avatar placeholder" wx:else>
           <text class="avatar-text">U</text>
         </view>
-        <view class="vip-badge-small" wx:if="{{userProfile.isVip}}">
-          <text class="vip-icon-small">🛡️</text>
-        </view>
       </view>
       <view class="user-info">
         <view class="name-row">
-          <text class="user-name">{{userProfile.name || '星智用户'}}</text>
-          <text class="chevron-right">></text>
+          <text class="user-name font-ancient">{{userProfile.name || '星智用户'}}</text>
+          <text class="name-chevron">></text>
         </view>
         <view class="vip-status-tag" wx:if="{{userProfile.isVip}}">
-          <text class="vip-tag-text">VIP 订阅会员</text>
+          <text class="vip-tag-text">尊享会员</text>
         </view>
       </view>
     </view>
 
-    <!-- VIP 会员卡片 -->
-    <view class="vip-card" bindtap="handleNav" data-route="subscription">
+    <!-- 会员卡片 -->
+    <view class="vip-card ink-border" bindtap="goToSubscription">
       <view class="vip-card-header">
-        <view class="vip-title-group">
-          <text class="vip-card-title">VIP 会员</text>
-          <text class="vip-card-icon">👑</text>
-        </view>
-        <view class="vip-expiry-badge" wx:if="{{userProfile.isVip}}">
+        <text class="vip-card-title font-ancient">会员中心</text>
+        <view class="vip-expiry-badge" wx:if="{{userProfile.isVip && userProfile.vipExpireDate}}">
           <text class="expiry-text">{{userProfile.vipExpireDate}} 到期</text>
+        </view>
+        <view class="vip-expiry-badge" wx:elif="{{!userProfile.isVip}}">
+          <text class="expiry-text">开通会员</text>
         </view>
       </view>
       <view class="vip-card-link">
-        <text class="link-text">查看您的专属会员权益</text>
-        <text class="link-chevron">></text>
-      </view>
-      
-      <view class="vip-benefits">
-        <view class="benefit-item">
-          <view class="benefit-icon-bg benefit-gold">
-            <text class="benefit-icon">✨</text>
-          </view>
-          <text class="benefit-label">专业解答</text>
-        </view>
-        <view class="benefit-divider"></view>
-        <view class="benefit-item">
-          <view class="benefit-icon-bg benefit-brown">
-            <text class="benefit-icon">🧠</text>
-          </view>
-          <text class="benefit-label">深度心理</text>
-        </view>
-        <view class="benefit-divider"></view>
-        <view class="benefit-item">
-          <view class="benefit-icon-bg benefit-light-gold">
-            <text class="benefit-icon">🧡</text>
-          </view>
-          <text class="benefit-label">缘分合盘</text>
-        </view>
+        <text class="link-text">查看专属权益 ></text>
       </view>
     </view>
 
-    <!-- 数据统计卡片 -->
-    <view class="stats-card">
-      <view class="stat-item">
-        <text class="stat-value">{{userProfile.points || 0}}</text>
+    <!-- 统计卡片 -->
+    <view class="stats-card ink-border">
+      <view class="stat-item" bindtap="goToPoints">
+        <text class="stat-value font-ancient">{{userProfile.points || 0}}</text>
         <text class="stat-label">积分</text>
       </view>
       <view class="stat-divider"></view>
-      <view class="stat-item" bindtap="handleNav" data-route="reports">
-        <text class="stat-value">{{userProfile.reportCount || 0}}</text>
-        <text class="stat-label">收藏报告</text>
+      <view class="stat-item" bindtap="goToReports">
+        <text class="stat-value font-ancient">{{userProfile.reportCount || 0}}</text>
+        <text class="stat-label">收藏</text>
       </view>
       <view class="stat-divider"></view>
-      <view class="stat-item" bindtap="handleNav" data-route="records">
-        <text class="stat-value">{{userProfile.matchCount || 0}}</text>
-        <text class="stat-label">合盘记录</text>
+      <view class="stat-item" bindtap="goToRecords">
+        <text class="stat-value font-ancient">{{userProfile.matchCount || 0}}</text>
+        <text class="stat-label">合盘</text>
       </view>
     </view>
 
-    <!-- 功能列表 -->
-    <view class="menu-list">
-      <view class="menu-list-item" bindtap="handleNav" data-route="settings">
-        <view class="menu-item-left">
-          <view class="menu-icon-bg">
-            <text class="menu-icon">⚙️</text>
-          </view>
-          <text class="menu-item-label">偏好设置</text>
-        </view>
+    <!-- 菜单列表 -->
+    <view class="menu-list ink-border">
+      <view class="menu-list-item" bindtap="handleEditBirthInfo">
+        <text class="menu-item-label">编辑出生资料</text>
         <text class="menu-item-chevron">></text>
       </view>
-      <view class="menu-list-item" bindtap="handleNav" data-route="help">
-        <view class="menu-item-left">
-          <view class="menu-icon-bg">
-            <text class="menu-icon">💬</text>
-          </view>
-          <text class="menu-item-label">帮助与反馈</text>
-        </view>
+      <view class="menu-list-item" bindtap="goToProfile">
+        <text class="menu-item-label">个人资料</text>
+        <text class="menu-item-chevron">></text>
+      </view>
+      <view class="menu-list-item" bindtap="goToOrders">
+        <text class="menu-item-label">订单管理</text>
         <text class="menu-item-chevron">></text>
       </view>
     </view>
 
-    <!-- 退出登录 -->
-    <view class="menu-list logout-list">
-      <view class="menu-list-item" bindtap="handleLogout">
-        <view class="menu-item-left">
-          <view class="menu-icon-bg logout-icon-bg">
-            <text class="menu-icon">↳</text>
-          </view>
-          <text class="menu-item-label logout-label">退出登录</text>
-        </view>
+    <!-- 协议与设置 -->
+    <view class="menu-list ink-border">
+      <view class="menu-list-item" bindtap="goToAgreement" data-type="terms">
+        <text class="menu-item-label">用户协议</text>
         <text class="menu-item-chevron">></text>
       </view>
-    </view>
-  </view>
-
-  <view wx:if="{{currentRoute !== 'menu'}}" class="sub-view">
-    <view class="sub-header">
-      <view class="back-btn" bindtap="handleBack">返回</view>
-      <text class="sub-title">{{routeTitle}}</text>
-      <view class="sub-placeholder"></view>
-    </view>
-    <view class="sub-content">
-      <text class="sub-desc">该功能正在完善中，请稍后再试。</text>
+      <view class="menu-list-item" bindtap="goToAgreement" data-type="privacy">
+        <text class="menu-item-label">隐私政策</text>
+        <text class="menu-item-chevron">></text>
+      </view>
+      <view class="menu-list-item logout-item" bindtap="handleLogout">
+        <text class="menu-item-label">退出登录</text>
+        <text class="menu-item-chevron">></text>
+      </view>
+      <view class="menu-list-item danger-item" bindtap="handleDeleteAccount">
+        <text class="menu-item-label">注销账号</text>
+        <text class="menu-item-chevron">></text>
+      </view>
     </view>
   </view>
 </view>

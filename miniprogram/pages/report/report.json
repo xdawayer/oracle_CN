@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "深度解读",
+  "navigationBarBackgroundColor": "#FDFBF7",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FDFBF7",
+  "enablePullDownRefresh": false,
+  "usingComponents": {}
+}
