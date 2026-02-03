@@ -52,6 +52,7 @@ export const klineYearDimensionsPrompt: PromptTemplate = {
 - 不要堆砌术语，用大白话讲清楚
 - 避免过度消极表述，即使分数低也要给出积极的应对建议
 - 所有内容使用简体中文
+- 纯文本输出，禁止使用 Markdown 格式（如 **加粗**、*斜体*、# 标题等）
 
 ${JSON_OUTPUT_INSTRUCTION}`,
 

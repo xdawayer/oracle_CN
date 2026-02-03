@@ -74,6 +74,7 @@ export const klineLifeScrollPrompt: PromptTemplate = {
 - 避免过度消极表述，即使在挑战期也要给出希望和出路
 - 要有具体的、可执行的建议，不要泛泛而谈
 - 所有内容使用简体中文
+- 纯文本输出，禁止使用 Markdown 格式（如 **加粗**、*斜体*、# 标题等）
 - 用户的元素特质（火/土/风/水）要贯穿全文，形成个性化的差异
 
 ${JSON_OUTPUT_INSTRUCTION}`,

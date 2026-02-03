@@ -131,21 +131,24 @@ router.get('/year-report', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '年份参数无效' });
     }
 
-    // 权限校验
+    // 权限校验（开发环境跳过）
+    const isDev = process.env.NODE_ENV !== 'production';
     let requiresPayment = false;
-    const userId = req.userId;
-    if (userId) {
-      const entitlements = await entitlementServiceV2.getEntitlements(userId);
-      requiresPayment = !entitlements.isSubscriber && !entitlements.isTrialing;
-    } else {
-      requiresPayment = true;
-    }
+    if (!isDev) {
+      const userId = req.userId;
+      if (userId) {
+        const entitlements = await entitlementServiceV2.getEntitlements(userId);
+        requiresPayment = !entitlements.isSubscriber && !entitlements.isTrialing;
+      } else {
+        requiresPayment = true;
+      }
 
-    if (requiresPayment) {
-      return res.json({
-        requiresPayment: true,
-        report: null,
-      });
+      if (requiresPayment) {
+        return res.json({
+          requiresPayment: true,
+          report: null,
+        });
+      }
     }
 
     // 生成K线数据找到目标年份
@@ -256,21 +259,24 @@ router.get('/life-scroll', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '出生日期格式无效' });
     }
 
-    // 权限校验
+    // 权限校验（开发环境跳过）
+    const isDev = process.env.NODE_ENV !== 'production';
     let requiresPayment = false;
-    const userId = req.userId;
-    if (userId) {
-      const entitlements = await entitlementServiceV2.getEntitlements(userId);
-      requiresPayment = !entitlements.isSubscriber && !entitlements.isTrialing;
-    } else {
-      requiresPayment = true;
-    }
+    if (!isDev) {
+      const userId = req.userId;
+      if (userId) {
+        const entitlements = await entitlementServiceV2.getEntitlements(userId);
+        requiresPayment = !entitlements.isSubscriber && !entitlements.isTrialing;
+      } else {
+        requiresPayment = true;
+      }
 
-    if (requiresPayment) {
-      return res.json({
-        requiresPayment: true,
-        report: null,
-      });
+      if (requiresPayment) {
+        return res.json({
+          requiresPayment: true,
+          report: null,
+        });
+      }
     }
 
     const hour = parseBirthTime(birthTime as string | undefined);

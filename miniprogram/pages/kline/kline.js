@@ -6,6 +6,26 @@ const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
 const storage = require('../../utils/storage');
 
+/**
+ * 递归清理对象中所有字符串的 Markdown 标记（**、*、#等）
+ */
+function stripMarkdown(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripMarkdown);
+  }
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = stripMarkdown(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
 // 天干地支
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
@@ -68,7 +88,7 @@ Page({
     isSubscriber: false,
 
     // 开发模式 - 生产环境务必设为 false
-    devMode: false,
+    devMode: true,
 
     // 报告内容
     reportContent: {
@@ -412,7 +432,7 @@ Page({
         timeout: 120000
       });
 
-      if (res && res.requiresPayment) {
+      if (res && res.requiresPayment && !this.data.devMode) {
         // 需要付费
         this.setData({ yearReportLoading: false });
         wx.showModal({
@@ -432,7 +452,7 @@ Page({
 
       if (res && res.report) {
         this.setData({
-          selectedYearReport: res.report,
+          selectedYearReport: stripMarkdown(res.report),
           yearReportLoading: false,
           yearReportError: false
         });
@@ -469,7 +489,7 @@ Page({
 
       if (res && res.report) {
         this.setData({
-          reportContent: res.report,
+          reportContent: stripMarkdown(res.report),
           lifeScrollLoading: false,
           lifeScrollError: false
         });

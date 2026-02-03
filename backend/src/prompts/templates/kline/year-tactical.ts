@@ -63,6 +63,7 @@ export const klineYearTacticalPrompt: PromptTemplate = {
 ## 通用规则
 - 语气年轻化、接地气，像朋友聊天
 - 所有内容使用简体中文
+- 纯文本输出，禁止使用 Markdown 格式（如 **加粗**、*斜体*、# 标题等）
 - 不要堆砌占星/命理术语
 
 ${JSON_OUTPUT_INSTRUCTION}`,
