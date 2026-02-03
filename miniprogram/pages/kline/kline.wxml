@@ -153,6 +153,30 @@
 
     <!-- 报告视图 -->
     <block wx:if="{{viewMode === 'report'}}">
+      <!-- 人生长卷加载中 -->
+      <view class="life-scroll-loading" wx:if="{{lifeScrollLoading}}">
+        <view class="loading-spinner large"></view>
+        <text class="loading-text">AI 正在生成你的人生长卷...</text>
+        <text class="loading-hint">首次生成需要等待片刻</text>
+      </view>
+
+      <!-- 人生长卷加载失败 -->
+      <view class="life-scroll-error" wx:if="{{lifeScrollError && !lifeScrollLoading}}">
+        <text class="error-text">人生长卷生成失败</text>
+        <view class="retry-btn" bindtap="retryLifeScroll">
+          <text>重新生成</text>
+        </view>
+      </view>
+
+      <!-- 未登录/无数据引导 -->
+      <view class="life-scroll-empty" wx:if="{{!lifeScrollLoading && !lifeScrollError && !reportContent.overview && !userInfo}}">
+        <text class="empty-text">完善出生信息后</text>
+        <text class="empty-text">即可生成你的专属人生长卷</text>
+        <view class="empty-btn" bindtap="goToProfile">
+          <text>去完善</text>
+        </view>
+      </view>
+
       <!-- 报告章节 - 卷轴展开式 -->
       <view class="scroll-section">
         <view class="scroll-header" bindtap="toggleSection" data-section="overview">
@@ -274,13 +298,27 @@
         </view>
       </view>
 
+      <!-- 年度报告加载中 -->
+      <view class="sheet-loading" wx:if="{{yearReportLoading}}">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">AI 正在分析{{selectedYear.year}}年运势...</text>
+      </view>
+
+      <!-- 年度报告加载失败 -->
+      <view class="sheet-error" wx:if="{{yearReportError && !yearReportLoading}}">
+        <text class="error-text">报告生成失败，请重试</text>
+        <view class="retry-btn" bindtap="retryYearReport">
+          <text>重新生成</text>
+        </view>
+      </view>
+
       <!-- 年度主题 -->
-      <view class="sheet-theme" wx:if="{{selectedYearReport}}">
+      <view class="sheet-theme" wx:if="{{selectedYearReport && !yearReportLoading}}">
         <text>{{selectedYearReport.theme}}</text>
       </view>
 
       <!-- Tab 切换 -->
-      <scroll-view scroll-x class="sheet-tabs" enhanced show-scrollbar="{{false}}">
+      <scroll-view scroll-x class="sheet-tabs" enhanced show-scrollbar="{{false}}" wx:if="{{selectedYearReport && !yearReportLoading && !yearReportError}}">
         <view class="tabs-inner">
           <view
             wx:for="{{detailTabs}}"
@@ -295,7 +333,7 @@
       </scroll-view>
 
       <!-- Tab 内容 -->
-      <scroll-view scroll-y class="sheet-body" show-scrollbar="false">
+      <scroll-view scroll-y class="sheet-body" show-scrollbar="false" wx:if="{{selectedYearReport && !yearReportLoading && !yearReportError}}">
         <!-- 概览 -->
         <view class="tab-panel" wx:if="{{activeTab === 'overview' && selectedYearReport}}">
           <!-- OHLC 数据 -->

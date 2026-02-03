@@ -33,6 +33,7 @@ const API_ENDPOINTS = {
   // 人生K线
   KLINE_GENERATE: '/api/kline/generate',
   KLINE_YEAR_REPORT: '/api/kline/year-report',
+  KLINE_LIFE_SCROLL: '/api/kline/life-scroll',
   // 星座配对
   PAIRING: '/api/pairing',
   // 合盘并行（overview + coreDynamics + highlights）

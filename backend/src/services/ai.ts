@@ -45,6 +45,11 @@ const MAX_TOKENS_MAP: Record<string, number> = {
   'synthetica-analysis': 1400,
   'cycle-naming': 800,
   'daily-home-card': 400,
+  // K线年度报告
+  'kline-year-core': 2000,
+  'kline-year-dimensions': 4000,
+  'kline-year-tactical': 3000,
+  'kline-life-scroll': 5000,
 };
 
 function resolveMaxTokens(promptId: string, override?: number): number {
@@ -102,6 +107,10 @@ const TEMPERATURE_MAP: Record<string, number> = {
   'detail-dimension-natal': 0.5,
   'detail-deep-natal': 0.5,
   'cycle-naming': 0.5,
+  'kline-year-core': 0.5,
+  'kline-year-dimensions': 0.5,
+  'kline-year-tactical': 0.5,
+  'kline-life-scroll': 0.7,
   // 合盘 - 综述/核心分析
   'synastry-overview': 0.5,
   'synastry-highlights': 0.5,
