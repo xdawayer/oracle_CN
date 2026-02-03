@@ -68,7 +68,7 @@ Page({
     isSubscriber: false,
 
     // 开发模式 - 生产环境务必设为 false
-    devMode: true,
+    devMode: false,
 
     // 报告内容
     reportContent: {
@@ -287,7 +287,7 @@ Page({
       air: '你的月亮落在风象星座，这让你在处理情感时带有一定的理性色彩。你习惯用思考来消化感受，而不是完全沉浸在情绪中。这让你在面对困难时更加冷静，但有时候也需要允许自己"不讲道理"地大哭一场。'
     };
 
-    const overview = `您的本命盘呈现出独特的生命蓝图——就像一份专属于你的"人生说明书"。
+    const overview = `你的本命盘呈现出独特的生命蓝图——就像一份专属于你的"人生说明书"。
 
 【太阳星座：${natalChart.sunSign.name}】
 太阳代表你的核心自我，是你人生的主旋律。太阳落在${natalChart.sunSign.name}，赋予你${elementTraits[natalChart.sunSign.element]}的核心特质。${elementDetails[natalChart.sunSign.element]}
@@ -578,22 +578,22 @@ ${elementLifeAdvice[natalChart.sunSign.element]}
         name: '土星回归',
         impact: -15,
         description: age < 35
-          ? '这是人生最重要的转折点之一。您将经历从"青年"到"真正成年人"的蜕变。曾经的幻想、不切实际的期待都将面临现实的检验。这不是惩罚，而是宇宙送给您的成人礼——通过考验，您将建立起真正稳固的人生结构。'
-          : '第二次土星回归标志着人生进入"收获与传承"的阶段。此时您应当回顾一生的建树，思考想要留下怎样的legacy。这也是重新定义人生下半场的关键时期。'
+          ? '这是人生最重要的转折点之一。你将经历从"青年"到"真正成年人"的蜕变。曾经的幻想、不切实际的期待都将面临现实的检验。这不是惩罚，而是宇宙送给你的成人礼——通过考验，你将建立起真正稳固的人生结构。'
+          : '第二次土星回归标志着人生进入"收获与传承"的阶段。此时你应当回顾一生的建树，思考想要留下怎样的人生印记。这也是重新定义人生下半场的关键时期。'
       };
     } else if (isJupiterReturn) {
       theme = '木星回归·扩张与机遇';
       majorEvent = {
         name: '木星回归',
         impact: 15,
-        description: '每12年一次的木星回归是您的"幸运年"！木星带来扩张、乐观、机遇的能量。这一年适合开拓新领域、学习新技能、扩展人脉、远行、出版等。但要注意避免过度乐观导致的承诺过多。'
+        description: '每12年一次的木星回归是你的"幸运年"！木星带来扩张、乐观、机遇的能量。这一年适合开拓新领域、学习新技能、扩展人脉、远行等。但要注意避免过度乐观导致的承诺过多。'
       };
     } else if (isUranusOpposition) {
       theme = '天王星对分·中年觉醒';
       majorEvent = {
         name: '天王星对分相',
         impact: -10,
-        description: '这就是常说的"中年危机"的占星根源，但更准确地说是"中年觉醒"。内心深处那个"真正的自己"开始敲门，要求被看见、被表达。您可能突然感到不满足，渴望自由与改变。不要压抑这种感觉，而是找到健康的方式去探索"我是谁"。'
+        description: '这就是常说的"中年危机"的占星根源，但更准确地说是"中年觉醒"。内心深处那个"真正的自己"开始敲门，要求被看见、被表达。你可能突然感到不满足，渴望自由与改变。不要压抑这种感觉，而是找到健康的方式去探索"我是谁"。'
       };
     } else if (score >= 70) {
       theme = '顺遂之年·乘势而上';
@@ -706,7 +706,7 @@ ${elementLifeAdvice[natalChart.sunSign.element]}
       '内心世界会变得更加丰富，直觉力增强。这一年适合静修、冥想、写日记或进行心理咨询。建议多给自己独处的时间，倾听内心深处的声音。'
     ];
     const houseIdx = (year + age) % 12;
-    const astroSummary = `这一年，过境木星行经您的${houses[houseIdx]}（也就是掌管${houseThemes[houseIdx]}的领域），这意味着宇宙正在为你这个方向注入扩张和成长的能量。${houseAdvices[houseIdx]}`;
+    const astroSummary = `这一年，过境木星行经你的${houses[houseIdx]}（也就是掌管${houseThemes[houseIdx]}的领域），这意味着宇宙正在为你这个方向注入扩张和成长的能量。${houseAdvices[houseIdx]}`;
 
     // 八字摘要 - 基于天干五行属性
     const stemElements = { '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土', '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水' };
