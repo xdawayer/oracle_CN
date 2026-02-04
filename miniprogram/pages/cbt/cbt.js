@@ -2,6 +2,40 @@ const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 
+// ===== AI 响应解析工具 =====
+function stripMarkdown(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripMarkdown);
+  }
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = stripMarkdown(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
+function parseAIResponse(text) {
+  if (!text || typeof text !== 'string') return null;
+  let cleaned = text.trim();
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (codeBlockMatch) {
+    cleaned = codeBlockMatch[1].trim();
+  }
+  try {
+    const parsed = JSON.parse(cleaned);
+    return stripMarkdown(parsed);
+  } catch {
+    console.error('Failed to parse AI response as JSON:', cleaned.substring(0, 200));
+    return null;
+  }
+}
+
 // ===== 心情组（5 个大类，单选） =====
 const MOOD_GROUPS = [
   { id: 'happy',    label: '开心', emoji: '😊' },
@@ -102,8 +136,8 @@ Page({
     selectedBodyMap: {},
 
     // 展示状态
-    showResult: false,
-    analysis: '',
+    reportData: null,
+    recordSummary: null,
     analyzing: false,
     expandedGroup: '',       // 当前展开的情绪细分组
     currentMoodItems: [],    // 当前心情组对应的情绪细分列表
@@ -242,8 +276,8 @@ Page({
       },
       selectedMoodsMap: {},
       selectedBodyMap: {},
-      showResult: false,
-      analysis: '',
+      reportData: null,
+      recordSummary: null,
       analyzing: false,
       expandedGroup: '',
       currentMoodItems: [],
@@ -349,23 +383,51 @@ Page({
       return;
     }
 
-    this.setData({ showResult: true, analyzing: true });
+    // 构建记录摘要供报告页展示
+    const { record } = this.data;
+    const moodGroupConfig = MOOD_GROUPS.find(g => g.id === record.moodGroup);
+    const moodLabels = record.moods.map(id => {
+      const m = ALL_MOODS.find(mood => mood.id === id);
+      return m ? m.label : id;
+    });
+    const sceneConfig = SCENE_TAGS.find(s => s.id === record.scene);
+    const sleepConfig = SLEEP_TAGS.find(s => s.id === record.sleep);
+    const bodyLabels = record.bodyTags.map(id => {
+      const t = BODY_TAGS.find(b => b.id === id);
+      return t ? { label: t.label, emoji: t.emoji } : { label: id, emoji: '' };
+    });
+
+    const now = new Date();
+    const reportDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+    const recordSummary = {
+      moodEmoji: moodGroupConfig ? moodGroupConfig.emoji : '',
+      moodLabels: moodLabels.join(' · '),
+      sceneEmoji: sceneConfig ? sceneConfig.emoji : '',
+      sceneLabel: sceneConfig ? sceneConfig.label : '',
+      sleepEmoji: sleepConfig ? sleepConfig.emoji : '',
+      sleepLabel: sleepConfig ? sleepConfig.label : '',
+      bodyLabels,
+      note: record.note || '',
+      date: reportDate,
+    };
+
+    this.setData({ viewMode: 'result', analyzing: true, recordSummary });
 
     try {
       const userProfile = storage.get('user_profile');
       if (!userProfile || !userProfile.birthDate) {
-        this.setData({ analysis: '请先完善出生信息后再使用分析功能。', analyzing: false });
+        this.setData({
+          reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '请先完善出生信息后再使用分析功能。' }] },
+          analyzing: false,
+        });
         return;
       }
 
-      const { record } = this.data;
-      const moodGroupConfig = MOOD_GROUPS.find(g => g.id === record.moodGroup);
       const moodsPayload = record.moods.map(id => {
         const m = ALL_MOODS.find(mood => mood.id === id);
         return { id, name: m ? m.label : id };
       });
-      const sceneConfig = SCENE_TAGS.find(s => s.id === record.scene);
-      const sleepConfig = SLEEP_TAGS.find(s => s.id === record.sleep);
       const bodyPayload = record.bodyTags.map(id => {
         const t = BODY_TAGS.find(b => b.id === id);
         return { id, label: t ? t.label : id };
@@ -385,14 +447,12 @@ Page({
             accuracy: userProfile.accuracyLevel || userProfile.accuracy || 'exact',
           },
           lang: 'zh',
-          // 新字段
           moodGroup: { id: record.moodGroup, label: moodGroupConfig ? moodGroupConfig.label : '' },
           moods: moodsPayload,
           scene: { id: record.scene, label: sceneConfig ? sceneConfig.label : '' },
           sleep: { id: record.sleep, label: sleepConfig ? sleepConfig.label : '' },
           bodyTags: bodyPayload,
           note: record.note || '',
-          // 向后兼容旧字段
           situation: (sceneConfig ? sceneConfig.label : '') + (record.note ? '：' + record.note : ''),
           hotThought: '',
           automaticThoughts: [],
@@ -402,21 +462,33 @@ Page({
       });
 
       if (res && res.content) {
-        const cleaned = res.content
-          .replace(/\*\*(.*?)\*\*/g, '$1')
-          .replace(/\*(.*?)\*/g, '$1')
-          .replace(/^#+\s+/gm, '')
-          .trim();
-        this.setData({ analysis: cleaned });
+        const parsed = parseAIResponse(res.content);
+        if (parsed && parsed.sections) {
+          this.setData({ reportData: parsed });
+        } else {
+          // 降级：纯文本包装为单 section
+          const cleaned = res.content
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/^#+\s+/gm, '')
+            .trim();
+          this.setData({
+            reportData: { sections: [{ type: 'mood_echo', title: '星象解读', content: cleaned }] },
+          });
+        }
       } else {
-        this.setData({ analysis: '记录完成，星象解读暂时不可用。' });
+        this.setData({
+          reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '记录完成，星象解读暂时不可用。' }] },
+        });
       }
 
       // 保存记录
       this.saveRecord(moodsPayload, sceneConfig, sleepConfig, bodyPayload);
     } catch (error) {
       console.error('Analysis Error:', error);
-      this.setData({ analysis: '星象解读服务暂时不可用，请稍后重试。' });
+      this.setData({
+        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '星象解读服务暂时不可用，请稍后重试。' }] },
+      });
     } finally {
       this.setData({ analyzing: false });
     }

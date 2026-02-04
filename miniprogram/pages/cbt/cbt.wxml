@@ -187,22 +187,99 @@
         ></textarea>
       </view>
 
-      <!-- AI 解读结果 -->
-      <view wx:if="{{showResult}}" class="section-block fade-in">
-        <view class="analysis-card ink-border">
-          <view class="analysis-header">
-            <text class="analysis-badge">星智</text>
-            <text class="analysis-title">星象解读</text>
+      <view class="scroll-bottom-spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== 全屏报告视图 ===== -->
+  <scroll-view wx:elif="{{viewMode === 'result'}}" scroll-y class="content-scroll" show-scrollbar="{{false}}">
+    <view class="result-content">
+
+      <!-- Loading 状态 -->
+      <view wx:if="{{analyzing}}" class="result-loading fade-in">
+        <view class="spinner"></view>
+        <text class="loading-text">星象解读中...</text>
+      </view>
+
+      <!-- 报告内容 -->
+      <block wx:else>
+        <!-- 报告头部 -->
+        <view class="result-header fade-in">
+          <text class="result-header-emoji">{{recordSummary.moodEmoji}}</text>
+          <text class="result-header-title font-ancient">心情报告</text>
+          <text class="result-header-date">{{recordSummary.date}}</text>
+        </view>
+
+        <!-- 记录摘要卡片 -->
+        <view wx:if="{{recordSummary}}" class="record-summary ink-border fade-in">
+          <text class="summary-title font-ancient">今日记录</text>
+          <view class="summary-row">
+            <text>{{recordSummary.moodEmoji}} {{recordSummary.moodLabels}}</text>
           </view>
-          <view wx:if="{{analyzing}}" class="loading-state">
-            <view class="spinner"></view>
-            <text class="loading-text">星象解读中...</text>
+          <view wx:if="{{recordSummary.sceneLabel}}" class="summary-row">
+            <text>{{recordSummary.sceneEmoji}} {{recordSummary.sceneLabel}}</text>
           </view>
-          <view wx:else class="analysis-body">
-            <text class="analysis-text">{{analysis}}</text>
+          <view wx:if="{{recordSummary.sleepLabel}}" class="summary-row">
+            <text>{{recordSummary.sleepEmoji}} {{recordSummary.sleepLabel}}</text>
+          </view>
+          <view wx:if="{{recordSummary.bodyLabels.length > 0}}" class="summary-row">
+            <block wx:for="{{recordSummary.bodyLabels}}" wx:key="label">
+              <text class="summary-body-tag">{{item.emoji}} {{item.label}}</text>
+            </block>
+          </view>
+          <view wx:if="{{recordSummary.note}}" class="summary-row summary-note">
+            <text>"{{recordSummary.note}}"</text>
           </view>
         </view>
-      </view>
+
+        <!-- Sections 循环渲染 -->
+        <block wx:if="{{reportData && reportData.sections}}" wx:for="{{reportData.sections}}" wx:key="index">
+
+          <!-- mood_echo: 共情回应 -->
+          <view wx:if="{{item.type === 'mood_echo'}}" class="report-section fade-in">
+            <text class="report-section-title font-ancient">{{item.title}}</text>
+            <view class="report-card ink-border">
+              <text class="card-content">{{item.content}}</text>
+            </view>
+          </view>
+
+          <!-- astro_insight: 星象解读 -->
+          <view wx:elif="{{item.type === 'astro_insight'}}" class="report-section fade-in">
+            <text class="report-section-title font-ancient">{{item.title}}</text>
+            <block wx:if="{{item.cards && item.cards.length > 0}}" wx:for="{{item.cards}}" wx:for-item="card" wx:key="title">
+              <view class="report-card ink-border">
+                <text class="card-title font-ancient">{{card.title}}</text>
+                <text class="card-content">{{card.content}}</text>
+                <view wx:if="{{card.astroBasis}}" class="card-astro-basis">
+                  <text class="astro-basis-label">星象依据</text>
+                  <text class="astro-basis-text">{{card.astroBasis}}</text>
+                </view>
+              </view>
+            </block>
+          </view>
+
+          <!-- action_plan: 星象建议 -->
+          <view wx:elif="{{item.type === 'action_plan'}}" class="report-section fade-in">
+            <text class="report-section-title font-ancient">{{item.title}}</text>
+            <view wx:if="{{item.tips && item.tips.length > 0}}" class="tips-card ink-border">
+              <block wx:for="{{item.tips}}" wx:for-item="tip" wx:for-index="tipIdx" wx:key="*this">
+                <view class="tip-item">
+                  <text class="tip-bullet">{{tipIdx + 1}}</text>
+                  <text class="tip-text">{{tip}}</text>
+                </view>
+              </block>
+            </view>
+          </view>
+
+          <!-- closing: 温暖寄语 -->
+          <view wx:elif="{{item.type === 'closing'}}" class="report-section fade-in">
+            <view class="report-closing ink-border">
+              <text class="closing-text">{{item.content}}</text>
+            </view>
+          </view>
+
+        </block>
+      </block>
 
       <view class="scroll-bottom-spacer"></view>
     </view>
@@ -218,12 +295,13 @@
       </block>
 
       <block wx:elif="{{viewMode === 'record'}}">
-        <block wx:if="{{showResult && !analyzing}}">
+        <button class="action-btn secondary-btn" bindtap="exitRecord">算了</button>
+        <button class="action-btn primary-btn flex-grow" bindtap="submitRecord">记录完成</button>
+      </block>
+
+      <block wx:elif="{{viewMode === 'result'}}">
+        <block wx:if="{{!analyzing}}">
           <button class="action-btn primary-btn" bindtap="completeAndReturn">好的</button>
-        </block>
-        <block wx:elif="{{!showResult}}">
-          <button class="action-btn secondary-btn" bindtap="exitRecord">算了</button>
-          <button class="action-btn primary-btn flex-grow" bindtap="submitRecord">记录完成</button>
         </block>
       </block>
     </view>
