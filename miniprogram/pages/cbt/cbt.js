@@ -462,18 +462,23 @@ Page({
       });
 
       if (res && res.content) {
-        const parsed = parseAIResponse(res.content);
+        // res.content 可能是字符串或已解析的对象
+        let parsed = null;
+        if (typeof res.content === 'string') {
+          parsed = parseAIResponse(res.content);
+        } else if (typeof res.content === 'object') {
+          parsed = stripMarkdown(res.content);
+        }
+
         if (parsed && parsed.sections) {
           this.setData({ reportData: parsed });
         } else {
-          // 降级：纯文本包装为单 section
-          const cleaned = res.content
-            .replace(/\*\*(.*?)\*\*/g, '$1')
-            .replace(/\*(.*?)\*/g, '$1')
-            .replace(/^#+\s+/gm, '')
-            .trim();
+          // 降级：包装为单 section
+          const text = typeof res.content === 'string'
+            ? res.content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/^#+\s+/gm, '').trim()
+            : JSON.stringify(res.content);
           this.setData({
-            reportData: { sections: [{ type: 'mood_echo', title: '星象解读', content: cleaned }] },
+            reportData: { sections: [{ type: 'mood_echo', title: '星象解读', content: text }] },
           });
         }
       } else {
