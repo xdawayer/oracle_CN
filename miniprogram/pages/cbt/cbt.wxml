@@ -82,7 +82,7 @@
         <view class="mood-detail-grid">
           <block wx:for="{{currentMoodItems}}" wx:key="id">
             <view
-              class="mood-detail-item {{record.moods.indexOf(item.id) >= 0 ? 'selected' : ''}}"
+              class="mood-detail-item {{selectedMoodsMap[item.id] ? 'selected' : ''}}"
               bindtap="onMoodToggle"
               data-id="{{item.id}}"
             >
@@ -107,7 +107,7 @@
             <view wx:if="{{expandedGroup === item.id}}" class="mood-detail-grid fade-in">
               <block wx:for="{{expandedMoodItems}}" wx:for-item="mood" wx:key="id">
                 <view
-                  class="mood-detail-item {{record.moods.indexOf(mood.id) >= 0 ? 'selected' : ''}}"
+                  class="mood-detail-item {{selectedMoodsMap[mood.id] ? 'selected' : ''}}"
                   bindtap="onMoodToggle"
                   data-id="{{mood.id}}"
                 >
@@ -162,7 +162,7 @@
         <view class="tag-grid">
           <block wx:for="{{bodyTags}}" wx:key="id">
             <view
-              class="tag-item {{record.bodyTags.indexOf(item.id) >= 0 ? 'selected' : ''}}"
+              class="tag-item {{selectedBodyMap[item.id] ? 'selected' : ''}}"
               bindtap="onBodyToggle"
               data-id="{{item.id}}"
             >
@@ -176,14 +176,15 @@
       <!-- ⑥ 补充文字（可选） -->
       <view class="section-block fade-in">
         <text class="section-title font-ancient">还想说点什么吗？</text>
-        <text class="section-hint">选填</text>
-        <input
-          class="note-input ink-border"
+        <text wx:if="{{!record.note}}" class="section-hint">选填</text>
+        <textarea
+          class="note-textarea ink-border"
           placeholder="想说点什么..."
           value="{{record.note}}"
-          bindinput="onNoteInput"
-          maxlength="100"
-        />
+          bindblur="onNoteInput"
+          maxlength="200"
+          auto-height
+        ></textarea>
       </view>
 
       <!-- AI 解读结果 -->

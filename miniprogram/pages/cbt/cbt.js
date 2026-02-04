@@ -97,6 +97,10 @@ Page({
       note: '',         // 补充文字（可选）
     },
 
+    // 选中状态映射（用于 WXML 模板判断选中）
+    selectedMoodsMap: {},
+    selectedBodyMap: {},
+
     // 展示状态
     showResult: false,
     analysis: '',
@@ -236,6 +240,8 @@ Page({
         bodyTags: [],
         note: '',
       },
+      selectedMoodsMap: {},
+      selectedBodyMap: {},
       showResult: false,
       analysis: '',
       analyzing: false,
@@ -258,6 +264,7 @@ Page({
     this.setData({
       'record.moodGroup': isDeselect ? '' : groupId,
       'record.moods': isDeselect ? [] : this.data.record.moods,
+      selectedMoodsMap: isDeselect ? {} : this.data.selectedMoodsMap,
       expandedGroup: isDeselect ? '' : groupId,
       currentMoodItems: isDeselect ? [] : (MOOD_ITEMS[groupId] || []),
     });
@@ -277,13 +284,16 @@ Page({
   onMoodToggle(e) {
     const moodId = e.currentTarget.dataset.id;
     const moods = [...this.data.record.moods];
+    const map = { ...this.data.selectedMoodsMap };
     const idx = moods.indexOf(moodId);
     if (idx >= 0) {
       moods.splice(idx, 1);
+      delete map[moodId];
     } else {
       moods.push(moodId);
+      map[moodId] = true;
     }
-    this.setData({ 'record.moods': moods });
+    this.setData({ 'record.moods': moods, selectedMoodsMap: map });
   },
 
   // 选场景（单选）
@@ -306,13 +316,16 @@ Page({
   onBodyToggle(e) {
     const tagId = e.currentTarget.dataset.id;
     const bodyTags = [...this.data.record.bodyTags];
+    const map = { ...this.data.selectedBodyMap };
     const idx = bodyTags.indexOf(tagId);
     if (idx >= 0) {
       bodyTags.splice(idx, 1);
+      delete map[tagId];
     } else {
       bodyTags.push(tagId);
+      map[tagId] = true;
     }
-    this.setData({ 'record.bodyTags': bodyTags });
+    this.setData({ 'record.bodyTags': bodyTags, selectedBodyMap: map });
   },
 
   // 补充文字

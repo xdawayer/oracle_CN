@@ -411,17 +411,19 @@
 }
 
 /* ===== ⑥ 补充输入 ===== */
-.note-input {
+.note-textarea {
   width: 100%;
+  min-height: 120rpx;
   background-color: var(--paper-50);
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: 28rpx;
   color: var(--ink-dark);
   box-sizing: border-box;
   margin-top: var(--spacing-sm);
+  line-height: 1.6;
 }
 
-.note-input::placeholder {
+.note-textarea::placeholder {
   color: var(--ink-water);
 }
 

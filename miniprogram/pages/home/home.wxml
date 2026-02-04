@@ -72,7 +72,7 @@
         <view class="quick-grid-icon-box">
           <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/health.svg'); mask-image: url('/images/icons/health.svg');"></view>
         </view>
-        <text class="quick-grid-title">CBT日记</text>
+        <text class="quick-grid-title">心情日记</text>
         <text class="quick-grid-desc font-body">情绪觉察记录</text>
       </view>
       <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="ask">

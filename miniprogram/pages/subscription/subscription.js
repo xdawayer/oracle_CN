@@ -19,7 +19,7 @@ Page({
     paying: false,
     benefits: [
       { icon: '∞', title: '无限次星盘解读', desc: '不消耗积分，随时查看' },
-      { icon: '心', title: 'AI 深度心理分析', desc: '结合CBT理论的专业建议' },
+      { icon: '心', title: 'AI 深度心理分析', desc: '结合星象的心理分析' },
       { icon: '☆', title: '行运星盘实时查看', desc: '掌控每一刻的宇宙能量' },
       { icon: '♡', title: '高级合盘分析', desc: '多维度关系互动深度解析' },
       { icon: '盾', title: '专属隐私保护', desc: '数据加密，仅你可见' },

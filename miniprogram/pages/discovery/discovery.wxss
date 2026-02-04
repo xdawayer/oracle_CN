@@ -200,7 +200,7 @@
 }
 
 .grid-item:nth-child(4)::after {
-  /* CBT情绪日记 - 绿色 */
+  /* 心情日记 - 绿色 */
   background: linear-gradient(90deg, transparent, #6BA37A, transparent);
 }
 

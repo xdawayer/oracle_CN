@@ -577,8 +577,8 @@ Page({
           id: 'cbt_remind',
           priority: 7,
           title: '记录此刻的情绪',
-          subtitle: 'CBT日记帮助你梳理思绪',
-          category: 'CBT提醒',
+          subtitle: '心情日记帮助你梳理思绪',
+          category: '心情提醒',
           route: 'cbt',
           icon: '/images/icons/health.svg',
           accentClass: 'accent-psycho'
