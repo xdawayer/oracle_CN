@@ -17,6 +17,7 @@ import { AIUnavailableError, generateAIContent, generateAIContentWithMeta } from
 import { resolveLocation } from '../services/geocoding.js';
 import { generateParallel, extractSuccessContent } from '../services/parallel-generator.js';
 import { extractPortrait, savePortrait } from '../services/user-portrait.js';
+import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const natalRouter = Router();
 
@@ -70,10 +71,12 @@ natalRouter.get('/overview', async (req, res) => {
     const chart = await ephemerisService.calculateNatalChart(birth);
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const aiStart = performance.now();
     const result = await generateAIContent({
       promptId: 'natal-overview',
-      context: { chart_summary: chartSummary },
+      context: { chart_summary: chartSummary, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -100,9 +103,11 @@ natalRouter.get('/core-themes', async (req, res) => {
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'natal-core-themes',
-      context: { chart_summary: chartSummary },
+      context: { chart_summary: chartSummary, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -130,9 +135,11 @@ natalRouter.get('/dimension', async (req, res) => {
     const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'natal-dimension',
-      context: { chart_summary: chartSummary, dimension },
+      context: { chart_summary: chartSummary, dimension, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -177,11 +184,15 @@ natalRouter.get('/full', async (req, res) => {
     }
     const seedSummary = seedParts.join('｜');
 
-    // 4. 并行生成所有内容块
+    // 4. 注入用户年龄
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    // 5. 并行生成所有内容块
     const aiStart = performance.now();
     const parallelResult = await generateParallel({
       promptIds: ['natal-overview', 'natal-core-themes', 'natal-dimension'],
-      sharedContext: { chart_summary: chartSummary, dimension },
+      sharedContext: { chart_summary: chartSummary, dimension, userAge, userAgeGroup, userBirthDate: birth.date },
       seedSummary,
       lang,
     });
@@ -280,9 +291,14 @@ natalRouter.get('/full/stream', async (req, res) => {
       'natal-dimension': 'dimension',
     };
 
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const baseContext: Record<string, unknown> = {
       chart_summary: chartSummary,
       dimension,
+      userAge,
+      userAgeGroup,
+      userBirthDate: birth.date,
     };
     if (seedSummary) baseContext._seedSummary = seedSummary;
 

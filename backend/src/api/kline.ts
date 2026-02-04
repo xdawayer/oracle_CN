@@ -12,6 +12,7 @@ import { generateParallel } from '../services/parallel-generator';
 import { generateAIContent } from '../services/ai';
 import { entitlementServiceV2 } from '../services/entitlementServiceV2';
 import { optionalAuthMiddleware } from './auth';
+import { calculateAge, getAgeGroup } from '../utils/age';
 
 const router = Router();
 
@@ -167,6 +168,10 @@ router.get('/year-report', async (req: Request, res: Response) => {
     const seed = parsed.year * 10000 + parsed.month * 100 + parsed.day + targetYear;
     const dimensionScores = generateDimensionScores(yearData.score, seed);
 
+    // 计算用户年龄
+    const userAge = calculateAge(birthDate);
+    const userAgeGroup = getAgeGroup(userAge);
+
     // 构建共享上下文
     const sharedContext: Record<string, unknown> = {
       year: targetYear,
@@ -180,6 +185,9 @@ router.get('/year-report', async (req: Request, res: Response) => {
       sunSign: natalChart.sunSign.name,
       moonSign: natalChart.moonSign.name,
       ascendant: natalChart.ascendant.name,
+      userAge,
+      userAgeGroup,
+      userBirthDate: birthDate,
     };
 
     // year-dimensions 需要额外的四维参考分数
@@ -285,6 +293,10 @@ router.get('/life-scroll', async (req: Request, res: Response) => {
     const currentYear = new Date().getFullYear();
     const currentYearData = klineData.find((d) => d.year === currentYear);
 
+    // 计算用户年龄
+    const userAge = calculateAge(birthDate as string);
+    const userAgeGroup = getAgeGroup(userAge);
+
     // 构建上下文
     const context: Record<string, unknown> = {
       sunSign: natalChart.sunSign.name,
@@ -299,6 +311,9 @@ router.get('/life-scroll', async (req: Request, res: Response) => {
       currentTrend: currentYearData?.trend === 'bull' ? '上升' : '下降',
       birthDate,
       birthTime: birthTime || undefined,
+      userAge,
+      userAgeGroup,
+      userBirthDate: birthDate,
     };
 
     const result = await generateAIContent<Record<string, string>>({

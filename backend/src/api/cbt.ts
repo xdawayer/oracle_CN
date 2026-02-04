@@ -9,6 +9,7 @@ import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService 
 import { AIUnavailableError, generateAIContent } from '../services/ai.js';
 import { cacheService } from '../cache/redis.js';
 import { resolveLocation } from '../services/geocoding.js';
+import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const cbtRouter = Router();
 
@@ -70,12 +71,17 @@ cbtRouter.post('/analysis', async (req, res) => {
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
 
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const aiStart = performance.now();
     const result = await generateAIContent({
       promptId: 'cbt-analysis',
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         cbt_record: {
           // 新字段（心情日记 v2）
           moodGroup,
@@ -130,11 +136,16 @@ cbtRouter.post('/aggregate-analysis', async (req, res) => {
     const transitSummary = buildCompactTransitSummary(transits);
 
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'cbt-aggregate-analysis',
-      context: { 
+      context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         period,
         somatic_stats,
         root_stats,
@@ -177,11 +188,16 @@ cbtRouter.post('/somatic-analysis', async (req, res) => {
     const transitSummary = buildCompactTransitSummary(transits);
 
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'cbt-somatic-analysis',
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         period,
         somatic_stats
       },
@@ -221,11 +237,16 @@ cbtRouter.post('/root-analysis', async (req, res) => {
     const transitSummary = buildCompactTransitSummary(transits);
 
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'cbt-root-analysis',
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         period,
         root_stats
       },
@@ -265,11 +286,16 @@ cbtRouter.post('/mood-analysis', async (req, res) => {
     const transitSummary = buildCompactTransitSummary(transits);
 
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'cbt-mood-analysis',
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         period,
         mood_stats
       },
@@ -309,11 +335,16 @@ cbtRouter.post('/competence-analysis', async (req, res) => {
     const transitSummary = buildCompactTransitSummary(transits);
 
     const aiStart = performance.now();
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
       promptId: 'cbt-competence-analysis',
       context: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
         period,
         competence_stats
       },

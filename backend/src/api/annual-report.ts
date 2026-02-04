@@ -11,6 +11,7 @@ import { resolveLocation } from '../services/geocoding.js';
 import { cacheService } from '../cache/redis.js';
 import { hashInput } from '../cache/strategy.js';
 import { authMiddleware } from './auth.js';
+import { calculateAge, getAgeGroup, type AgeGroup } from '../utils/age.js';
 
 /** 开发模式默认用户 ID */
 const DEV_USER_ID = 'dev-user-annual-report';
@@ -28,6 +29,16 @@ const ANNUAL_CACHE_PREFIX = 'annual:2026:';
 
 /** 并发控制：最大同时生成的模块数 */
 const MAX_CONCURRENT_GENERATIONS = 4;
+
+/** 根据年龄过滤不适合的年度报告模块 */
+function filterModulesByAge(modules: AnnualModuleId[], ageGroup: AgeGroup): AnnualModuleId[] {
+  if (ageGroup === 'toddler' || ageGroup === 'child') {
+    // 幼儿/儿童：只保留 overview、growth、lucky
+    return modules.filter(m => ['overview', 'growth', 'lucky'].includes(m));
+  }
+  // teen 和 adult：保留全部模块，靠 prompt 年龄指令自动适配
+  return modules;
+}
 
 /** 构建缓存 key */
 function buildAnnualCacheKey(userId: string, moduleId: string, chartHash: string): string {
@@ -84,7 +95,7 @@ async function generateModule(
   userId: string,
   chartHash: string,
   lang: Language = 'zh',
-  options?: { awaitCacheWrite?: boolean }
+  options?: { awaitCacheWrite?: boolean; userAge?: number; userAgeGroup?: string; userBirthDate?: string }
 ): Promise<ModuleResult> {
   const startTime = performance.now();
   const cacheKey = buildAnnualCacheKey(userId, moduleId, chartHash);
@@ -100,9 +111,16 @@ async function generateModule(
     const promptId = `annual-${moduleId}`;
     console.log(`[AnnualReport] >>> Starting generation: ${moduleId}`);
 
+    const context: Record<string, unknown> = { chart_summary: chartSummary, lang };
+    if (options?.userAge !== undefined) {
+      context.userAge = options.userAge;
+      context.userAgeGroup = options.userAgeGroup;
+      context.userBirthDate = options.userBirthDate;
+    }
+
     const result = await generateAIContent({
       promptId,
-      context: { chart_summary: chartSummary, lang },
+      context,
       lang,
       maxTokens: 4096,
     });
@@ -142,7 +160,7 @@ async function generateAllModulesParallel(
   lang: Language,
   onModuleComplete: (result: ModuleResult) => void,
   checkDisconnected: () => boolean,
-  options?: { awaitCacheWrite?: boolean }
+  options?: { awaitCacheWrite?: boolean; userAge?: number; userAgeGroup?: string; userBirthDate?: string }
 ): Promise<void> {
   console.log(`[AnnualReport] generateAllModulesParallel called with ${moduleIds.length} modules`);
 
@@ -263,6 +281,13 @@ annualReportRouter.post('/generate', authMiddleware, async (req: Request, res: R
     const chartSummary = buildCompactChartSummary(chart) as Record<string, unknown>;
     const chartHash = hashInput(chartSummary);
 
+    // 计算用户年龄
+    const userAge = calculateAge(birthInput.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    // 根据年龄过滤不适合的模块
+    const filteredModuleIds = filterModulesByAge([...ANNUAL_MODULE_IDS], userAgeGroup);
+
     // 检查客户端是否断开
     if (clientDisconnected && !continueAfterDisconnect) {
       clearTimeout(timeoutId);
@@ -272,7 +297,7 @@ annualReportRouter.post('/generate', authMiddleware, async (req: Request, res: R
     // 发送初始化事件
     if (!clientDisconnected) {
       sendSSEEvent(res, 'init', {
-        modules: ANNUAL_MODULE_IDS,
+        modules: filteredModuleIds,
         meta: ANNUAL_MODULE_META,
         chartHash,
       });
@@ -312,23 +337,28 @@ annualReportRouter.post('/generate', authMiddleware, async (req: Request, res: R
       sendSSEEvent(res, 'progress', {
         completed: completedModules.length,
         failed: failedModules.length,
-        total: ANNUAL_MODULE_IDS.length,
-        percent: Math.round(((completedModules.length + failedModules.length) / ANNUAL_MODULE_IDS.length) * 100),
+        total: filteredModuleIds.length,
+        percent: Math.round(((completedModules.length + failedModules.length) / filteredModuleIds.length) * 100),
       });
     };
 
     // 全并行生成所有模块（带并发控制）
-    console.log(`[AnnualReport] Starting parallel generation for ${ANNUAL_MODULE_IDS.length} modules (max concurrent: ${MAX_CONCURRENT_GENERATIONS})`);
+    console.log(`[AnnualReport] Starting parallel generation for ${filteredModuleIds.length} modules (max concurrent: ${MAX_CONCURRENT_GENERATIONS})`);
 
     await generateAllModulesParallel(
-      [...ANNUAL_MODULE_IDS], // 复制数组避免修改原数组
+      filteredModuleIds,
       chartSummary,
       userId,
       chartHash,
       lang,
       onModuleComplete,
       () => clientDisconnected,
-      liteStream ? { awaitCacheWrite: true } : undefined
+      {
+        ...(liteStream ? { awaitCacheWrite: true } : {}),
+        userAge,
+        userAgeGroup,
+        userBirthDate: birthInput.date,
+      }
     );
 
     // 清除超时
@@ -394,7 +424,13 @@ annualReportRouter.get('/module/:moduleId', authMiddleware, async (req: Request,
     const chartSummary = buildCompactChartSummary(chart) as Record<string, unknown>;
     const chartHash = hashInput(chartSummary);
 
-    const result = await generateModule(moduleId, chartSummary, userId, chartHash, lang);
+    const userAge = calculateAge(birthInput.date);
+    const userAgeGroup = getAgeGroup(userAge);
+    const result = await generateModule(moduleId, chartSummary, userId, chartHash, lang, {
+      userAge,
+      userAgeGroup,
+      userBirthDate: birthInput.date,
+    });
 
     if (result.error) {
       res.status(500).json({ error: result.error });

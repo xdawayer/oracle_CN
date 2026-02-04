@@ -27,6 +27,7 @@ import { authMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { PRICING } from '../config/auth.js';
 import { isSupabaseConfigured, type SynastryPersonInfo } from '../db/supabase.js';
+import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const synastryRouter = Router();
 
@@ -675,15 +676,23 @@ const buildSynastrySummaryContext = (
   birthB: BirthInput,
   nameA: string,
   nameB: string
-) => ({
-  chartA: summarizeOverviewNatal(chartA),
-  chartB: summarizeOverviewNatal(chartB),
-  synastry: buildOverviewSynastrySignals(synastryAspects, synastry.houseOverlays),
-  relationship_type: relationshipType,
-  birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
-  nameA,
-  nameB,
-});
+) => {
+  const ageA = calculateAge(birthA.date);
+  const ageB = calculateAge(birthB.date);
+  return {
+    chartA: summarizeOverviewNatal(chartA),
+    chartB: summarizeOverviewNatal(chartB),
+    synastry: buildOverviewSynastrySignals(synastryAspects, synastry.houseOverlays),
+    relationship_type: relationshipType,
+    birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
+    nameA,
+    nameB,
+    ageA,
+    ageB,
+    ageGroupA: getAgeGroup(ageA),
+    ageGroupB: getAgeGroup(ageB),
+  };
+};
 
 const buildCoreDynamicsContext = (
   chartA: NatalChart,
@@ -698,6 +707,8 @@ const buildCoreDynamicsContext = (
   nameB: string
 ) => {
   const compositePositions = buildCompositePositions(chartA.positions, chartB.positions);
+  const ageA = calculateAge(birthA.date);
+  const ageB = calculateAge(birthB.date);
   return {
     chartA: summarizeCoreNatal(chartA),
     chartB: summarizeCoreNatal(chartB),
@@ -711,6 +722,10 @@ const buildCoreDynamicsContext = (
     birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
     nameA,
     nameB,
+    ageA,
+    ageB,
+    ageGroupA: getAgeGroup(ageA),
+    ageGroupB: getAgeGroup(ageB),
   };
 };
 
@@ -724,15 +739,23 @@ const buildHighlightsContext = (
   birthB: BirthInput,
   nameA: string,
   nameB: string
-) => ({
-  chartA: summarizeOverviewNatal(chartA),
-  chartB: summarizeOverviewNatal(chartB),
-  synastry: buildHighlightsSignals(synastryAspects, synastry.houseOverlays),
-  relationship_type: relationshipType,
-  birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
-  nameA,
-  nameB,
-});
+) => {
+  const ageA = calculateAge(birthA.date);
+  const ageB = calculateAge(birthB.date);
+  return {
+    chartA: summarizeOverviewNatal(chartA),
+    chartB: summarizeOverviewNatal(chartB),
+    synastry: buildHighlightsSignals(synastryAspects, synastry.houseOverlays),
+    relationship_type: relationshipType,
+    birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
+    nameA,
+    nameB,
+    ageA,
+    ageB,
+    ageGroupA: getAgeGroup(ageA),
+    ageGroupB: getAgeGroup(ageB),
+  };
+};
 
 // GET /api/synastry/suggestions - 关系类型建议
 synastryRouter.get('/suggestions', async (req, res) => {
@@ -1382,6 +1405,8 @@ synastryRouter.get('/', authMiddleware, async (req, res) => {
       nameA,
       nameB
     );
+    const ageA = calculateAge(birthA.date);
+    const ageB = calculateAge(birthB.date);
     const fullContext = {
       chartA,
       chartB,
@@ -1390,6 +1415,10 @@ synastryRouter.get('/', authMiddleware, async (req, res) => {
       birth_accuracy: { nameA: birthA.accuracy, nameB: birthB.accuracy },
       nameA,
       nameB,
+      ageA,
+      ageB,
+      ageGroupA: getAgeGroup(ageA),
+      ageGroupB: getAgeGroup(ageB),
     };
 
     const aiStart = performance.now();

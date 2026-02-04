@@ -179,6 +179,17 @@ export interface PromptContext {
   // 通用
   dimension?: string;
 
+  // 用户年龄信息（由 API 路由自动注入）
+  userAge?: number;
+  userAgeGroup?: 'toddler' | 'child' | 'teen' | 'adult';
+  userBirthDate?: string;
+
+  // 合盘场景双方年龄
+  ageA?: number;
+  ageB?: number;
+  ageGroupA?: 'toddler' | 'child' | 'teen' | 'adult';
+  ageGroupB?: 'toddler' | 'child' | 'teen' | 'adult';
+
   // 预留字段（Phase 2+）
   /** 星盘种子摘要，用于个性化注入 */
   _seedSummary?: string;

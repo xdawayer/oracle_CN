@@ -13,6 +13,7 @@ import { hashInput, buildCacheKey } from './cache';
 import type { PromptContext, BuildResult, PromptModule } from './types';
 import { getToneGuide } from '../cultural/tone';
 import { getCompactExpressionGuide } from '../cultural/expressions';
+import { getAgeContentGuide, getSynastryAgeGuide } from '../../utils/age';
 
 /**
  * 基础系统提示（所有 prompt 共享）
@@ -158,11 +159,22 @@ export function buildPrompt(
     ? getCulturalContextLite(template.meta.module)
     : getCulturalContextFull(template.meta.module);
 
-  // 组合最终 system prompt（基础层 + 文化层 + 任务层）
+  // 根据用户年龄生成适配指令（adult 返回空字符串，不影响输出）
+  let ageGuide = '';
+  if (ctx.ageA !== undefined && ctx.ageB !== undefined) {
+    // 合盘场景：双方年龄适配
+    ageGuide = getSynastryAgeGuide(ctx.ageA, ctx.ageB);
+  } else if (ctx.userAge !== undefined) {
+    // 单人场景：用户年龄适配
+    ageGuide = getAgeContentGuide(ctx.userAge);
+  }
+
+  // 组合最终 system prompt（基础层 + 文化层 + 年龄层 + 任务层）
   // 某些特殊场景可以跳过 BASE_SYSTEM（如已包含完整设定的模板）
+  const ageSection = ageGuide ? `\n\n${ageGuide}` : '';
   const system = options?.skipBaseSystem
     ? taskSystem
-    : `${BASE_SYSTEM}\n\n${culturalContext}\n\n${taskSystem}`;
+    : `${BASE_SYSTEM}\n\n${culturalContext}${ageSection}\n\n${taskSystem}`;
 
   // 构建 user prompt
   const user = template.user(ctx);

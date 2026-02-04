@@ -12,6 +12,7 @@ import { getCompactPortrait } from '../services/user-portrait.js';
 import { compactTransitSummary as transitToString } from '../prompts/core/compact.js';
 import { resolveLocation } from '../services/geocoding.js';
 import { SIGNS, PLANETS } from '../data/sources.js';
+import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const dailyRouter = Router();
 
@@ -214,10 +215,12 @@ dailyRouter.get('/', async (req, res) => {
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
 
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const aiStart = performance.now();
     const result = await generateAIContent({
       promptId: 'daily-forecast',
-      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: date.toISOString().split('T')[0] },
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: date.toISOString().split('T')[0], userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -295,6 +298,8 @@ dailyRouter.get('/transit', async (req, res) => {
 
       const timeoutId = setTimeout(() => abortController.abort(), 5000);
 
+      const userAge = calculateAge(birth.date);
+      const userAgeGroup = getAgeGroup(userAge);
       const aiResult = await Promise.race([
         generateAIContent({
           promptId: 'daily-home-card',
@@ -307,6 +312,9 @@ dailyRouter.get('/transit', async (req, res) => {
             lucky_color: interpreted.luckyColor,
             lucky_number: luckyNumber,
             lucky_direction: luckyDirection,
+            userAge,
+            userAgeGroup,
+            userBirthDate: birth.date,
           },
           lang: 'zh',
           maxTokens: 400,
@@ -369,10 +377,12 @@ dailyRouter.get('/detail', async (req, res) => {
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
 
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const aiStart = performance.now();
     const result = await generateAIContent({
       promptId: 'daily-detail',
-      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: date.toISOString().split('T')[0] },
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: date.toISOString().split('T')[0], userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -431,7 +441,11 @@ dailyRouter.get('/full', async (req, res) => {
     if (portraitStr) seedParts.push(portraitStr);
     const seedSummary = seedParts.join('\n');
 
-    // 4. 并行生成 forecast + detail
+    // 4. 注入用户年龄
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    // 5. 并行生成 forecast + detail
     const aiStart = performance.now();
     const parallelResult = await generateParallel({
       promptIds: ['daily-forecast', 'daily-detail'],
@@ -439,6 +453,9 @@ dailyRouter.get('/full', async (req, res) => {
         chart_summary: chartSummary,
         transit_summary: transitSummary,
         date: dateStr,
+        userAge,
+        userAgeGroup,
+        userBirthDate: birth.date,
       },
       seedSummary,
       lang,
@@ -554,10 +571,15 @@ dailyRouter.get('/full/stream', async (req, res) => {
       });
     }
 
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
     const baseContext: Record<string, unknown> = {
       chart_summary: chartSummary,
       transit_summary: transitSummary,
       date: dateStr,
+      userAge,
+      userAgeGroup,
+      userBirthDate: birth.date,
     };
     if (seedSummary) baseContext._seedSummary = seedSummary;
 

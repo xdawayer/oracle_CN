@@ -10,6 +10,7 @@ import { AIUnavailableError, generateAIContentWithMeta, generateAIContentStream,
 import { optionalAuthMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { PRICING } from '../config/auth.js';
+import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const askRouter = Router();
 
@@ -53,11 +54,13 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
 
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
 
     const aiStart = performance.now();
     const { content, meta } = await generateAIContentWithMeta({
       promptId: 'ask-answer',
-      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category },
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
     const aiMs = performance.now() - aiStart;
@@ -133,6 +136,8 @@ askRouter.post('/stream', optionalAuthMiddleware, async (req, res) => {
 
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
 
     // 客户端断连检测
     let clientDisconnected = false;
@@ -153,7 +158,7 @@ askRouter.post('/stream', optionalAuthMiddleware, async (req, res) => {
     const aiStart = performance.now();
     const stream = generateAIContentStream({
       promptId,
-      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category },
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
 
