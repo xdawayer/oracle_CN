@@ -48,6 +48,7 @@ const API_ENDPOINTS = {
   // 微信支付
   WXPAY_CREATE_ORDER: '/api/wxpay/create-order',
   WXPAY_ORDER_STATUS: '/api/wxpay/order',
+  WXPAY_QUERY_ORDER: '/api/wxpay/query-order',
   // 用户
   USER_PROFILE: '/api/user/profile',
   USER_AVATAR: '/api/user/avatar',

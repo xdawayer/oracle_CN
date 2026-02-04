@@ -5,6 +5,8 @@ const STATUS_MAP = {
   paid: { text: '已支付', class: 'status-paid' },
   failed: { text: '支付失败', class: 'status-failed' },
   refunded: { text: '已退款', class: 'status-refunded' },
+  refund_failed: { text: '退款失败', class: 'status-refund-failed' },
+  closed: { text: '已关闭', class: 'status-closed' },
 };
 
 Page({
@@ -42,6 +44,8 @@ Page({
             description,
             amountText: ((order.totalFee || 0) / 100).toFixed(2),
             timeText: formatTime(order.createdAt),
+            isRefundFailed: order.status === 'refund_failed',
+            showQueryBtn: order.status === 'pending',
           };
         });
         this.setData({ orders, loading: false });
@@ -52,6 +56,28 @@ Page({
       console.error('Load orders error:', err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
+    }
+  },
+
+  async onQueryOrder(e) {
+    const orderId = e.currentTarget.dataset.orderId;
+    wx.showLoading({ title: '查询中...' });
+    try {
+      const result = await request({
+        url: '/api/wxpay/query-order',
+        method: 'POST',
+        data: { orderId },
+      });
+      wx.hideLoading();
+      if (result && result.tradeState === 'SUCCESS') {
+        wx.showToast({ title: '支付成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: '订单未支付', icon: 'none' });
+      }
+      this.loadOrders();
+    } catch (err) {
+      wx.hideLoading();
+      wx.showToast({ title: '查询失败', icon: 'none' });
     }
   },
 

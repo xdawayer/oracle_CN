@@ -19,14 +19,28 @@
 
       <view class="order-footer">
         <text class="order-time">{{item.timeText}}</text>
-        <view
-          class="refund-btn"
-          wx:if="{{item.canRefund}}"
-          bindtap="onRefund"
-          data-order-id="{{item.orderId}}"
-        >
-          <text class="refund-btn-text">申请退款</text>
+        <view class="order-actions">
+          <view
+            class="query-btn"
+            wx:if="{{item.showQueryBtn}}"
+            bindtap="onQueryOrder"
+            data-order-id="{{item.orderId}}"
+          >
+            <text class="query-btn-text">查询支付结果</text>
+          </view>
+          <view
+            class="refund-btn"
+            wx:if="{{item.canRefund}}"
+            bindtap="onRefund"
+            data-order-id="{{item.orderId}}"
+          >
+            <text class="refund-btn-text">申请退款</text>
+          </view>
         </view>
+      </view>
+
+      <view class="refund-failed-tip" wx:if="{{item.isRefundFailed}}">
+        <text class="refund-failed-text">退款失败，请联系客服处理</text>
       </view>
     </view>
   </view>

@@ -67,6 +67,16 @@
   background: var(--ink-wash-1);
 }
 
+.status-refund-failed {
+  color: var(--danger);
+  background: rgba(139, 0, 0, 0.08);
+}
+
+.status-closed {
+  color: var(--ink-light);
+  background: var(--ink-wash-1);
+}
+
 /* 订单详情 */
 .order-detail {
   display: flex;
@@ -109,8 +119,38 @@
   color: var(--seal-red);
 }
 
+.order-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.query-btn {
+  padding: 8rpx 24rpx;
+  border: 1rpx solid var(--ink-light);
+}
+
+.query-btn-text {
+  font-size: 22rpx;
+  color: var(--ink-medium);
+}
+
+.query-btn:active {
+  background: var(--ink-wash-1);
+}
+
 .refund-btn:active {
   background: var(--seal-red-light);
+}
+
+.refund-failed-tip {
+  margin-top: var(--spacing-sm);
+  padding: 12rpx 16rpx;
+  background: rgba(139, 0, 0, 0.04);
+}
+
+.refund-failed-text {
+  font-size: 22rpx;
+  color: var(--danger);
 }
 
 /* 加载中 */

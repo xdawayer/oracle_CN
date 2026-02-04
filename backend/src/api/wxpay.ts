@@ -77,6 +77,103 @@ router.post('/notify', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/wxpay/refund-notify - 微信退款结果通知回调
+router.post('/refund-notify', async (req: Request, res: Response) => {
+  try {
+    const timestamp = req.headers['wechatpay-timestamp'] as string;
+    const nonce = req.headers['wechatpay-nonce'] as string;
+    const signature = req.headers['wechatpay-signature'] as string;
+    const serial = req.headers['wechatpay-serial'] as string;
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+
+    const result = await wxpayService.handleRefundNotify(timestamp, nonce, body, signature, serial);
+
+    if (result.success && result.order) {
+      const order = result.order;
+
+      if (result.refundStatus === 'SUCCESS') {
+        // 退款成功：回收权益
+        if (order.orderType === 'subscription') {
+          if (isSupabaseConfigured()) {
+            await supabase
+              .from('subscriptions')
+              .update({
+                status: 'canceled',
+                current_period_end: new Date().toISOString(),
+              })
+              .eq('user_id', order.userId)
+              .in('status', ['active', 'trialing']);
+          }
+        }
+        if (order.orderType === 'points' && order.pointsAmount) {
+          if (isSupabaseConfigured()) {
+            await supabase
+              .from('purchase_records')
+              .update({ consumed: order.pointsAmount })
+              .eq('user_id', order.userId)
+              .eq('feature_type', 'gm_credit')
+              .eq('feature_id', order.orderId);
+          }
+        }
+      }
+      // 退款失败：保持订单原状态，已在 service 层记录日志
+
+      res.json({ code: 'SUCCESS', message: '成功' });
+    } else {
+      res.status(400).json({ code: 'FAIL', message: '处理失败' });
+    }
+  } catch (error) {
+    console.error('Wxpay refund notify error:', error);
+    res.status(500).json({ code: 'FAIL', message: '服务错误' });
+  }
+});
+
+// POST /api/wxpay/query-order - 主动查询订单支付状态
+router.post('/query-order', authMiddleware, requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.body;
+    if (!orderId) {
+      return res.status(400).json({ error: '缺少订单号' });
+    }
+
+    // 先验证订单归属
+    const existingOrder = await wxpayService.getOrder(orderId);
+    if (!existingOrder) {
+      return res.status(404).json({ error: '订单不存在' });
+    }
+    if (existingOrder.userId !== req.userId) {
+      return res.status(403).json({ error: '无权访问' });
+    }
+
+    const result = await wxpayService.queryWxPayOrder(orderId);
+    if (!result.success) {
+      return res.status(500).json({ error: '查询失败' });
+    }
+
+    // 如果查询发现已支付且之前未处理，触发后续处理
+    if (result.tradeState === 'SUCCESS' && result.order && existingOrder.status === 'pending') {
+      const order = result.order;
+      if (order.orderType === 'subscription' && order.plan) {
+        const planConfig = VIP_PLANS[order.plan as keyof typeof VIP_PLANS];
+        if (planConfig) {
+          await handleSubscriptionPaid(order.userId, order.plan, planConfig.days, order.totalFee, order.orderId);
+        }
+      } else if (order.orderType === 'points' && order.pointsAmount) {
+        await handlePointsRecharge(order.userId, order.pointsAmount, order.totalFee, order.orderId);
+      }
+    }
+
+    res.json({
+      orderId,
+      tradeState: result.tradeState,
+      status: result.order?.status,
+    });
+  } catch (error) {
+    console.error('Query order error:', error);
+    res.status(500).json({ error: '查询订单失败' });
+  }
+});
+
 // GET /api/wxpay/order/:orderId - 查询订单状态
 router.get('/order/:orderId', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
@@ -112,22 +209,19 @@ router.post('/refund', authMiddleware, requireAuth, async (req: Request, res: Re
     const result = await wxpayService.refundOrder(orderId, req.userId!);
 
     if (result.success) {
-      // 退款成功后处理权益回收
-      const order = await wxpayService.getOrder(orderId);
-      if (order) {
-        if (order.orderType === 'subscription') {
-          // 取消 VIP 订阅
-          if (isSupabaseConfigured()) {
+      // 生产环境：权益回收由 refund-notify 回调处理
+      // 开发模式：无回调，直接回收权益
+      if (!isWxPayConfigured()) {
+        const order = await wxpayService.getOrder(orderId);
+        if (order) {
+          if (order.orderType === 'subscription' && isSupabaseConfigured()) {
             await supabase
               .from('subscriptions')
               .update({ status: 'canceled' })
               .eq('user_id', req.userId!)
               .in('status', ['active', 'trialing']);
           }
-        }
-        if (order.orderType === 'points' && order.pointsAmount) {
-          // 积分退款：将该充值记录的剩余积分标记为已消耗（等同清零）
-          if (isSupabaseConfigured()) {
+          if (order.orderType === 'points' && order.pointsAmount && isSupabaseConfigured()) {
             await supabase
               .from('purchase_records')
               .update({ consumed: order.pointsAmount })

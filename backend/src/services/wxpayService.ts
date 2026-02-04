@@ -28,7 +28,7 @@ interface WxPayOrder {
   plan?: string;
   pointsAmount?: number;
   totalFee: number;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'refund_failed' | 'closed';
   transactionId?: string;
   createdAt: Date;
   paidAt?: Date;
@@ -64,6 +64,64 @@ function getAuthorizationHeader(method: string, url: string, body: string): stri
   return `WECHATPAY2-SHA256-RSA2048 mchid="${wxpayConfig.mchId}",nonce_str="${nonceStr}",timestamp="${timestamp}",serial_no="${wxpayConfig.serialNo}",signature="${signature}"`;
 }
 
+// 微信支付 API 通用请求函数（含指数退避重试）
+async function wxpayRequest<T = Record<string, unknown>>(
+  method: 'GET' | 'POST',
+  urlPath: string,
+  body?: string,
+): Promise<{ ok: boolean; status: number; data: T }> {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 4000];
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const authorization = getAuthorizationHeader(method, urlPath, body || '');
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Authorization': authorization,
+    };
+    if (body) headers['Content-Type'] = 'application/json';
+
+    try {
+      const response = await fetch(`https://api.mch.weixin.qq.com${urlPath}`, {
+        method,
+        headers,
+        ...(body ? { body } : {}),
+      });
+
+      // 4xx 错误不重试，直接返回
+      if (response.status >= 400 && response.status < 500) {
+        const data = await response.json() as T;
+        return { ok: false, status: response.status, data };
+      }
+
+      // 5xx 错误触发重试
+      if (response.status >= 500) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(`[wxpay] API ${urlPath} 返回 ${response.status}，${RETRY_DELAYS[attempt]}ms 后重试 (${attempt + 1}/${MAX_RETRIES})`);
+          await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+          continue;
+        }
+        const data = await response.json().catch(() => ({}) as T);
+        return { ok: false, status: response.status, data };
+      }
+
+      const data = await response.json().catch(() => ({}) as T);
+      return { ok: true, status: response.status, data };
+    } catch (error) {
+      // 网络错误触发重试
+      if (attempt < MAX_RETRIES) {
+        console.warn(`[wxpay] API ${urlPath} 网络错误，${RETRY_DELAYS[attempt]}ms 后重试 (${attempt + 1}/${MAX_RETRIES}):`, error);
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  // 不应到达此处，但 TypeScript 需要返回值
+  throw new Error(`[wxpay] API ${urlPath} 重试 ${MAX_RETRIES} 次后仍失败`);
+}
+
 // 统一下单（JSAPI）
 async function createPrepayOrder(description: string, outTradeNo: string, totalFee: number, openid: string): Promise<string | null> {
   if (!isWxPayConfigured()) return null;
@@ -79,21 +137,11 @@ async function createPrepayOrder(description: string, outTradeNo: string, totalF
     payer: { openid },
   });
 
-  const authorization = getAuthorizationHeader('POST', url, body);
-
   try {
-    const response = await fetch(`https://api.mch.weixin.qq.com${url}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': authorization,
-      },
-      body,
-    });
-
-    const data = await response.json() as { prepay_id?: string };
-    return data.prepay_id || null;
+    const result = await wxpayRequest<{ prepay_id?: string }>(
+      'POST', url, body,
+    );
+    return result.data.prepay_id || null;
   } catch (error) {
     console.error('微信支付统一下单失败:', error);
     return null;
@@ -117,38 +165,34 @@ function generatePayParams(prepayId: string): PayParams {
   };
 }
 
-// 平台证书缓存（serial -> PEM 公钥）
+// 平台证书缓存（serial -> PEM 公钥）及过期管理
 const platformCertCache = new Map<string, string>();
+let platformCertCacheTime = 0;
+const CERT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 小时
+const CERTS_DIR = path.resolve(process.cwd(), 'certs');
 
 // 下载并缓存微信支付平台证书
 async function fetchPlatformCertificates(): Promise<void> {
   if (!isWxPayConfigured()) return;
 
   const url = '/v3/certificates';
-  const authorization = getAuthorizationHeader('GET', url, '');
 
   try {
-    const response = await fetch(`https://api.mch.weixin.qq.com${url}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': authorization,
-      },
-    });
-
-    const data = await response.json() as {
+    const result = await wxpayRequest<{
       data?: Array<{
         serial_no: string;
         encrypt_certificate: { ciphertext: string; nonce: string; associated_data: string };
       }>;
-    };
+    }>('GET', url);
 
-    if (!data.data) {
+    if (!result.data.data) {
       console.error('[wxpay] 下载平台证书失败: 响应格式错误');
       return;
     }
 
-    for (const cert of data.data) {
+    const certs = result.data.data!;
+
+    for (const cert of certs) {
       // 平台证书密文解密后是 PEM 字符串（非 JSON），直接手动 AES-256-GCM 解密
       try {
         const key = Buffer.from(wxpayConfig.apiKeyV3);
@@ -165,6 +209,16 @@ async function fetchPlatformCertificates(): Promise<void> {
         const pem = pemBuffer.toString('utf8');
 
         platformCertCache.set(cert.serial_no, pem);
+        platformCertCacheTime = Date.now();
+
+        // 持久化到本地文件
+        try {
+          if (!fs.existsSync(CERTS_DIR)) {
+            fs.mkdirSync(CERTS_DIR, { recursive: true });
+          }
+          fs.writeFileSync(path.join(CERTS_DIR, `wechatpay_${cert.serial_no}.pem`), pem, 'utf8');
+        } catch { /* 写入失败不影响主流程 */ }
+
         console.log(`[wxpay] 平台证书已缓存: serial=${cert.serial_no}`);
       } catch (certError) {
         console.error(`[wxpay] 解密平台证书失败: serial=${cert.serial_no}`, certError);
@@ -177,17 +231,25 @@ async function fetchPlatformCertificates(): Promise<void> {
 
 // 获取平台证书公钥
 async function getPlatformCertPem(serial: string): Promise<string | null> {
-  // 先查缓存
+  // 缓存过期时重新下载
+  if (platformCertCacheTime > 0 && Date.now() - platformCertCacheTime > CERT_CACHE_TTL) {
+    platformCertCache.clear();
+    platformCertCacheTime = 0;
+    await fetchPlatformCertificates();
+  }
+
+  // 先查内存缓存
   if (platformCertCache.has(serial)) {
     return platformCertCache.get(serial)!;
   }
 
   // 尝试从本地文件加载
-  const certPath = path.resolve(process.cwd(), 'certs', `wechatpay_${serial}.pem`);
+  const certPath = path.join(CERTS_DIR, `wechatpay_${serial}.pem`);
   try {
     if (fs.existsSync(certPath)) {
       const pem = fs.readFileSync(certPath, 'utf8');
       platformCertCache.set(serial, pem);
+      platformCertCacheTime = Date.now();
       return pem;
     }
   } catch { /* ignore */ }
@@ -481,10 +543,12 @@ const wxpayService = {
       // 调用微信退款 API
       const refundNo = generateOrderId('REF');
       const url = '/v3/refund/domestic/refunds';
+      const refundNotifyUrl = wxpayConfig.notifyUrl.replace(/\/notify$/, '/refund-notify');
       const body = JSON.stringify({
         transaction_id: order.transactionId,
         out_refund_no: refundNo,
         reason: '用户申请退款',
+        notify_url: refundNotifyUrl,
         amount: {
           refund: refundAmount,
           total: order.totalFee,
@@ -492,27 +556,16 @@ const wxpayService = {
         },
       });
 
-      const authorization = getAuthorizationHeader('POST', url, body);
-
       try {
-        const response = await fetch(`https://api.mch.weixin.qq.com${url}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': authorization,
-          },
-          body,
-        });
-
-        const data = await response.json() as { status?: string; code?: string; message?: string };
-        if (data.status === 'SUCCESS' || data.status === 'PROCESSING') {
-          order.status = 'refunded' as WxPayOrder['status'];
-          orderCacheSet(orderId, order);
-          await saveOrderToDB(order);
-          return { success: true, message: `退款 ¥${(refundAmount / 100).toFixed(2)} 已提交` };
+        const result = await wxpayRequest<{ status?: string; code?: string; message?: string }>(
+          'POST', url, body,
+        );
+        if (result.data.status === 'SUCCESS' || result.data.status === 'PROCESSING') {
+          // 不立即更新状态为 refunded，等待退款回调确认后再更新
+          // 退款是异步的，PROCESSING 表示退款进行中
+          return { success: true, message: `退款 ¥${(refundAmount / 100).toFixed(2)} 已提交，请等待退款到账` };
         }
-        return { success: false, message: data.message || '微信退款失败' };
+        return { success: false, message: result.data.message || '微信退款失败' };
       } catch (error) {
         console.error('微信退款 API 调用失败:', error);
         return { success: false, message: '退款服务暂不可用' };
@@ -570,6 +623,142 @@ const wxpayService = {
     orderCacheSet(orderId, order);
     await saveOrderToDB(order);
     return order;
+  },
+
+  // 处理退款结果通知回调
+  async handleRefundNotify(
+    timestamp: string,
+    nonce: string,
+    body: string,
+    signature: string,
+    serial: string
+  ): Promise<{ success: boolean; orderId?: string; order?: WxPayOrder; refundStatus?: string }> {
+    if (!(await verifyNotifySignature(timestamp, nonce, body, signature, serial))) {
+      return { success: false };
+    }
+
+    let bodyObj: Record<string, unknown>;
+    try {
+      bodyObj = JSON.parse(body);
+    } catch {
+      console.error('[wxpay] 退款回调 body 解析失败');
+      return { success: false };
+    }
+
+    const resource = bodyObj.resource as Record<string, string> | undefined;
+    if (!resource) return { success: false };
+
+    const decrypted = decryptNotifyData(resource.ciphertext, resource.nonce, resource.associated_data);
+    if (!decrypted) return { success: false };
+
+    const outTradeNo = decrypted.out_trade_no as string;
+    const refundStatus = decrypted.refund_status as string;
+
+    let order = orderCache.get(outTradeNo) || await loadOrderFromDB(outTradeNo);
+    if (!order) return { success: false };
+
+    // 幂等处理
+    if (order.status === 'refunded' || order.status === 'refund_failed') {
+      return { success: true, orderId: outTradeNo, order, refundStatus };
+    }
+
+    if (refundStatus === 'SUCCESS') {
+      order.status = 'refunded';
+    } else {
+      order.status = 'refund_failed';
+      console.warn(`[wxpay] 退款失败: orderId=${outTradeNo}, status=${refundStatus}, reason=${decrypted.user_received_account || 'unknown'}`);
+    }
+
+    orderCacheSet(outTradeNo, order);
+    await saveOrderToDB(order);
+
+    return { success: true, orderId: outTradeNo, order, refundStatus };
+  },
+
+  // 主动查询微信订单状态
+  async queryWxPayOrder(outTradeNo: string): Promise<{ success: boolean; tradeState?: string; order?: WxPayOrder }> {
+    let order = orderCache.get(outTradeNo) || await loadOrderFromDB(outTradeNo);
+    if (!order) return { success: false };
+
+    if (!isWxPayConfigured()) {
+      return { success: true, tradeState: order.status === 'paid' ? 'SUCCESS' : 'NOTPAY', order };
+    }
+
+    const url = `/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${wxpayConfig.mchId}`;
+    try {
+      const result = await wxpayRequest<{ trade_state?: string; transaction_id?: string }>('GET', url);
+      const tradeState = result.data.trade_state;
+
+      // 微信已支付但本地仍为 pending，自动修正
+      if (tradeState === 'SUCCESS' && order.status === 'pending') {
+        order.status = 'paid';
+        order.transactionId = result.data.transaction_id as string;
+        order.paidAt = new Date();
+        orderCacheSet(outTradeNo, order);
+        await saveOrderToDB(order);
+      }
+
+      return { success: true, tradeState, order };
+    } catch (error) {
+      console.error(`[wxpay] 查询订单失败: ${outTradeNo}`, error);
+      return { success: false };
+    }
+  },
+
+  // 关闭超时未支付订单
+  async closeExpiredOrders(): Promise<number> {
+    if (!isSupabaseConfigured()) return 0;
+
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    try {
+      const { data: pendingOrders } = await supabase
+        .from('wxpay_orders')
+        .select('order_id')
+        .eq('status', 'pending')
+        .lt('created_at', thirtyMinAgo)
+        .limit(50);
+
+      if (!pendingOrders || pendingOrders.length === 0) return 0;
+
+      let closedCount = 0;
+      for (const row of pendingOrders) {
+        const orderId = row.order_id as string;
+        try {
+          // 先查询微信确认订单确实未支付
+          const queryResult = await this.queryWxPayOrder(orderId);
+          if (queryResult.tradeState === 'SUCCESS') {
+            // 已支付，queryWxPayOrder 已自动修正状态
+            continue;
+          }
+
+          // 调用微信关闭订单 API
+          if (isWxPayConfigured()) {
+            const url = `/v3/pay/transactions/out-trade-no/${orderId}/close`;
+            const body = JSON.stringify({ mchid: wxpayConfig.mchId });
+            await wxpayRequest('POST', url, body);
+          }
+
+          // 更新本地状态为 closed
+          const order = orderCache.get(orderId) || await loadOrderFromDB(orderId);
+          if (order && order.status === 'pending') {
+            order.status = 'closed';
+            orderCacheSet(orderId, order);
+            await saveOrderToDB(order);
+            closedCount++;
+          }
+        } catch (error) {
+          console.error(`[wxpay] 关闭超时订单失败: ${orderId}`, error);
+        }
+      }
+
+      if (closedCount > 0) {
+        console.log(`[wxpay] 已关闭 ${closedCount} 笔超时订单`);
+      }
+      return closedCount;
+    } catch (error) {
+      console.error('[wxpay] 查询超时订单失败:', error);
+      return 0;
+    }
   },
 };
 

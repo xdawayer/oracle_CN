@@ -31,6 +31,7 @@ import klineRouter from './api/kline.js';
 import { pairingRouter } from './api/pairing.js';
 import { reportRouter } from './api/report.js';
 import wxpayRouter from './api/wxpay.js';
+import wxpayService from './services/wxpayService.js';
 import { userRouter } from './api/user.js';
 import { apiResponseMiddleware } from './utils/apiResponse.js';
 
@@ -77,6 +78,7 @@ app.use((req, res, next) => {
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/payment/v2/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/wxpay/notify', express.raw({ type: 'application/json' }));
+app.use('/api/wxpay/refund-notify', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(apiResponseMiddleware);
@@ -137,4 +139,11 @@ checkEnvVars();
 
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
+
+  // 订单超时自动关闭：每 10 分钟检查一次
+  setInterval(() => {
+    wxpayService.closeExpiredOrders().catch(err => {
+      console.error('[wxpay] 定时关闭超时订单异常:', err);
+    });
+  }, 10 * 60 * 1000);
 });
