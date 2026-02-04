@@ -133,50 +133,98 @@
 .mood-dot.mood-group-angry { background-color: var(--warning); }
 .mood-dot.mood-group-confused { background-color: var(--ink-medium); }
 
-/* ===== History ===== */
+/* ===== History Cards ===== */
 .history-section {
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
-.section-label {
-  display: block;
-  font-size: 28rpx;
-  color: var(--ink-dark);
-  letter-spacing: 4rpx;
-  margin-bottom: var(--spacing-md);
-}
-
-.history-item {
+.history-card {
   background-color: var(--paper-50);
-  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 16rpx;
+  padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
 }
 
-.history-top {
+.history-card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.history-card-emoji {
+  font-size: 72rpx;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.history-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-card-date {
+  display: block;
+  font-size: 24rpx;
+  color: var(--ink-medium);
+  letter-spacing: 1rpx;
+}
+
+.history-card-mood-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 8rpx;
+  gap: var(--spacing-sm);
+  margin-top: 4rpx;
 }
 
-.history-mood {
-  font-size: 28rpx;
-  color: var(--ink-deep);
+.history-card-mood-label {
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
 }
 
-.history-time {
-  font-size: 20rpx;
+/* 心情组颜色 */
+.mood-color-happy { color: #F5A623; }
+.mood-color-calm { color: #7EB8DA; }
+.mood-color-sad { color: #E57373; }
+.mood-color-angry { color: #FF8A65; }
+.mood-color-confused { color: #A0A0A0; }
+
+.history-card-time {
+  font-size: 22rpx;
   color: var(--ink-light);
 }
 
-.history-summary {
+.history-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+}
+
+.history-tag {
   font-size: 24rpx;
   color: var(--ink-medium);
-  line-height: 1.7;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+}
+
+.history-tag-dot {
+  font-size: 24rpx;
+  color: var(--ink-water);
+  margin: 0 2rpx;
+}
+
+/* 缺少天数间隔 */
+.history-gap {
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-md);
+}
+
+.history-gap-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  letter-spacing: 2rpx;
 }
 
 /* ===== Empty State ===== */

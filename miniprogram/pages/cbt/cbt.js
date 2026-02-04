@@ -232,15 +232,83 @@ Page({
             summary = sceneLabel ? (sceneLabel + (note ? '：' + note : '')) : note;
           }
 
+          // 格式化日期
+          const d = new Date(item.date);
+          const weekDayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+          const weekDay = weekDayNames[d.getDay()];
+          const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`;
+          const hours = d.getHours();
+          const minutes = d.getMinutes();
+          const ampm = hours < 12 ? '上午' : '下午';
+          const displayHour = hours % 12 || 12;
+          const timeStr = `${displayHour}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+
+          // 心情组 emoji 和标签
+          const moodGroupConfig = MOOD_GROUPS.find(g => g.id === moodGroupId);
+          const moodGroupLabel = moodGroupConfig ? moodGroupConfig.label : '未标记';
+          const moodGroupEmoji = moodGroupConfig ? moodGroupConfig.emoji : '😶';
+
+          // 提取详细标签列表（情绪、睡眠、场景、身体）
+          const detailTags = [];
+          // 情绪细分
+          const moodIds = (item.moods || []).map(m => typeof m === 'string' ? m : (m.id || m.name));
+          moodIds.forEach(id => {
+            const mood = ALL_MOODS.find(m => m.id === id);
+            if (mood) detailTags.push({ emoji: mood.emoji, label: mood.label });
+          });
+          // 睡眠
+          if (item.sleep) {
+            const sleepId = typeof item.sleep === 'string' ? item.sleep : item.sleep.id;
+            const sleepConfig = SLEEP_TAGS.find(s => s.id === sleepId);
+            if (sleepConfig) detailTags.push({ emoji: sleepConfig.emoji, label: sleepConfig.label });
+          }
+          // 场景
+          if (item.scene) {
+            const sceneId = typeof item.scene === 'string' ? item.scene : item.scene.id;
+            const sceneConfig = SCENE_TAGS.find(s => s.id === sceneId);
+            if (sceneConfig) detailTags.push({ emoji: sceneConfig.emoji, label: sceneConfig.label });
+          }
+          // 身体状态
+          (item.bodyTags || []).forEach(b => {
+            const bId = typeof b === 'string' ? b : b.id;
+            const bConfig = BODY_TAGS.find(t => t.id === bId);
+            if (bConfig) detailTags.push({ emoji: bConfig.emoji, label: bConfig.label });
+          });
+
           return {
             ...item,
             moodLabel,
             primaryMoodId,
             moodGroupId,
+            moodGroupLabel,
+            moodGroupEmoji,
+            weekDay,
+            dateStr,
+            timeStr,
+            detailTags,
+            _ts: d.getTime(),
             summary: summary.slice(0, 50),
           };
         });
-        this.setData({ history: mappedHistory });
+
+        // 按时间倒序排列（最新在前）
+        mappedHistory.sort((a, b) => b._ts - a._ts);
+
+        // 计算天数间隔，插入 gap 标记生成展示列表
+        const historyWithGaps = [];
+        for (let i = 0; i < mappedHistory.length; i++) {
+          historyWithGaps.push({ type: 'record', data: mappedHistory[i], id: mappedHistory[i].id || ('r-' + i) });
+          if (i < mappedHistory.length - 1) {
+            const curDate = new Date(mappedHistory[i].date);
+            const nextDate = new Date(mappedHistory[i + 1].date);
+            const diffDays = Math.floor((curDate.setHours(0,0,0,0) - nextDate.setHours(0,0,0,0)) / 86400000) - 1;
+            if (diffDays > 0) {
+              historyWithGaps.push({ type: 'gap', days: diffDays, id: 'gap-' + i });
+            }
+          }
+        }
+
+        this.setData({ history: historyWithGaps });
 
         // 更新日历标记
         const { calendarDays } = this.data;

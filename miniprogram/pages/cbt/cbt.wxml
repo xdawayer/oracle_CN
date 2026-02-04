@@ -29,17 +29,35 @@
         </view>
       </view>
 
-      <!-- 历史记录 -->
+      <!-- 历史记录卡片 -->
       <view wx:if="{{history.length > 0}}" class="history-section">
-        <text class="section-label font-ancient">历史记录</text>
         <block wx:for="{{history}}" wx:key="id">
-          <view class="history-item ink-border">
-            <view class="history-top">
-              <text class="history-mood font-ancient">{{item.moodLabel}}</text>
-              <text class="history-time">{{item.date}}</text>
+
+          <!-- 记录卡片 -->
+          <view wx:if="{{item.type === 'record'}}" class="history-card">
+            <view class="history-card-main">
+              <text class="history-card-emoji">{{item.data.moodGroupEmoji}}</text>
+              <view class="history-card-info">
+                <text class="history-card-date">{{item.data.weekDay}}, {{item.data.dateStr}}</text>
+                <view class="history-card-mood-row">
+                  <text class="history-card-mood-label mood-color-{{item.data.moodGroupId}}">{{item.data.moodGroupLabel}}</text>
+                  <text class="history-card-time">{{item.data.timeStr}}</text>
+                </view>
+              </view>
             </view>
-            <text class="history-summary">{{item.summary}}</text>
+            <view wx:if="{{item.data.detailTags.length > 0}}" class="history-card-tags">
+              <block wx:for="{{item.data.detailTags}}" wx:for-item="tag" wx:key="label">
+                <text class="history-tag">{{tag.emoji}} {{tag.label}}</text>
+                <text wx:if="{{index < item.data.detailTags.length - 1}}" class="history-tag-dot">·</text>
+              </block>
+            </view>
           </view>
+
+          <!-- 缺少天数间隔 -->
+          <view wx:elif="{{item.type === 'gap'}}" class="history-gap">
+            <text class="history-gap-text">缺少{{item.days}}天</text>
+          </view>
+
         </block>
       </view>
 
