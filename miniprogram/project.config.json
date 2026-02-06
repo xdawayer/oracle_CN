@@ -28,7 +28,8 @@
   "packOptions": {
     "ignore": [
       { "type": "file", "value": "images/astro-symbols/convert-to-png.js" },
-      { "type": "file", "value": "images/astro-symbols/generate-svgs.js" }
+      { "type": "file", "value": "images/astro-symbols/generate-svgs.js" },
+      { "type": "file", "value": "images/tabbar/convert.js" }
     ],
     "include": []
   },
