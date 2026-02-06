@@ -44,6 +44,7 @@ const TOPIC_REPORT_META = {
 
 Page({
   data: {
+    auditMode: false,
     features: [
       { id: 'kline', title: '人生K线', desc: '成长起伏趋势', route: 'kline', colorClass: 'bg-indigo', icon: '/images/icons/career.svg' },
       { id: 'pairing', title: '性格配对', desc: '契合度指数', route: 'pairing', colorClass: 'bg-rose', icon: '/images/icons/love.svg' },
@@ -74,6 +75,10 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    if (app && app.globalData) {
+      this.setData({ auditMode: !!app.globalData.auditMode });
+    }
     const entry = storage.get('discovery_entry');
     if (entry === 'synastry') {
       storage.remove('discovery_entry');

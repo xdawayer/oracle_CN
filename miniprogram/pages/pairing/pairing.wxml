@@ -3,7 +3,7 @@
   <view wx:if="{{step === 1}}">
     <view class="header">
       <text class="title font-ancient">性格速配</text>
-      <text class="subtitle">探索你们的匹配密码</text>
+      <text class="subtitle">选择出生日期范围，了解你们的性格契合度</text>
     </view>
 
     <view class="content">
@@ -19,14 +19,10 @@
               binderror="onIconErrorA"
             ></image>
             <text class="avatar-name font-ancient">{{zodiacSigns[signAIndex].name}}</text>
-            <text class="avatar-animal">属{{animalSigns[animalAIndex]}}</text>
           </view>
           <view class="picker-group">
             <picker range="{{zodiacSigns}}" range-key="name" value="{{signAIndex}}" bindchange="bindSignAChange">
               <view class="picker-item ink-border">{{zodiacSigns[signAIndex].name}}</view>
-            </picker>
-            <picker range="{{animalSigns}}" value="{{animalAIndex}}" bindchange="bindAnimalAChange">
-              <view class="picker-item ink-border">属{{animalSigns[animalAIndex]}}</view>
             </picker>
           </view>
         </view>
@@ -46,14 +42,10 @@
               binderror="onIconErrorB"
             ></image>
             <text class="avatar-name font-ancient">{{zodiacSigns[signBIndex].name}}</text>
-            <text class="avatar-animal">属{{animalSigns[animalBIndex]}}</text>
           </view>
           <view class="picker-group">
             <picker range="{{zodiacSigns}}" range-key="name" value="{{signBIndex}}" bindchange="bindSignBChange">
               <view class="picker-item ink-border">{{zodiacSigns[signBIndex].name}}</view>
-            </picker>
-            <picker range="{{animalSigns}}" value="{{animalBIndex}}" bindchange="bindAnimalBChange">
-              <view class="picker-item ink-border">属{{animalSigns[animalBIndex]}}</view>
             </picker>
           </view>
         </view>
@@ -61,10 +53,10 @@
 
       <button class="match-btn btn-primary" bindtap="handleMatch" disabled="{{loading}}">
         <block wx:if="{{loading}}">
-          <text class="loading-text">正在测算...</text>
+          <text class="loading-text">分析中...</text>
         </block>
         <block wx:else>
-          <text>立即测算</text>
+          <text>开始匹配</text>
         </block>
       </button>
 
@@ -89,7 +81,6 @@
             mode="aspectFit"
           ></image>
           <text class="report-sign-name font-ancient">{{finalData.signA.name}}</text>
-          <text class="report-animal">属{{finalData.animalA}}</text>
         </view>
         <view class="report-connector">
           <text class="report-heart">❤️</text>
@@ -101,7 +92,6 @@
             mode="aspectFit"
           ></image>
           <text class="report-sign-name font-ancient">{{finalData.signB.name}}</text>
-          <text class="report-animal">属{{finalData.animalB}}</text>
         </view>
       </view>
 
@@ -184,7 +174,7 @@
       </view>
       <view class="back-btn-wrapper">
         <button class="back-btn" bindtap="goBack">
-          <text class="back-btn-text">重新测算</text>
+          <text class="back-btn-text">重新匹配</text>
         </button>
       </view>
     </view>

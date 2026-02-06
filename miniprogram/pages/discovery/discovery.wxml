@@ -12,14 +12,14 @@
         </view>
         <text class="hero-title font-ancient">关系分析</text>
       </view>
-      <text class="hero-desc">解析伴侣、合作伙伴的性格匹配契合度。包含双人对比与综合分析。</text>
+      <text class="hero-desc">了解你们的性格互补与相处模式，提供双人对比与沟通建议。</text>
       <view class="hero-btn btn-outline">
         <text>开始探索</text>
       </view>
     </view>
   </view>
 
-  <view class="action-card ink-border" bindtap="navToSynthetica">
+  <view class="action-card ink-border" bindtap="navToSynthetica" wx:if="{{!auditMode}}">
     <view class="action-left">
       <view class="action-icon-box">
         <view class="icon-mask" style="color: var(--ink-deep); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>

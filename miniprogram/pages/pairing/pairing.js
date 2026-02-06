@@ -2,22 +2,18 @@ const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
 
 const ZODIAC_SIGNS = [
-  { id: 'aries', name: '白羊座', emoji: 'ARI', element: 'fire' },
-  { id: 'taurus', name: '金牛座', emoji: 'TAU', element: 'earth' },
-  { id: 'gemini', name: '双子座', emoji: 'GEM', element: 'air' },
-  { id: 'cancer', name: '巨蟹座', emoji: 'CAN', element: 'water' },
-  { id: 'leo', name: '狮子座', emoji: 'LEO', element: 'fire' },
-  { id: 'virgo', name: '处女座', emoji: 'VIR', element: 'earth' },
-  { id: 'libra', name: '天秤座', emoji: 'LIB', element: 'air' },
-  { id: 'scorpio', name: '天蝎座', emoji: 'SCO', element: 'water' },
-  { id: 'sagittarius', name: '射手座', emoji: 'SAG', element: 'fire' },
-  { id: 'capricorn', name: '摩羯座', emoji: 'CAP', element: 'earth' },
-  { id: 'aquarius', name: '水瓶座', emoji: 'AQU', element: 'air' },
-  { id: 'pisces', name: '双鱼座', emoji: 'PIS', element: 'water' },
-];
-
-const ANIMAL_SIGNS = [
-  '鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'
+  { id: 'aries', name: '3.21 - 4.19', emoji: 'ARI', element: 'fire' },
+  { id: 'taurus', name: '4.20 - 5.20', emoji: 'TAU', element: 'earth' },
+  { id: 'gemini', name: '5.21 - 6.21', emoji: 'GEM', element: 'air' },
+  { id: 'cancer', name: '6.22 - 7.22', emoji: 'CAN', element: 'water' },
+  { id: 'leo', name: '7.23 - 8.22', emoji: 'LEO', element: 'fire' },
+  { id: 'virgo', name: '8.23 - 9.22', emoji: 'VIR', element: 'earth' },
+  { id: 'libra', name: '9.23 - 10.23', emoji: 'LIB', element: 'air' },
+  { id: 'scorpio', name: '10.24 - 11.22', emoji: 'SCO', element: 'water' },
+  { id: 'sagittarius', name: '11.23 - 12.21', emoji: 'SAG', element: 'fire' },
+  { id: 'capricorn', name: '12.22 - 1.19', emoji: 'CAP', element: 'earth' },
+  { id: 'aquarius', name: '1.20 - 2.18', emoji: 'AQU', element: 'air' },
+  { id: 'pisces', name: '2.19 - 3.20', emoji: 'PIS', element: 'water' },
 ];
 
 const ZODIAC_MATCH_DATA = {
@@ -35,22 +31,12 @@ const ZODIAC_MATCH_DATA = {
   'pisces': { best: ['cancer', 'scorpio', 'capricorn'], poor: ['aries', 'leo', 'libra'] }
 };
 
-const ANIMAL_BONUS = {
-  '鼠': ['龙', '猴', '牛'], '牛': ['鼠', '蛇', '鸡'], '虎': ['马', '狗', '猪'],
-  '兔': ['羊', '狗', '猪'], '龙': ['鼠', '猴', '鸡'], '蛇': ['牛', '鸡', '猴'],
-  '马': ['虎', '羊', '狗'], '羊': ['兔', '马', '猪'], '猴': ['鼠', '龙', '蛇'],
-  '鸡': ['牛', '龙', '蛇'], '狗': ['虎', '兔', '马'], '猪': ['虎', '兔', '羊']
-};
-
 Page({
   data: {
     zodiacSigns: ZODIAC_SIGNS,
-    animalSigns: ANIMAL_SIGNS,
 
     signAIndex: 0,
-    animalAIndex: 0,
     signBIndex: 1,
-    animalBIndex: 1,
 
     step: 1,
     loading: false,
@@ -67,14 +53,8 @@ Page({
   bindSignAChange(e) {
     this.setData({ signAIndex: parseInt(e.detail.value), iconErrorA: false });
   },
-  bindAnimalAChange(e) {
-    this.setData({ animalAIndex: parseInt(e.detail.value) });
-  },
   bindSignBChange(e) {
     this.setData({ signBIndex: parseInt(e.detail.value), iconErrorB: false });
-  },
-  bindAnimalBChange(e) {
-    this.setData({ animalBIndex: parseInt(e.detail.value) });
   },
 
   onIconErrorA() {
@@ -88,9 +68,7 @@ Page({
   // 前端快速预计算（作为兜底和即时反馈）
   calculateQuickResult() {
     const signA = ZODIAC_SIGNS[this.data.signAIndex];
-    const animalA = ANIMAL_SIGNS[this.data.animalAIndex];
     const signB = ZODIAC_SIGNS[this.data.signBIndex];
-    const animalB = ANIMAL_SIGNS[this.data.animalBIndex];
 
     let score = 65;
     const dims = {
@@ -118,12 +96,6 @@ Page({
       dims.values += 10;
     }
 
-    if (ANIMAL_BONUS[animalA] && ANIMAL_BONUS[animalA].includes(animalB)) {
-      score += 8;
-      dims.potential += 15;
-      dims.values += 10;
-    }
-
     const finalScore = Math.min(98, Math.max(50, score));
     Object.keys(dims).forEach(k => {
       dims[k] = Math.min(100, Math.max(35, dims[k]));
@@ -142,9 +114,7 @@ Page({
       analysis: '',
       tips: [],
       signA,
-      signB,
-      animalA,
-      animalB
+      signB
     };
   },
 
@@ -177,9 +147,7 @@ Page({
         method: 'POST',
         data: {
           signA: quickResult.signA.id,
-          signB: quickResult.signB.id,
-          animalA: quickResult.animalA,
-          animalB: quickResult.animalB
+          signB: quickResult.signB.id
         }
       });
 
@@ -222,7 +190,7 @@ Page({
       aiData: null,
       aiLoading: false
     });
-    wx.setNavigationBarTitle({ title: '星缘速配' });
+    wx.setNavigationBarTitle({ title: '性格速配' });
   },
 
   goToAsk() {
@@ -231,7 +199,7 @@ Page({
 
     const summary = aiData
       ? (aiData.analysis || '').substring(0, 100)
-      : `${finalData.signA.name}与${finalData.signB.name}的配对契合度${finalData.score}%`;
+      : `性格配对契合度${finalData.score}%`;
 
     const params = [
       `from=pairing`,
@@ -239,8 +207,6 @@ Page({
       `signB=${finalData.signB.id}`,
       `signAName=${encodeURIComponent(finalData.signA.name)}`,
       `signBName=${encodeURIComponent(finalData.signB.name)}`,
-      `animalA=${encodeURIComponent(finalData.animalA)}`,
-      `animalB=${encodeURIComponent(finalData.animalB)}`,
       `score=${finalData.score}`,
       `summary=${encodeURIComponent(summary)}`
     ].join('&');
