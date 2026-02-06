@@ -16,7 +16,7 @@
     <text class="header-desc">深入解析你的核心人格与心理维度</text>
   </view>
 
-  <view class="card-base section ink-border">
+  <view class="card-base section ink-border" wx:if="{{!auditMode}}">
     <view class="section-header">
       <text class="section-title font-ancient">性格图谱总览</text>
     </view>
@@ -53,7 +53,7 @@
             </view>
             <text class="triad-name">{{item.name}}</text>
           </view>
-          <text class="triad-sign font-ancient">{{item.sign}}</text>
+          <text class="triad-sign font-ancient" wx:if="{{!auditMode}}">{{item.sign}}</text>
         </view>
       </block>
     </view>
@@ -432,7 +432,7 @@
     </view>
   </view>
 
-  <view class="modal-mask" wx:if="{{isZoomed}}" style="background: var(--space-950);">
+  <view class="modal-mask" wx:if="{{isZoomed && !auditMode}}" style="background: var(--space-950);">
      <view class="full-screen-container">
        <view class="fs-header">
           <text class="section-title">图谱详情</text>
