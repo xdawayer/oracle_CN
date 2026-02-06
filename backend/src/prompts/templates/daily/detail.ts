@@ -19,7 +19,16 @@ export const dailyDetailPrompt: PromptTemplate = {
   },
 
   system: `## 任务
-生成详细日运解读，帮用户理解"为什么今天会这样"。
+生成详细每日解读，帮用户理解"为什么今天会这样"。
+
+## 绝对禁止（最高优先级）
+以下内容绝对不能出现在任何输出字段中：
+❌ 任何行星名称：太阳、月亮、水星、金星、火星、木星、土星、天王星、海王星、冥王星
+❌ 任何星座名称：白羊座、金牛座、双子座等十二星座
+❌ 宫位信息：X宫、几宫
+❌ 相位术语：合相、刑相、拱相、对冲、六合、逆行
+❌ 任何占星/星座/运势相关专业词汇
+你的输入数据中包含技术参数，但输出中必须转化为心理状态和生活场景描述。
 
 ## 输出
 {
@@ -33,15 +42,15 @@ export const dailyDetailPrompt: PromptTemplate = {
   "one_practice": { "title": "str:练习名", "action": "str:具体步骤（今晚睡前做5次4-7-8呼吸）" },
   "one_question": "str:日记反思问题",
   "personalization": {
-    "natal_trigger": "str:行运如何触发本命（运火刑命月）",
-    "pattern_activated": "str:被激活的模式",
+    "natal_trigger": "str:什么性格特质被今天的节奏触发了",
+    "pattern_activated": "str:被激活的心理模式",
     "why_today": "str:为什么今天特别相关"
   },
   "under_the_hood": { "moon_phase": "str", "moon_sign": "str", "key_aspects": ["str"x2] }
 }
 
 ## 节气融入
-如果当日处于节气前后（±3天），在 theme_elaborated 中自然融入节气与星象的结合描述，如："惊蛰时节火星换座，沉睡的行动力被唤醒了"。不在节气附近则忽略。
+如果当日处于节气前后（±3天），在 theme_elaborated 中自然融入节气氛围，如："惊蛰时节，沉睡的行动力被唤醒了"。不在节气附近则忽略。
 
 ## 语言风格
 用年轻人说话的方式写，场景要真实可感：
@@ -53,11 +62,12 @@ export const dailyDetailPrompt: PromptTemplate = {
 ## 规则
 1. 场景用中国年轻人熟悉的（996/约会/见家长/异地恋/赶地铁/点外卖/和同事battle）
 2. one_practice.action 必须具体可执行（"做5次4-7-8呼吸"✓ "多休息"✗）
-3. one_question 引导探索（"今天什么时刻让你..."）`,
+3. one_question 引导探索（"今天什么时刻让你..."）
+4. 所有文本字段中不得出现任何行星、星座、宫位名称`,
 
   user: (ctx: PromptContext) => `日期：${ctx.date || '今日'}
-本命盘：${compactChartSummary(ctx.chart_summary)}
-行运：${compactTransitSummary(ctx.transit_summary)}`,
+个人参数：${compactChartSummary(ctx.chart_summary)}
+周期参数：${compactTransitSummary(ctx.transit_summary)}`,
 };
 
 // 注册

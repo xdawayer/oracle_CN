@@ -19,12 +19,21 @@ export const dailyForecastPrompt: PromptTemplate = {
   },
 
   system: `## 任务
-生成今日运势概览。
+生成今日状态概览。
+
+## 绝对禁止（最高优先级）
+以下内容绝对不能出现在任何输出字段中：
+❌ 任何行星名称：太阳、月亮、水星、金星、火星、木星、土星、天王星、海王星、冥王星
+❌ 任何星座名称：白羊座、金牛座、双子座、巨蟹座、狮子座、处女座、天秤座、天蝎座、射手座、摩羯座、水瓶座、双鱼座
+❌ 宫位信息：X宫、几宫、宫位
+❌ 相位术语：合相、刑相、拱相、对冲、六合、逆行
+❌ 星象描述：群星、行运、星象、星盘、本命、占星
+你的输入数据中包含技术参数，但输出文案中必须将其转化为心理状态和生活场景描述，绝对不能直接暴露任何技术参数。
 
 ## 输出
 {
   "overall_score": 75,
-  "summary": "str:50-80字,今日总结",
+  "summary": "str:50-80字,今日总结,用心理状态和生活场景描述",
   "theme_title": "str:4-8字,如'内在整合'",
   "theme_explanation": "str:30-50字",
   "tags": ["str"x3],
@@ -54,7 +63,7 @@ export const dailyForecastPrompt: PromptTemplate = {
 }
 
 ## 节气融入
-如果当日处于节气前后（±3天），在 summary 中自然融入节气氛围，用「节气+星象」的方式描述能量变化。如："大寒时节遇到月亮进天蝎，内心戏更重了"、"立春前后太阳拱木星，新计划的能量已经在酝酿了"。不在节气附近则忽略。
+如果当日处于节气前后（±3天），在 summary 中自然融入节气氛围。如："大寒时节，内心戏更重了，适合安静独处"、"立春前后，新计划的灵感已经在酝酿了"。不在节气附近则忽略。
 
 ## 宜忌风格
 advice 采用趣味黄历风格，标题简练、内容现代化：
@@ -68,17 +77,19 @@ details 必须是具体可执行的生活场景（赶地铁时听播客、午饭
 - "工作效率较高"→"工作状态拉满"
 - "注意休息"→"记得给自己放个假"
 - 场景举例用年轻人日常：赶地铁、点外卖、刷手机、和同事battle、周末宅家追剧
+- 用心理和情绪词汇描述状态，不要用任何天文/占星术语
 
 ## 规则
 1. 评分：90-100和谐｜70-89顺遂｜50-69留意｜30-49内省｜0-29低调
 2. time_windows_enhanced 必须3个时段（上午/午间/晚上）
 3. advice.details 必须具体可执行（"约朋友吃饭"✓ "社交"✗）
 4. weekly_trend.daily_scores 必须包含本周7天数据，从周一到周日
-5. share_text 格式：引子+幽默+行动号召`,
+5. share_text 格式：引子+幽默+行动号召
+6. summary、theme_explanation、description 等所有文本字段中不得出现任何行星、星座、宫位、相位名称`,
 
   user: (ctx: PromptContext) => `日期：${ctx.date || '今日'}
-本命盘：${compactChartSummary(ctx.chart_summary)}
-行运：${compactTransitSummary(ctx.transit_summary)}`,
+个人参数：${compactChartSummary(ctx.chart_summary)}
+周期参数：${compactTransitSummary(ctx.transit_summary)}`,
 };
 
 // 注册

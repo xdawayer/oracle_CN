@@ -35,21 +35,21 @@
       <!-- 幸运元素行 -->
       <view class="lucky-section">
         <view class="lucky-item">
-          <text class="lucky-label font-body">幸运色</text>
+          <text class="lucky-label font-body">今日色彩</text>
           <text class="lucky-value">{{shareData.lucky.color}}</text>
         </view>
 
         <view class="lucky-divider-line"></view>
 
         <view class="lucky-item">
-          <text class="lucky-label font-body">幸运数</text>
+          <text class="lucky-label font-body">今日数字</text>
           <text class="lucky-value">{{shareData.lucky.number}}</text>
         </view>
 
         <view class="lucky-divider-line"></view>
 
         <view class="lucky-item">
-          <text class="lucky-label font-body">吉位</text>
+          <text class="lucky-label font-body">今日方位</text>
           <text class="lucky-value">{{shareData.lucky.direction}}</text>
         </view>
       </view>

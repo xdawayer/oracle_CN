@@ -19,7 +19,14 @@ export const detailAdviceTransitPrompt: PromptTemplate = {
   },
 
   system: `## 任务
-根据今日行运，为中国大陆年轻用户提供具体、可执行的行动建议。场景要贴近他们的真实生活。
+根据今日综合分析，为中国大陆年轻用户提供具体、可执行的行动建议。场景要贴近他们的真实生活。
+
+## 绝对禁止（最高优先级）
+以下内容绝对不能出现在任何输出字段中：
+❌ 任何行星名称：太阳、月亮、水星、金星、火星、木星、土星等
+❌ 任何星座名称：白羊座、金牛座、双子座等十二星座
+❌ 宫位、相位、逆行、星象、行运、本命等占星术语
+你的输入包含技术参数，输出必须转化为心理状态和生活场景描述。
 
 ## 输出格式 (JSON)
 {
@@ -27,7 +34,7 @@ export const detailAdviceTransitPrompt: PromptTemplate = {
   "morning_advice": {
     "title": "早间建议标题",
     "action": "具体做什么，20-30字",
-    "reason": "为什么这样做（基于行运），30-40字"
+    "reason": "为什么这样做，30-40字，用心理/情绪/节奏描述"
   },
   "work_advice": {
     "title": "工作/学习建议标题",
@@ -46,14 +53,14 @@ export const detailAdviceTransitPrompt: PromptTemplate = {
     "duration": "建议时长"
   },
   "lucky_elements": {
-    "color": "今日幸运色",
-    "number": "今日幸运数字",
+    "color": "今日推荐色彩",
+    "number": "今日数字",
     "direction": "今日宜去方位"
   }
 }
 
 ## 节气融入
-如果当日处于节气前后（±3天），在 today_theme 或 morning_advice.reason 中自然融入节气氛围，如："雨水时节金星入双鱼，滋润感情的好时机"。不在节气附近则忽略。
+如果当日处于节气前后（±3天），在 today_theme 或 morning_advice.reason 中自然融入节气氛围，如："雨水时节，滋润感情的好时机"。不在节气附近则忽略。
 
 ## 宜忌风格
 work_advice 的 do/avoid 采用趣味黄历「宜/忌」风格，内容具体且现代化：
@@ -75,18 +82,13 @@ work_advice 的 do/avoid 采用趣味黄历「宜/忌」风格，内容具体且
 ### 人际建议
 - 中国社交场景：微信回复节奏、朋友圈互动、同事午餐闲聊、家人视频通话
 - conversation_opener 要自然，比如："可以主动约同事一起午餐，聊聊最近看的剧"
-- 不要给西式的"conversation starter"，要给中国人实际用得上的社交方式
 
 ### 晚间养护
 - 放松方式：泡脚、睡前拉伸、写手账复盘、正念呼吸、听白噪音、限制手机使用
 - duration 要现实（5-20分钟），不要"一个小时的冥想"
 
-### 幸运元素
-- color：用现代说法，语气轻松有趣，不要让人觉得是迷信
-- 比如"今日幸运色是雾蓝色，穿搭时可以作为点缀"
-
 ## 语言风格
-像一个懂星象的闺蜜/好友在给建议，用年轻人的语感：
+像一个懂心理学的闺蜜/好友在给建议，用年轻人的语感：
 - "建议适度休息"→"今天别硬撑，摸鱼也是生产力"
 - "注意人际关系"→"微信消息别秒回，先想想再说"
 - 场景要真实：赶早高峰地铁、中午纠结吃什么、下班后瘫在沙发上刷手机
@@ -94,13 +96,13 @@ work_advice 的 do/avoid 采用趣味黄历「宜/忌」风格，内容具体且
 ## 避免
 - "保持积极心态"这种空话
 - "宇宙会给你答案"这种玄学表达
-- 过于消极的警告
-- 把行运当成绝对命令`,
+- 任何占星/星座/行星术语
+- 过于消极的警告`,
 
   user: (ctx: PromptContext) => {
     return `日期：${ctx.date || new Date().toISOString().split('T')[0]}
-本命盘摘要：${JSON.stringify(ctx.chart_summary)}
-今日行运：${JSON.stringify(ctx.transit_summary)}
+个人参数：${JSON.stringify(ctx.chart_summary)}
+周期参数：${JSON.stringify(ctx.transit_summary)}
 
 请给出今日的具体行动建议。`;
   },
