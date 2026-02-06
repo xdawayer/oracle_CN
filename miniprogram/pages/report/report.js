@@ -174,7 +174,7 @@ function markdownToHtml(markdown) {
 /** 报告类型配置（标题、描述） */
 const REPORT_TYPE_CONFIG = {
   'natal-report': {
-    title: '本命深度解读',
+    title: '核心人格解读',
     desc: '专属于你的全维度人格解析',
   },
   annual: {
@@ -323,14 +323,14 @@ Page({
           { id: 'emotion', name: '情感与内在世界' },
           { id: 'mind', name: '思维与沟通方式' },
           { id: 'wealth', name: '财富与资源' },
-          { id: 'health', name: '健康与能量' },
+          { id: 'health', name: '身心健康' },
           { id: 'soul', name: '人生课题与灵魂成长' },
         ],
         annual: [
           { id: 'overview', name: '年度总览' },
           { id: 'career', name: '事业财运' },
           { id: 'love', name: '感情关系' },
-          { id: 'health', name: '健康能量' },
+          { id: 'health', name: '身心健康' },
           { id: 'social', name: '人际社交' },
           { id: 'growth', name: '学习成长' },
           { id: 'q1', name: '第一季度详解' },

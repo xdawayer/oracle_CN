@@ -64,7 +64,7 @@
 
         <!-- 维度 -->
         <view class="detail-section ink-border">
-          <text class="section-title font-ancient">能量分布</text>
+          <text class="section-title font-ancient">维度分布</text>
           <view class="dimensions-list">
             <view class="dimension-item">
               <view class="dim-header">

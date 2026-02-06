@@ -13,14 +13,14 @@ const AREA_NAMES = {
 
 const CATEGORIES = [
   { id: 'all', name: '全部' },
-  { id: 'planets', name: '行星' },
-  { id: 'signs', name: '星座' },
-  { id: 'houses', name: '宫位' },
-  { id: 'aspects', name: '相位' },
+  { id: 'planets', name: '天体' },
+  { id: 'signs', name: '原型' },
+  { id: 'houses', name: '领域' },
+  { id: 'aspects', name: '关联' },
   { id: 'elements', name: '元素' },
   { id: 'modalities', name: '模式' },
   { id: 'axes', name: '轴线' },
-  { id: 'chart_types', name: '盘型' },
+  { id: 'chart_types', name: '分析类型' },
 ];
 
 Page({

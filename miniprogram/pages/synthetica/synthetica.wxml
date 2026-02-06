@@ -23,7 +23,7 @@
       </view>
 
       <view wx:if="{{result.synthesis}}" class="report-section ink-border">
-        <view class="section-title font-ancient">命格总论</view>
+        <view class="section-title font-ancient">深层分析</view>
         <text class="section-text">“{{result.synthesis}}”</text>
       </view>
 
@@ -73,7 +73,7 @@
     <!-- 02. Foundation -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title font-ancient">本命配置</text>
+        <text class="section-title font-ancient">核心配置</text>
       </view>
       
       <view class="input-group">
@@ -106,17 +106,17 @@
     <view class="section">
       <view class="section-header space-between">
         <view class="header-left">
-          <text class="section-title font-ancient">相位关系</text>
+          <text class="section-title font-ancient">关联关系</text>
         </view>
         <view class="add-btn btn-outline" bindtap="addAspect">
-          <text>+ 添加相位</text>
+          <text>+ 添加关联</text>
         </view>
       </view>
 
       <view class="aspect-list">
         <block wx:if="{{params.aspects.length === 0}}">
           <view class="empty-state">
-            <text>未添加相位（可选）</text>
+            <text>未添加关联（可选）</text>
           </view>
         </block>
         <block wx:else>

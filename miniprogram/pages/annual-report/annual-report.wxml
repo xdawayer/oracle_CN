@@ -69,14 +69,14 @@
     <view wx:if="{{modules.health}}" class="module-section module-health">
       <view class="module-accent module-accent-health"></view>
       <view class="module-header">
-        <text class="module-title font-ancient module-title-health">健康能量</text>
+        <text class="module-title font-ancient module-title-health">身心健康</text>
       </view>
       <view class="module-body">
         <rich-text class="markdown-content" nodes="{{modules.health}}"></rich-text>
       </view>
     </view>
     <view wx:elif="{{moduleStatus.health === 'pending'}}" class="module-placeholder">
-      <text class="placeholder-text">健康能量生成中...</text>
+      <text class="placeholder-text">身心健康生成中...</text>
     </view>
 
     <!-- 模块5：人际社交 -->

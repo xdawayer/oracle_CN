@@ -41,10 +41,10 @@ Page({
     ],
     resultTabs: [
       { id: 'overview', label: '综述' },
-      { id: 'natal_a', label: '本命A' },
-      { id: 'natal_b', label: '本命B' },
-      { id: 'syn_ab', label: '对比盘AB' },
-      { id: 'syn_ba', label: '对比盘BA' },
+      { id: 'natal_a', label: '人格A' },
+      { id: 'natal_b', label: '人格B' },
+      { id: 'syn_ab', label: '对比AB' },
+      { id: 'syn_ba', label: '对比BA' },
       { id: 'composite', label: '组合分析' }
     ],
 

@@ -66,7 +66,7 @@
 
     <!-- 相位列表区 -->
     <cover-view class="card-section" wx:if="{{selectedPlanet.aspects.length > 0}}">
-      <cover-view class="section-label">主要相位</cover-view>
+      <cover-view class="section-label">主要关联</cover-view>
       <cover-view class="aspect-list">
         <cover-view class="aspect-row" wx:for="{{selectedPlanet.aspects}}" wx:key="index">
           <cover-view class="section-text">与</cover-view>

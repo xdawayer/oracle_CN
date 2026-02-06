@@ -8,7 +8,7 @@ const TOPIC_REPORT_META = {
     title: '爱情专题深度报告',
     subtitle: '专属恋爱深度解读',
     features: [
-      { title: '恋爱人格分析', desc: '金星与月亮揭示你的爱情模式' },
+      { title: '恋爱人格分析', desc: '深层心理揭示你的爱情模式' },
       { title: '理想伴侣画像', desc: '性格中隐藏的灵魂伴侣线索' },
       { title: '情感成长指南', desc: '亲密关系中的课题与蜕变方向' },
       { title: '感情趋势预测', desc: '未来一年的恋爱关键节点' },
@@ -20,9 +20,9 @@ const TOPIC_REPORT_META = {
     title: '事业专题深度报告',
     subtitle: '专属职场深度解读',
     features: [
-      { title: '职业天赋分析', desc: '天顶与土星揭示你的事业方向' },
+      { title: '职业天赋分析', desc: '性格驱动力揭示你的事业方向' },
       { title: '职场人际风格', desc: '团队协作与领导力的心理密码' },
-      { title: '使命与发展路径', desc: '北交点指引的人生事业蓝图' },
+      { title: '使命与发展路径', desc: '使命感指引的人生事业蓝图' },
       { title: '事业趋势预测', desc: '未来一年的职场关键机遇' },
     ],
     price: 500,
@@ -32,8 +32,8 @@ const TOPIC_REPORT_META = {
     title: '财富专题深度报告',
     subtitle: '专属财富深度解读',
     features: [
-      { title: '金钱关系解读', desc: '二宫与八宫揭示你的财富观' },
-      { title: '财富潜力分析', desc: '木星与冥王星的财运密码' },
+      { title: '金钱关系解读', desc: '深层价值观揭示你的财富观' },
+      { title: '财富潜力分析', desc: '性格深处的财富潜力密码' },
       { title: '理财盲点洞察', desc: '性格中隐藏的财务风险信号' },
       { title: '财运趋势预测', desc: '未来一年的财富关键节点' },
     ],
@@ -45,9 +45,9 @@ const TOPIC_REPORT_META = {
 Page({
   data: {
     features: [
-      { id: 'kline', title: '人生K线', desc: '命运起伏趋势', route: 'kline', colorClass: 'bg-indigo', icon: '/images/icons/career.svg' },
+      { id: 'kline', title: '人生K线', desc: '成长起伏趋势', route: 'kline', colorClass: 'bg-indigo', icon: '/images/icons/career.svg' },
       { id: 'pairing', title: '性格配对', desc: '契合度指数', route: 'pairing', colorClass: 'bg-rose', icon: '/images/icons/love.svg' },
-      { id: 'chart', title: '专业图谱', desc: '性格/行运/推运', route: 'chart', colorClass: 'bg-purple', icon: '/images/astro-symbols/sun.svg' },
+      { id: 'chart', title: '专业图谱', desc: '性格/周期/趋势', route: 'chart', colorClass: 'bg-purple', icon: '/images/astro-symbols/sun.svg' },
       { id: 'cbt', title: '心情日记', desc: '记录心情与 AI 解读', route: 'cbt', colorClass: 'bg-emerald', icon: '/images/icons/health.svg' },
       { id: 'ask', title: 'AI 问答', desc: 'AI 深度咨询', route: 'ask', colorClass: 'bg-violet', icon: '/images/icons/relations.svg' },
       { id: 'wiki', title: '知识百科', desc: '系统化知识库', route: 'wiki', colorClass: 'bg-blue', icon: '/images/icons/study.svg' }

@@ -244,7 +244,7 @@
 
       <!-- 对比盘 A-B -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'syn_ab' && synastryChartAB.innerPositions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">对比盘</text>
+        <text class="section-title font-ancient">对比图谱</text>
         <view class="chart-container">
           <astro-chart
             type="synastry"
@@ -261,7 +261,7 @@
 
       <!-- 对比盘 B-A -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'syn_ba' && synastryChartBA.innerPositions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">对比盘</text>
+        <text class="section-title font-ancient">对比图谱</text>
         <view class="chart-container">
           <astro-chart
             type="synastry"
@@ -278,7 +278,7 @@
 
       <!-- 组合分析 -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'composite' && compositeChart.positions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">组合分析（中点盘）</text>
+        <text class="section-title font-ancient">组合分析</text>
         <view class="chart-container">
           <astro-chart
             type="natal"

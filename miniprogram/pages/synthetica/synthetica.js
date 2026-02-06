@@ -48,11 +48,11 @@ const HOUSES = Array.from({ length: 12 }, (_, i) => {
   return { id, name: `第 ${i + 1} 宫`, archetype: archetypes[i] };
 });
 const ASPECT_TYPES = [
-  { id: 'conjunction', name: '合相 (0°)', category: 'FUSION' },
-  { id: 'sextile', name: '六合 (60°)', category: 'FLOW' },
-  { id: 'square', name: '刑相位 (90°)', category: 'FRICTION' },
-  { id: 'trine', name: '拱相位 (120°)', category: 'FLOW' },
-  { id: 'opposition', name: '对分相 (180°)', category: 'FRICTION' },
+  { id: 'conjunction', name: '融合关联 (0°)', category: 'FUSION' },
+  { id: 'sextile', name: '支持关联 (60°)', category: 'FLOW' },
+  { id: 'square', name: '张力关联 (90°)', category: 'FRICTION' },
+  { id: 'trine', name: '和谐关联 (120°)', category: 'FLOW' },
+  { id: 'opposition', name: '对冲关联 (180°)', category: 'FRICTION' },
 ];
 const CONTEXTS = [
   { id: 'LOVE', label: '爱情关系' },
@@ -200,7 +200,7 @@ Page({
         const modules = [];
         if (content.planet_analysis) {
           modules.push({
-            headline: '行星落座解读',
+            headline: '要素配置解读',
             analysis: content.planet_analysis.interpretation || '',
             shadow_side: '',
             actionable_advice: ''

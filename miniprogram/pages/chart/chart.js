@@ -16,12 +16,12 @@ const CITY_SEARCH_DEBOUNCE = 300;
 const CHART_TYPES = [
   { id: 'natal', label: '性格图谱 (Natal Chart)', desc: '核心性格、天赋与人生底色', dual: false },
   { id: 'synastry', label: '关系分析 - 比较盘 (Synastry)', desc: '两人关系的互动与磨合分析', dual: true },
-  { id: 'transit', label: '行运盘 (Transit)', desc: '当前周期对个人的实时影响', dual: false },
+  { id: 'transit', label: '周期盘 (Transit)', desc: '当前周期对个人的实时影响', dual: false },
   { id: 'composite', label: '关系分析 - 组合 (Composite)', desc: '两人作为共同体的未来走向', dual: true },
   { id: 'davison', label: '关系分析 - 时空盘 (Davison)', desc: '关系的中长期演化轨迹', dual: true },
-  { id: 'solar_return', label: '推运 - 太阳返照 (Solar Return)', desc: '生日起算的年度周期规划', dual: false },
-  { id: 'pro_secondary', label: '推运 - 次限盘 (Secondary)', desc: '长期的心理状态与内在演化', dual: false },
-  { id: 'pro_tertiary', label: '推运 - 三限盘 (Tertiary)', desc: '短期的情绪波动与事件预警', dual: false },
+  { id: 'solar_return', label: '趋势 - 年度周期 (Solar Return)', desc: '生日起算的年度周期规划', dual: false },
+  { id: 'pro_secondary', label: '趋势 - 次限 (Secondary)', desc: '长期的心理状态与内在演化', dual: false },
+  { id: 'pro_tertiary', label: '趋势 - 三限 (Tertiary)', desc: '短期的情绪波动与事件预警', dual: false },
 ];
 
 const CHART_TYPE_CONFIG = {
@@ -413,16 +413,16 @@ Page({
         }
 
         const planetGroups = [
-          { id: 'a', title: '甲方行星', list: this.buildPlanetList(innerPositions) },
-          { id: 'b', title: '乙方行星', list: this.buildPlanetList(outerPositions) },
+          { id: 'a', title: '甲方要素', list: this.buildPlanetList(innerPositions) },
+          { id: 'b', title: '乙方要素', list: this.buildPlanetList(outerPositions) },
         ];
         const asteroidGroups = [
-          { id: 'a', title: '甲方小行星', list: this.buildAsteroidList(this.normalizePositions(natalA.asteroids || [])) },
-          { id: 'b', title: '乙方小行星', list: this.buildAsteroidList(this.normalizePositions(natalB.asteroids || [])) },
+          { id: 'a', title: '甲方辅助要素', list: this.buildAsteroidList(this.normalizePositions(natalA.asteroids || [])) },
+          { id: 'b', title: '乙方辅助要素', list: this.buildAsteroidList(this.normalizePositions(natalB.asteroids || [])) },
         ];
         const houseRulerGroups = [
-          { id: 'a', title: '甲方宫主星', list: this.formatHouseRulers(natalA.houseRulers || []) },
-          { id: 'b', title: '乙方宫主星', list: this.formatHouseRulers(natalB.houseRulers || []) },
+          { id: 'a', title: '甲方领域守护', list: this.formatHouseRulers(natalA.houseRulers || []) },
+          { id: 'b', title: '乙方领域守护', list: this.formatHouseRulers(natalB.houseRulers || []) },
         ];
 
         this.setData({
@@ -468,15 +468,15 @@ Page({
         }
 
         const planetGroups = [
-          { id: 'natal', title: '本命行星', list: this.buildPlanetList(innerPositions) },
-          { id: 'transit', title: '行运行星', list: this.buildPlanetList(outerPositions) },
+          { id: 'natal', title: '核心要素', list: this.buildPlanetList(innerPositions) },
+          { id: 'transit', title: '周期要素', list: this.buildPlanetList(outerPositions) },
         ];
         const asteroidGroups = [
-          { id: 'natal', title: '本命小行星', list: this.buildAsteroidList(innerPositions) },
-          { id: 'transit', title: '行运小行星', list: this.buildAsteroidList(outerPositions) },
+          { id: 'natal', title: '核心辅助要素', list: this.buildAsteroidList(innerPositions) },
+          { id: 'transit', title: '周期辅助要素', list: this.buildAsteroidList(outerPositions) },
         ];
         const houseRulerGroups = [
-          { id: 'natal', title: '宫主星', list: this.formatHouseRulers(technical.house_rulers || []) },
+          { id: 'natal', title: '领域守护', list: this.formatHouseRulers(technical.house_rulers || []) },
         ];
 
         this.setData({
@@ -495,7 +495,7 @@ Page({
           houseRulerGroups,
           isDualResult: false,
           isTransitResult: true,
-          chartDesc: '内环：核心图谱 | 外环：行运',
+          chartDesc: '内环：核心图谱 | 外环：周期',
           expandedSection: null,
         });
         return;
@@ -516,13 +516,13 @@ Page({
       }
 
       const planetGroups = [
-        { id: 'natal', title: '行星信息', list: this.buildPlanetList(positions) },
+        { id: 'natal', title: '核心要素', list: this.buildPlanetList(positions) },
       ];
       const asteroidGroups = [
-        { id: 'natal', title: '小行星信息', list: this.buildAsteroidList(positions) },
+        { id: 'natal', title: '辅助要素', list: this.buildAsteroidList(positions) },
       ];
       const houseRulerGroups = [
-        { id: 'natal', title: '宫主星信息', list: this.buildHouseRulers(positions, houseCusps) },
+        { id: 'natal', title: '领域守护', list: this.buildHouseRulers(positions, houseCusps) },
       ];
 
       this.setData({

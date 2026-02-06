@@ -1,14 +1,14 @@
 <view class="page">
   <view class="header">
-    <text class="title font-ancient">专业排盘</text>
-    <text class="subtitle">精密星历计算引擎</text>
+    <text class="title font-ancient">专业图谱</text>
+    <text class="subtitle">精密分析计算引擎</text>
   </view>
 
   <view class="content">
     <block wx:if="{{resultStatus === 'idle'}}">
       <view class="card ink-border animate-in">
         <view class="label-row">
-          <text class="section-label">排盘类型</text>
+          <text class="section-label">分析类型</text>
         </view>
         <picker mode="selector" range="{{chartTypes}}" range-key="label" value="{{selectedTypeIndex}}" bindchange="handleTypeChange">
           <view class="picker-display ink-border">
@@ -220,7 +220,7 @@
 
         <view class="accordion-item ink-border">
           <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
-            <text class="accordion-label">相位矩阵</text>
+            <text class="accordion-label">关联矩阵</text>
             <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
           </view>
           <view class="accordion-body" wx:if="{{expandedSection === 'aspects'}}" style="padding: 0;">
@@ -257,7 +257,7 @@
 
         <view class="accordion-item ink-border">
           <view class="accordion-head" bindtap="toggleAccordion" data-id="planets">
-            <text class="accordion-label">行星信息</text>
+            <text class="accordion-label">核心要素</text>
             <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
           </view>
           <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}" style="padding: 0;">
@@ -267,9 +267,9 @@
               </view>
               <view class="planet-info-table">
                 <view class="pi-row pi-head font-ancient">
-                  <view class="pi-cell pi-planet">星体</view>
-                  <view class="pi-cell pi-sign">星座</view>
-                  <view class="pi-cell pi-house">宫位</view>
+                  <view class="pi-cell pi-planet">要素</view>
+                  <view class="pi-cell pi-sign">落位</view>
+                  <view class="pi-cell pi-house">领域</view>
                   <view class="pi-cell pi-retro">逆行</view>
                 </view>
                 <block wx:for="{{group.list}}" wx:key="id">
@@ -303,7 +303,7 @@
 
         <view class="accordion-item ink-border">
           <view class="accordion-head" bindtap="toggleAccordion" data-id="asteroids">
-            <text class="accordion-label">小行星信息</text>
+            <text class="accordion-label">辅助要素</text>
             <text class="accordion-icon">{{expandedSection === 'asteroids' ? '-' : '+'}}</text>
           </view>
           <view class="accordion-body" wx:if="{{expandedSection === 'asteroids'}}" style="padding: 0;">
@@ -313,9 +313,9 @@
               </view>
               <view class="planet-info-table">
                 <view class="pi-row pi-head font-ancient">
-                  <view class="pi-cell pi-planet">星体</view>
-                  <view class="pi-cell pi-sign">星座</view>
-                  <view class="pi-cell pi-house">宫位</view>
+                  <view class="pi-cell pi-planet">要素</view>
+                  <view class="pi-cell pi-sign">落位</view>
+                  <view class="pi-cell pi-house">领域</view>
                   <view class="pi-cell pi-retro">逆行</view>
                 </view>
                 <block wx:for="{{group.list}}" wx:key="id">
@@ -349,7 +349,7 @@
 
         <view class="accordion-item ink-border">
           <view class="accordion-head" bindtap="toggleAccordion" data-id="houseRulers">
-            <text class="accordion-label">宫主星信息</text>
+            <text class="accordion-label">领域守护</text>
             <text class="accordion-icon">{{expandedSection === 'houseRulers' ? '-' : '+'}}</text>
           </view>
           <view class="accordion-body" wx:if="{{expandedSection === 'houseRulers'}}" style="padding: 0;">
@@ -359,11 +359,11 @@
               </view>
               <view class="planet-info-table">
                 <view class="pi-row pi-head font-ancient">
-                  <view class="pi-cell pi-hr-house">宫位</view>
-                  <view class="pi-cell pi-hr-sign">星座</view>
-                  <view class="pi-cell pi-hr-ruler">宫主星</view>
+                  <view class="pi-cell pi-hr-house">领域</view>
+                  <view class="pi-cell pi-hr-sign">落位</view>
+                  <view class="pi-cell pi-hr-ruler">守护</view>
                   <view class="pi-cell pi-hr-arrow"></view>
-                  <view class="pi-cell pi-hr-fly">飞入宫位</view>
+                  <view class="pi-cell pi-hr-fly">飞入领域</view>
                 </view>
                 <block wx:for="{{group.list}}" wx:key="house">
                   <view class="pi-row">
@@ -411,8 +411,8 @@
   <view class="loading-overlay" wx:if="{{loading}}">
     <view class="loading-content">
       <view class="loading-spinner"></view>
-      <text class="loading-text">正在计算星历...</text>
-      <text class="loading-hint">基于瑞士星历表精密计算</text>
+      <text class="loading-text">正在计算中...</text>
+      <text class="loading-hint">基于精密算法深度计算</text>
     </view>
   </view>
 </view>

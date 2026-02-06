@@ -192,7 +192,7 @@ const MODULE_LIST = [
   { id: 'overview', name: '年度总览' },
   { id: 'career', name: '事业财运' },
   { id: 'love', name: '感情关系' },
-  { id: 'health', name: '健康能量' },
+  { id: 'health', name: '身心健康' },
   { id: 'social', name: '人际社交' },
   { id: 'growth', name: '学习成长' },
   { id: 'q1', name: '第一季度' },

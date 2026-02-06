@@ -201,9 +201,9 @@
         <view class="technical-body">
           <view class="planet-info-table">
             <view class="pi-row pi-head font-ancient">
-              <view class="pi-cell pi-planet">星体</view>
-              <view class="pi-cell pi-sign">星座</view>
-              <view class="pi-cell pi-house">宫位</view>
+              <view class="pi-cell pi-planet">要素</view>
+              <view class="pi-cell pi-sign">落位</view>
+              <view class="pi-cell pi-house">领域</view>
               <view class="pi-cell pi-retro">逆行</view>
             </view>
             <view class="pi-row" wx:for="{{technical.transitPlanets}}" wx:key="name">
@@ -241,9 +241,9 @@
       <view class="technical-body">
         <view class="planet-info-table">
           <view class="pi-row pi-head font-ancient">
-            <view class="pi-cell pi-planet">星体</view>
-            <view class="pi-cell pi-sign">星座</view>
-            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-planet">要素</view>
+            <view class="pi-cell pi-sign">落位</view>
+            <view class="pi-cell pi-house">领域</view>
             <view class="pi-cell pi-retro">逆行</view>
           </view>
           <view class="pi-row" wx:for="{{technical.transitAsteroids}}" wx:key="name">
@@ -281,11 +281,11 @@
       <view class="technical-body">
         <view class="planet-info-table">
           <view class="pi-row pi-head font-ancient">
-            <view class="pi-cell pi-hr-house">宫位</view>
-            <view class="pi-cell pi-hr-sign">星座</view>
-            <view class="pi-cell pi-hr-ruler">宫主星</view>
+            <view class="pi-cell pi-hr-house">领域</view>
+            <view class="pi-cell pi-hr-sign">落位</view>
+            <view class="pi-cell pi-hr-ruler">守护</view>
             <view class="pi-cell pi-hr-arrow"></view>
-            <view class="pi-cell pi-hr-fly">飞入宫位</view>
+            <view class="pi-cell pi-hr-fly">飞入领域</view>
           </view>
           <view class="pi-row" wx:for="{{technical.houseRulers}}" wx:key="house">
             <view class="pi-cell pi-hr-house">{{item.house}}</view>
@@ -419,7 +419,7 @@
     </view>
 
     <view class="card-section" wx:if="{{selectedPlanet.aspects && selectedPlanet.aspects.length > 0}}">
-      <view class="section-label">主要相位</view>
+      <view class="section-label">主要关联</view>
       <view class="aspect-list">
         <view class="aspect-row" wx:for="{{selectedPlanet.aspects}}" wx:key="index">
           <view class="section-text">与</view>

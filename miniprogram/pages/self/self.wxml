@@ -183,7 +183,7 @@
     <!-- 2. 相位矩阵 -->
     <view class="accordion-item ink-border">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="aspects">
-        <text class="accordion-label">相位矩阵</text>
+        <text class="accordion-label">关联矩阵</text>
         <view class="accordion-actions">
           <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="aspects">查看详情</view>
           <text class="accordion-icon">{{expandedSection === 'aspects' ? '-' : '+'}}</text>
@@ -209,7 +209,7 @@
     <!-- 3. 行星信息 -->
     <view class="accordion-item ink-border">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="planets">
-        <text class="accordion-label">行星信息</text>
+        <text class="accordion-label">核心要素</text>
         <view class="accordion-actions">
           <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="planets">查看详情</view>
           <text class="accordion-icon">{{expandedSection === 'planets' ? '-' : '+'}}</text>
@@ -218,9 +218,9 @@
       <view class="accordion-body" wx:if="{{expandedSection === 'planets'}}" style="padding: 0;">
         <view class="planet-info-table">
           <view class="pi-row pi-head font-ancient">
-            <view class="pi-cell pi-planet">星体</view>
-            <view class="pi-cell pi-sign">星座</view>
-            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-planet">要素</view>
+            <view class="pi-cell pi-sign">落位</view>
+            <view class="pi-cell pi-house">领域</view>
             <view class="pi-cell pi-retro">逆行</view>
           </view>
           <block wx:for="{{planets}}" wx:key="id">
@@ -254,7 +254,7 @@
     <!-- 4. 小行星信息 -->
     <view class="accordion-item ink-border">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="asteroids">
-        <text class="accordion-label">小行星信息</text>
+        <text class="accordion-label">辅助要素</text>
         <view class="accordion-actions">
           <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="asteroids">查看详情</view>
           <text class="accordion-icon">{{expandedSection === 'asteroids' ? '-' : '+'}}</text>
@@ -263,9 +263,9 @@
       <view class="accordion-body" wx:if="{{expandedSection === 'asteroids'}}" style="padding: 0;">
         <view class="planet-info-table">
           <view class="pi-row pi-head font-ancient">
-            <view class="pi-cell pi-planet">星体</view>
-            <view class="pi-cell pi-sign">星座</view>
-            <view class="pi-cell pi-house">宫位</view>
+            <view class="pi-cell pi-planet">要素</view>
+            <view class="pi-cell pi-sign">落位</view>
+            <view class="pi-cell pi-house">领域</view>
             <view class="pi-cell pi-retro">逆行</view>
           </view>
           <block wx:for="{{asteroids}}" wx:key="id">
@@ -299,7 +299,7 @@
     <!-- 5. 宫主星信息 -->
     <view class="accordion-item ink-border">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="houseRulers">
-        <text class="accordion-label">宫主星信息</text>
+        <text class="accordion-label">领域守护</text>
         <view class="accordion-actions">
           <view class="accordion-detail-btn" catchtap="onAppendixDetail" data-type="rulers">查看详情</view>
           <text class="accordion-icon">{{expandedSection === 'houseRulers' ? '-' : '+'}}</text>
@@ -308,11 +308,11 @@
       <view class="accordion-body" wx:if="{{expandedSection === 'houseRulers'}}" style="padding: 0;">
         <view class="planet-info-table">
           <view class="pi-row pi-head font-ancient">
-            <view class="pi-cell pi-hr-house">宫位</view>
-            <view class="pi-cell pi-hr-sign">星座</view>
-            <view class="pi-cell pi-hr-ruler">宫主星</view>
+            <view class="pi-cell pi-hr-house">领域</view>
+            <view class="pi-cell pi-hr-sign">落位</view>
+            <view class="pi-cell pi-hr-ruler">守护</view>
             <view class="pi-cell pi-hr-arrow"></view>
-            <view class="pi-cell pi-hr-fly">飞入宫位</view>
+            <view class="pi-cell pi-hr-fly">飞入领域</view>
           </view>
           <block wx:for="{{houseRulers}}" wx:key="house">
             <view class="pi-row">

@@ -99,10 +99,10 @@ const DEEP_DOMAIN_LIST = [
 
 const APPENDIX_LABELS = {
   elements: '元素矩阵',
-  aspects: '相位矩阵',
-  planets: '行星信息',
-  asteroids: '小行星信息',
-  rulers: '宫主星信息',
+  aspects: '关联矩阵',
+  planets: '核心要素',
+  asteroids: '辅助要素',
+  rulers: '领域守护',
 };
 
 const DETAIL_SECTION_LABELS = {
@@ -126,11 +126,11 @@ const DETAIL_SECTION_LABELS = {
   analysis: '分析',
   keywords: '关键词',
   details: '详情',
-  positions: '星体位置',
-  aspects: '相位',
-  planets: '行星',
-  asteroids: '小行星',
-  rulers: '宫主星',
+  positions: '要素位置',
+  aspects: '关联',
+  planets: '核心要素',
+  asteroids: '辅助要素',
+  rulers: '领域守护',
   elements: '元素',
   // 元素详情
   element_distribution: '元素分布',
@@ -156,7 +156,7 @@ const DETAIL_SECTION_LABELS = {
   meaning: '含义',
   influence: '影响',
   // 相位详情
-  aspect: '相位',
+  aspect: '关联',
   orb: '容许度',
   type: '类型',
   // 维度详情
@@ -178,9 +178,9 @@ const DETAIL_SECTION_LABELS = {
   reflection_question: '反思问题',
   astro_basis: '分析依据',
   // 宫主星
-  ruler: '宫主星',
-  flies_to_house: '飞入宫位',
-  flies_to_sign: '飞入星座',
+  ruler: '守护',
+  flies_to_house: '飞入领域',
+  flies_to_sign: '飞入落位',
   // Big3 详情
   sun: '太阳',
   moon: '月亮',
@@ -1171,7 +1171,7 @@ Page({
       this._natalReportPolling = false;
       this._natalReportPollTimer = null;
       if (this.data.natalReportStatus === 'completed') {
-        wx.showToast({ title: '本命解读已生成', icon: 'success' });
+        wx.showToast({ title: '深度解读已生成', icon: 'success' });
       }
       return;
     }
@@ -1801,7 +1801,7 @@ Page({
         if (a.growth_point) parts.push(`成长建议：${a.growth_point}`);
         const typeLabel = a.type === '和谐' ? 'success' : a.type === '紧张' ? 'warning' : 'info';
         sections.push({
-          title: a.title || a.aspect || '相位',
+          title: a.title || a.aspect || '关联',
           text: parts.filter(Boolean).join('\n'),
           cardColor: typeLabel
         });
@@ -1911,7 +1911,7 @@ Page({
       content.key_rulers.forEach(r => {
         const header = `${r.house}宫 ${r.house_theme || ''}`;
         const parts = [
-          `宫头${this._zhName(r.cusp_sign)}，宫主星${this._zhName(r.ruler)}在${this._zhName(r.ruler_sign)} ${r.ruler_house || ''}宫`,
+          `守护：${this._zhName(r.cusp_sign)}，${this._zhName(r.ruler)}落在${this._zhName(r.ruler_sign)} ${r.ruler_house || ''}宫`,
           r.interpretation,
           r.life_implication ? `生活影响：${r.life_implication}` : ''
         ].filter(Boolean);
@@ -1921,7 +1921,7 @@ Page({
     if (Array.isArray(content.ruler_chains) && content.ruler_chains.length) {
       content.ruler_chains.forEach(chain => {
         const text = [chain.description, chain.insight].filter(Boolean).join('\n');
-        sections.push({ title: chain.name || '宫主星链', text, cardColor: 'success' });
+        sections.push({ title: chain.name || '守护链', text, cardColor: 'success' });
       });
     }
     if (content.key_insight) {

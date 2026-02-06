@@ -1541,7 +1541,7 @@ Page({
         if (!a) return;
         const header = [def.name, a.current_position || ''].filter(Boolean).join(' · ');
         const parts = [
-          a.natal_aspect ? `本命相位：${a.natal_aspect}` : '',
+          a.natal_aspect ? `核心关联：${a.natal_aspect}` : '',
           a.theme || '',
           a.self_care_tip || a.relationship_tip || a.strategy_tip || a.nurture_tip || ''
         ].filter(Boolean).join('\n');
@@ -1575,8 +1575,8 @@ Page({
       if (data.chart_ruler_status) {
         const cr = data.chart_ruler_status;
         const crParts = [
-          cr.today_aspects?.length ? `今日相位：${cr.today_aspects.join('、')}` : '',
-          cr.energy_level ? `能量状态：${cr.energy_level}` : '',
+          cr.today_aspects?.length ? `今日关联：${cr.today_aspects.join('、')}` : '',
+          cr.energy_level ? `活跃状态：${cr.energy_level}` : '',
           cr.advice || ''
         ].filter(Boolean).join('\n');
         addSection(`命主星：${cr.planet || ''}`, crParts, null, 'accent-red');
@@ -1656,7 +1656,7 @@ Page({
       const name2 = this.translate(p2);
       const symbol = ASPECT_CONFIG[a.type]?.symbol || '';
       const orbText = this.formatOrb(a.orb);
-      return `行运${name1} ${symbol} 本命${name2}（orb ${orbText}）`;
+      return `周期${name1} ${symbol} 核心${name2}（orb ${orbText}）`;
     });
   },
 
