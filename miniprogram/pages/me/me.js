@@ -24,7 +24,7 @@ Page({
 
   loadUserProfile() {
     const profile = storage.get('user_profile') || {
-      name: '星智用户',
+      name: '星语用户',
       points: 0,
       reportCount: 0,
       matchCount: 0,
@@ -139,7 +139,7 @@ Page({
   handleDeleteAccount() {
     wx.showModal({
       title: '注销账号',
-      content: '注销后您的所有数据（包括星盘报告、会员权益、积分余额）将被清除且无法恢复。请在输入框中输入"确认注销"以继续。',
+      content: '注销后您的所有数据（包括分析报告、会员权益、积分余额）将被清除且无法恢复。请在输入框中输入"确认注销"以继续。',
       editable: true,
       placeholderText: '请输入"确认注销"',
       confirmText: '注销',

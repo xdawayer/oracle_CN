@@ -1,6 +1,6 @@
-// INPUT: 星盘配置常量（相位类型、容许度、视觉层样式）
-// OUTPUT: 导出星盘绘制所需的配置数据
-// POS: 小程序星盘配置中心
+// INPUT: 图谱配置常量（相位类型、容许度、视觉层样式）
+// OUTPUT: 导出图谱绘制所需的配置数据
+// POS: 小程序图谱配置中心
 
 // 主要行星列表（10大行星）
 export const MAJOR_PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
@@ -13,7 +13,7 @@ export const MINOR_BODIES = ['Chiron', 'North Node', 'South Node', 'Lilith', 'Ju
 
 // 相位颜色 - 与 oracle_CN/constants.ts 同步
 export const ASPECT_COLORS = {
-  conjunction: '#94A3B8',  // 中性灰（合相线在星盘中不绘制）
+  conjunction: '#94A3B8',  // 中性灰（合相线在图谱中不绘制）
   opposition: '#8B5CF6',   // 紫色
   square: '#EF4444',       // 红色
   trine: '#22C55E',        // 绿色
@@ -42,7 +42,7 @@ const DEFAULT_ASPECT_SETTINGS = {
   sesquiquadrate: { enabled: false, orb: 2 },
 };
 
-// 本命盘配置
+// 核心图谱配置
 // 单人盘 orb: 合相6°, 六分3°, 四分5°, 三分5°, 对分5°
 export const NATAL_CONFIG = {
   chartType: 'natal',
@@ -71,8 +71,8 @@ export const NATAL_CONFIG = {
   },
 };
 
-// 组合盘配置
-// 组合盘 orb 与本命盘相同
+// 组合图谱配置
+// 组合图谱 orb 与核心图谱相同
 export const COMPOSITE_CONFIG = {
   chartType: 'composite',
   celestialBodies: {
@@ -149,7 +149,7 @@ export const TRANSIT_CONFIG = {
 };
 
 // 行星元数据（符号和颜色）
-// 颜色规则参考专业星盘：红色=发光体/火星，蓝色=内行星，绿色=外行星
+// 颜色规则参考专业图谱：红色=发光体/火星，蓝色=内行星，绿色=外行星
 export const PLANET_META = {
   'Sun': { glyph: '☉', color: '#8B0000' },      // 深红 - 发光体
   'Moon': { glyph: '☽', color: '#0000CD' },     // 深蓝 - 发光体
@@ -329,7 +329,7 @@ export const DUAL_CHART_LAYOUT = {
   // 分隔线
   separator: 0.625,            // 内外环分隔线
 
-  // 内环（本命盘）
+  // 内环（核心图谱）
   innerPlanetRing: 0.59,       // 内环行星符号
 
   // 宫位区域

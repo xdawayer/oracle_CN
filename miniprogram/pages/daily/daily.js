@@ -252,7 +252,7 @@ Page({
     this._monthlyYear = now.getFullYear();
     this._monthlyMonth = monthIndex + 1;
     this.setData({
-      monthlyEntryTitle: `${monthName}月运势深度解读`,
+      monthlyEntryTitle: `${monthName}月度深度解读`,
       monthlyColorClass: `month-${monthIndex + 1}`,
     });
     // 延迟检查月度报告状态（等 profile 加载完成）
@@ -368,13 +368,13 @@ Page({
     this.setData({
       showPayment: true,
       paymentMeta: {
-        title: `${monthName}月运势深度解读`,
-        subtitle: '专属月度星象解读',
+        title: `${monthName}月度深度解读`,
+        subtitle: '专属月度深度解读',
         features: [
-          { title: '月度总览', desc: '当月运势主题与能量走向' },
+          { title: '月度总览', desc: '当月主题与能量走向' },
           { title: '重点领域', desc: '事业、感情、健康等月度指引' },
-          { title: '关键时间点', desc: '本月重要星象节点与应对建议' },
-          { title: '行动指南', desc: '本月能量提升与开运方向' },
+          { title: '关键时间点', desc: '本月重要节点与应对建议' },
+          { title: '行动指南', desc: '本月能量提升与成长方向' },
         ],
         price: 200,
         note: '约 3000-5000 字深度解读，永久保存',
@@ -740,7 +740,7 @@ Page({
       ? this.data.technical
       : this.prepareTechnicalData(result.technical);
 
-    // 适配四个运势维度（事业/财运/爱情/健康）
+    // 适配四个指数维度（事业/财运/爱情/健康）
     const dimensions = forecast && forecast.dimensions ? forecast.dimensions : null;
     const dimensionItems = dimensions ? DIMENSION_ORDER.map((item) => ({
       key: item.key,
@@ -1006,7 +1006,7 @@ Page({
         '整体平顺，适合处理常规工作。'
       ];
       const description = event?.description || item.description || item.detail || defaultDescs[idx % defaultDescs.length];
-      const isSpecial = Boolean(event?.label || title.includes('星象') || description.includes('星象'));
+      const isSpecial = Boolean(event?.label || title.includes('周期') || description.includes('周期'));
       return {
         dateLabel,
         title,
@@ -1158,7 +1158,7 @@ Page({
 
     // 检查 /full 预缓存的 detail 数据
     // 预缓存的是 daily-detail prompt 的输出，仅适用于 'chart' 类型
-    // 四维运势和技术类型（planets/aspects/asteroids/rulers）需要独立的 detail API 调用
+    // 四维指数和技术类型（planets/aspects/asteroids/rulers）需要独立的 detail API 调用
     const canUsePrefetch = (type === 'chart');
     if (canUsePrefetch && this._prefetchedDetail && this._prefetchedDetail.dateStr === dateStr && this._prefetchedDetail.content) {
       const prefetched = this._prefetchedDetail.content;
@@ -1371,12 +1371,12 @@ Page({
         ].filter(Boolean).join('\n');
         addSection('天象气象', swParts, null, 'accent-red');
       }
-      // 重要星象配置
+      // 重要周期配置
       if (Array.isArray(data.major_configurations)) {
         data.major_configurations.forEach(cfg => {
           const planets = Array.isArray(cfg.planets_involved) ? cfg.planets_involved.join('、') : '';
           const text = [cfg.description, planets ? `相关行星：${planets}` : '', cfg.how_to_use ? `利用方式：${cfg.how_to_use}` : ''].filter(Boolean).join('\n');
-          addSection(cfg.name || '星象配置', text, null, 'info');
+          addSection(cfg.name || '周期配置', text, null, 'info');
         });
       }
       // 行运亮点
@@ -1439,7 +1439,7 @@ Page({
       if (data.overall_weather) {
         const ow = data.overall_weather;
         const owText = [ow.tone ? `氛围：${ow.tone}` : '', ow.summary || ''].filter(Boolean).join('\n');
-        addSection('星象天气', owText, null, 'accent-red');
+        addSection('能量天气', owText, null, 'accent-red');
       }
       // 今日焦点
       if (data.today_highlight) {
@@ -1625,15 +1625,15 @@ Page({
   normalizeReportTitle(rawTitle, type, titleBase) {
     let title = String(rawTitle || '').trim();
     if (!title) title = String(titleBase || '').trim();
-    if (!title) title = '运势';
+    if (!title) title = '洞察';
 
-    title = title.replace(/的星象解读/g, '星象');
-    title = title.replace(/星象解读/g, '星象');
+    title = title.replace(/的深度解读/g, '分析');
+    title = title.replace(/深度解读/g, '分析');
     title = title.replace(/解读/g, '');
     title = title.replace(/\s+/g, '');
 
-    if (type === 'chart' && title === '星象') {
-      title = '今日星象';
+    if (type === 'chart' && title === '分析') {
+      title = '今日周期';
     }
 
     if (title.length > 10) {
@@ -1799,7 +1799,7 @@ Page({
       };
     }
 
-    // 内环：本命盘位置
+    // 内环：核心图谱位置
     const innerPositions = result.natal.positions || [];
 
     // 外环：行运位置
@@ -1808,7 +1808,7 @@ Page({
     // 相位：跨盘相位（本命 vs 行运）
     const aspects = result.transits.aspects || [];
 
-    // 宫位：本命盘宫位
+    // 宫位：核心图谱宫位
     const houseCusps = result.natal.houseCusps || [];
 
     return {
@@ -1821,7 +1821,7 @@ Page({
 
   translateDetailType(type) {
     const map = {
-      chart: '行运星盘',
+      chart: '行运图谱',
       aspects: '相位矩阵',
       planets: '行运行星',
       asteroids: '小行星',

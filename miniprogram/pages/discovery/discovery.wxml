@@ -10,9 +10,9 @@
         <view class="hero-icon-box">
           <view class="icon-mask" style="color: #8B5E6B; -webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
         </view>
-        <text class="hero-title font-ancient">双人合盘</text>
+        <text class="hero-title font-ancient">关系分析</text>
       </view>
-      <text class="hero-desc">解析灵魂伴侣、合作伙伴的匹配契合度。包含本命对比与组合中点盘。</text>
+      <text class="hero-desc">解析伴侣、合作伙伴的性格匹配契合度。包含双人对比与综合分析。</text>
       <view class="hero-btn btn-outline">
         <text>开始探索</text>
       </view>
@@ -25,8 +25,8 @@
         <view class="icon-mask" style="color: var(--ink-deep); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>
       </view>
       <view class="action-text">
-        <text class="action-title font-ancient">占星实验室</text>
-        <text class="action-subtitle">ASTRO LAB</text>
+        <text class="action-title font-ancient">探索实验室</text>
+        <text class="action-subtitle">EXPLORE LAB</text>
       </view>
     </view>
     <view class="action-arrow">
@@ -56,11 +56,11 @@
     <view class="topic-banner-info">
       <text class="topic-banner-title">爱情专题深度报告</text>
       <text class="topic-banner-desc">
-        {{loveTopicStatus === 'none' ? '恋爱人格、理想伴侣与感情运势' :
+        {{loveTopicStatus === 'none' ? '恋爱人格、理想伴侣与感情模式' :
           loveTopicStatus === 'pending' ? '任务排队中，请稍候...' :
           loveTopicStatus === 'processing' ? '正在为你生成爱情报告...' :
           loveTopicStatus === 'completed' ? '查看你的专属爱情解读' :
-          loveTopicStatus === 'failed' ? '生成失败，点击重试' : '恋爱人格、理想伴侣与感情运势'}}
+          loveTopicStatus === 'failed' ? '生成失败，点击重试' : '恋爱人格、理想伴侣与感情模式'}}
       </text>
       <view wx:if="{{loveTopicStatus === 'processing' || loveTopicStatus === 'pending'}}" class="banner-progress">
         <view class="banner-progress-bar">
@@ -83,11 +83,11 @@
     <view class="topic-banner-info">
       <text class="topic-banner-title">事业专题深度报告</text>
       <text class="topic-banner-desc">
-        {{careerTopicStatus === 'none' ? '职业天赋、职场人际与事业运势' :
+        {{careerTopicStatus === 'none' ? '职业天赋、职场人际与事业潜能' :
           careerTopicStatus === 'pending' ? '任务排队中，请稍候...' :
           careerTopicStatus === 'processing' ? '正在为你生成事业报告...' :
           careerTopicStatus === 'completed' ? '查看你的专属事业解读' :
-          careerTopicStatus === 'failed' ? '生成失败，点击重试' : '职业天赋、职场人际与事业运势'}}
+          careerTopicStatus === 'failed' ? '生成失败，点击重试' : '职业天赋、职场人际与事业潜能'}}
       </text>
       <view wx:if="{{careerTopicStatus === 'processing' || careerTopicStatus === 'pending'}}" class="banner-progress">
         <view class="banner-progress-bar">
@@ -110,11 +110,11 @@
     <view class="topic-banner-info">
       <text class="topic-banner-title">财富专题深度报告</text>
       <text class="topic-banner-desc">
-        {{wealthTopicStatus === 'none' ? '金钱关系、财富潜力与理财运势' :
+        {{wealthTopicStatus === 'none' ? '金钱关系、财富潜力与理财心理' :
           wealthTopicStatus === 'pending' ? '任务排队中，请稍候...' :
           wealthTopicStatus === 'processing' ? '正在为你生成财富报告...' :
           wealthTopicStatus === 'completed' ? '查看你的专属财富解读' :
-          wealthTopicStatus === 'failed' ? '生成失败，点击重试' : '金钱关系、财富潜力与理财运势'}}
+          wealthTopicStatus === 'failed' ? '生成失败，点击重试' : '金钱关系、财富潜力与理财心理'}}
       </text>
       <view wx:if="{{wealthTopicStatus === 'processing' || wealthTopicStatus === 'pending'}}" class="banner-progress">
         <view class="banner-progress-bar">

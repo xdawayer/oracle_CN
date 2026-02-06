@@ -1,5 +1,5 @@
 /**
- * 2026 流年运势报告页面
+ * 2026 年度报告页面
  *
  * 使用异步任务 API 获取报告内容
  * 支持 Markdown 内容渲染
@@ -199,7 +199,7 @@ const MODULE_LIST = [
   { id: 'q2', name: '第二季度' },
   { id: 'q3', name: '第三季度' },
   { id: 'q4', name: '第四季度' },
-  { id: 'lucky', name: '开运指南' },
+  { id: 'lucky', name: '成长建议' },
 ];
 
 Page({

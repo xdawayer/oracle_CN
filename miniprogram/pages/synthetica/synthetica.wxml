@@ -3,7 +3,7 @@
   <view wx:if="{{viewState === 'loading'}}" class="overlay overlay-loading">
     <view class="loading-card ink-border">
       <view class="loading-spinner"></view>
-      <view class="loading-title font-ancient">正在解码星象</view>
+      <view class="loading-title font-ancient">正在深度分析</view>
       <view class="loading-subtitle">请稍候，洞察即将呈现</view>
     </view>
   </view>
@@ -51,7 +51,7 @@
     </scroll-view>
   </view>
   <view class="banner">
-    <text class="banner-text">自由组合星象，AI 深度洞察心理机制与未来时机</text>
+    <text class="banner-text">自由组合维度，AI 深度洞察心理机制与未来时机</text>
   </view>
 
   <view class="card form-card ink-border">
@@ -160,6 +160,6 @@
 <!-- Fixed Bottom Button -->
 <view class="bottom-bar">
   <button class="generate-btn {{viewState === 'loading' ? 'disabled' : ''}}" bindtap="handleGenerate" disabled="{{viewState === 'loading'}}">
-    {{viewState === 'loading' ? '正在解码星象...' : '生成深度洞察'}}
+    {{viewState === 'loading' ? '正在深度分析...' : '生成深度洞察'}}
   </button>
 </view>

@@ -233,13 +233,42 @@
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
 }
 
-/* 协议提示 */
-.agreement-hint {
+/* 协议勾选 */
+.agreement-check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  justify-content: center;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid var(--ink-light);
+  border-radius: 6rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked {
+  background: var(--ink-deep);
+  border-color: var(--ink-deep);
+}
+
+.checkbox-mark {
+  font-size: 20rpx;
+  color: var(--paper-50);
+  line-height: 1;
+}
+
+.agreement-check-text {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  margin-top: var(--spacing-sm);
 }
 
 .agreement-hint-text {

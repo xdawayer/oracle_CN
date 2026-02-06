@@ -1,4 +1,4 @@
-/* annual-report.wxss - 2026 流年运势页面样式 */
+/* annual-report.wxss - 2026 年度报告页面样式 */
 
 .page-container {
   display: flex;

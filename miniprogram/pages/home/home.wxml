@@ -65,8 +65,8 @@
         <view class="quick-grid-icon-box">
           <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/love.svg'); mask-image: url('/images/icons/love.svg');"></view>
         </view>
-        <text class="quick-grid-title">双人合盘</text>
-        <text class="quick-grid-desc font-body">关系能量解析</text>
+        <text class="quick-grid-title">关系分析</text>
+        <text class="quick-grid-desc font-body">双人匹配解析</text>
       </view>
       <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="cbt">
         <view class="quick-grid-icon-box">
@@ -82,26 +82,20 @@
         <text class="quick-grid-title">AI问答</text>
         <text class="quick-grid-desc font-body">AI 深度咨询</text>
       </view>
-      <view class="quick-grid-item" bindtap="onNavigateToChart" data-type="kline">
-        <view class="quick-grid-icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
-        </view>
-        <text class="quick-grid-title">人生K线</text>
-        <text class="quick-grid-desc font-body">命运起伏趋势</text>
-      </view>
+      <!-- 人生K线入口审核期隐藏 -->
     </view>
   </view>
 
   <view class="home-annual-entry">
     <view class="premium-banner annual-banner {{annualTaskStatus === 'processing' ? 'processing' : annualTaskStatus === 'completed' ? 'completed' : ''}}" bindtap="onAnnualReportTap">
       <view class="premium-info">
-        <text class="premium-title">2026 流年大运报告</text>
+        <text class="premium-title">2026 年度成长报告</text>
         <text class="premium-desc">
-          {{annualTaskStatus === 'none' ? '解锁全年运势指南' :
+          {{annualTaskStatus === 'none' ? '解锁年度成长指南' :
             annualTaskStatus === 'pending' ? '任务排队中，请稍候...' :
             annualTaskStatus === 'processing' ? '正在为你生成专属报告...' :
-            annualTaskStatus === 'completed' ? '查看你的专属年度运势' :
-            annualTaskStatus === 'failed' ? '生成失败，点击重试' : '解锁全年运势指南'}}
+            annualTaskStatus === 'completed' ? '查看你的专属年度报告' :
+            annualTaskStatus === 'failed' ? '生成失败，点击重试' : '解锁年度成长指南'}}
         </text>
         <view wx:if="{{annualTaskStatus === 'processing' || annualTaskStatus === 'pending'}}" class="banner-progress">
           <view class="banner-progress-bar">
@@ -122,7 +116,7 @@
 
   <view class="section-group">
     <view class="section-header">
-      <text class="section-title font-ancient">我的星盘</text>
+      <text class="section-title font-ancient">我的分析</text>
     </view>
     <view class="chart-grid">
       <view class="chart-card" bindtap="onNavigateToChart" data-type="natal">
@@ -130,19 +124,11 @@
           <view class="icon colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
         </view>
         <view class="text-box">
-          <text class="item-title">本命盘解读</text>
-          <text class="item-subtitle font-body">了解核心人格</text>
+          <text class="item-title">核心人格解读</text>
+          <text class="item-subtitle font-body">了解真实自我</text>
         </view>
       </view>
-      <view class="chart-card" bindtap="onNavigateToChart" data-type="kline">
-        <view class="icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
-        </view>
-        <view class="text-box">
-          <text class="item-title">人生k线图</text>
-          <text class="item-subtitle font-body">命运起伏趋势</text>
-        </view>
-      </view>
+      <!-- 成长轨迹入口审核期隐藏 -->
     </view>
   </view>
 
@@ -227,7 +213,7 @@
       <view class="share-card-body">
         <text class="share-sign font-body">{{shareData.sunSign}}</text>
         <text class="share-date font-body">{{shareData.date}}</text>
-        <text class="share-score-label font-body">运势</text>
+        <text class="share-score-label font-body">今日指数</text>
         <text class="share-score font-data">{{shareData.score}}分</text>
         <text class="share-quote font-ancient">{{shareData.quote}}</text>
       </view>

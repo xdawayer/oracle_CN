@@ -25,7 +25,7 @@ const API_ENDPOINTS = {
   WIKI_SEARCH: '/api/wiki/search',
   USER_STATUS: '/api/user/status',
   ASTRO_EVENTS: '/api/astro/events',
-  // 流年报告
+  // 年度报告
   ANNUAL_REPORT_GENERATE: '/api/annual-report/generate',
   ANNUAL_REPORT_MODULE: '/api/annual-report/module',
   ANNUAL_REPORT_CACHED: '/api/annual-report/cached',
@@ -36,10 +36,10 @@ const API_ENDPOINTS = {
   KLINE_LIFE_SCROLL: '/api/kline/life-scroll',
   // 星座配对
   PAIRING: '/api/pairing',
-  // 合盘并行（overview + coreDynamics + highlights）
+  // 关系分析并行（overview + coreDynamics + highlights）
   SYNASTRY_FULL: '/api/synastry/full',
   SYNASTRY_FULL_STREAM: '/api/synastry/full/stream',
-  // 通用报告（本命深度解读、流年运势等）
+  // 通用报告（人格深度解读、年度报告等）
   REPORT_CREATE: '/api/report/create',
   REPORT_STATUS: '/api/report/status',
   REPORT_CONTENT: '/api/report/content',

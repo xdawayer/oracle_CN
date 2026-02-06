@@ -1,8 +1,8 @@
 <view class="page">
   <!-- 标题只在输入界面显示，结果界面使用顶部导航栏 -->
   <view class="header" wx:if="{{step === 1}}">
-    <text class="title font-ancient">双人合盘</text>
-    <text class="subtitle">探索两颗星的引力法则</text>
+    <text class="title font-ancient">关系分析</text>
+    <text class="subtitle">探索两个人的引力法则</text>
   </view>
 
   <!-- Step 1: Input Form -->
@@ -10,7 +10,7 @@
     <!-- Intro Card with Profile Manager -->
     <view class="card intro-card ink-border">
       <view class="intro-row">
-        <text class="intro-text">分析两人星盘的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
+        <text class="intro-text">分析两人性格的相互关系，探索情感连接、沟通模式与长期稳定性。</text>
         <view class="profile-manager-btn" bindtap="openManager">
           <text class="manager-btn-text">新增档案</text>
         </view>
@@ -119,7 +119,7 @@
         bindtap="handleAnalyze"
         disabled="{{!nameA || !nameB || loading}}"
       >
-        {{loading ? '分析中...' : '开始合盘'}}
+        {{loading ? '分析中...' : '开始分析'}}
       </button>
     </view>
   </view>
@@ -212,9 +212,9 @@
 
     <!-- Other Sections -->
     <scroll-view scroll-y class="result-scroll" wx:if="{{activeTab !== 'overview'}}" show-scrollbar="false">
-      <!-- 本命盘 A（星盘数据已预加载，不受 AI loading 影响） -->
+      <!-- 人格图谱 A（数据已预加载，不受 AI loading 影响） -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'natal_a' && chartDataA.positions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">{{nameA}}的本命盘</text>
+        <text class="section-title font-ancient">{{nameA}}的人格图谱</text>
         <view class="chart-container">
           <astro-chart
             type="natal"
@@ -227,9 +227,9 @@
         </view>
       </view>
 
-      <!-- 本命盘 B -->
+      <!-- 人格图谱 B -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'natal_b' && chartDataB.positions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">{{nameB}}的本命盘</text>
+        <text class="section-title font-ancient">{{nameB}}的人格图谱</text>
         <view class="chart-container">
           <astro-chart
             type="natal"
@@ -276,9 +276,9 @@
         <text class="chart-desc">内环：{{nameB}} | 外环：{{nameA}}</text>
       </view>
 
-      <!-- 组合盘 -->
+      <!-- 组合分析 -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'composite' && compositeChart.positions.length > 0 && !showDeepOverlay}}">
-        <text class="section-title font-ancient">组合盘（中点盘）</text>
+        <text class="section-title font-ancient">组合分析（中点盘）</text>
         <view class="chart-container">
           <astro-chart
             type="natal"
@@ -393,9 +393,9 @@
             </view>
           </view>
 
-          <!-- 星象依据 -->
+          <!-- 分析依据 -->
           <view class="card-astro-basis" wx:if="{{item.astroBasis}}">
-            <text class="astro-label">星象依据</text>
+            <text class="astro-label">分析依据</text>
             <text class="astro-text">{{item.astroBasis}}</text>
           </view>
 
@@ -608,8 +608,8 @@
   <view class="loading-overlay" wx:if="{{loading}}">
     <view class="loading-content">
       <view class="loading-spinner"></view>
-      <text class="loading-text">正在分析合盘...</text>
-      <text class="loading-hint">计算双人星盘相位与宫位关系</text>
+      <text class="loading-text">正在分析关系...</text>
+      <text class="loading-hint">计算双人性格匹配与互动模式</text>
     </view>
   </view>
 </view>

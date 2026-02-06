@@ -8,7 +8,7 @@
   <view class="step-content" wx:if="{{step === 1}}">
     <view class="step-header">
       <text class="step-title font-ancient">{{isEditMode ? '修改出生资料' : '填写出生日期与时间'}}</text>
-      <text class="step-desc">准确的出生时间有助于更精确的星盘计算</text>
+      <text class="step-desc">准确的出生时间有助于更精确的个性化分析</text>
     </view>
 
     <!-- 日历类型选择 -->
@@ -99,16 +99,21 @@
   <view class="bottom-area">
     <!-- 信任标识 -->
     <view class="trust-badge">
-      <text class="trust-text">基于 Swiss Ephemeris 瑞士星历表</text>
-      <text class="trust-text">和 NASA JPL 数据库精密计算</text>
+      <text class="trust-text">基于心理学与天文学模型</text>
+      <text class="trust-text">提供科学的个性化分析</text>
     </view>
 
-    <!-- 协议提示 -->
-    <view class="agreement-hint">
-      <text class="agreement-hint-text">继续即表示您同意</text>
-      <text class="agreement-link" bindtap="goToTerms">《用户协议》</text>
-      <text class="agreement-hint-text">和</text>
-      <text class="agreement-link" bindtap="goToPrivacy">《隐私政策》</text>
+    <!-- 协议勾选 -->
+    <view class="agreement-check" bindtap="toggleAgreed">
+      <view class="checkbox {{agreedTerms ? 'checked' : ''}}">
+        <text class="checkbox-mark" wx:if="{{agreedTerms}}">✓</text>
+      </view>
+      <view class="agreement-check-text">
+        <text class="agreement-hint-text">我已阅读并同意</text>
+        <text class="agreement-link" catchtap="goToTerms">《用户协议》</text>
+        <text class="agreement-hint-text">和</text>
+        <text class="agreement-link" catchtap="goToPrivacy">《隐私政策》</text>
+      </view>
     </view>
 
     <!-- 按钮 -->
@@ -116,7 +121,7 @@
       <view class="btn-back" wx:if="{{step === 2}}" bindtap="goBack">
         <text>上一步</text>
       </view>
-      <view class="btn-primary {{!canProceed ? 'disabled' : ''}}" bindtap="goNext">
+      <view class="btn-primary {{!(canProceed && agreedTerms) ? 'disabled' : ''}}" bindtap="goNext">
         <text>{{step === 2 ? (isEditMode ? '保存' : '完成') : '下一步'}}</text>
       </view>
     </view>

@@ -1,4 +1,4 @@
-<!-- 星盘组件模板 -->
+<!-- 图谱组件模板 -->
 <view class="astro-chart-container" style="width: {{width}}px; height: {{height}}px;">
   <canvas
     type="2d"

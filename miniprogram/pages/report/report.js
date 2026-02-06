@@ -175,27 +175,27 @@ function markdownToHtml(markdown) {
 const REPORT_TYPE_CONFIG = {
   'natal-report': {
     title: '本命深度解读',
-    desc: '专属于你的星盘全维度解析',
+    desc: '专属于你的全维度人格解析',
   },
   annual: {
-    title: '2026 流年运势',
-    desc: '专属于你的年度星象解读',
+    title: '2026 年度报告',
+    desc: '专属于你的年度成长解读',
   },
   monthly: {
-    title: '月度运势深度解读',
-    desc: '30天星象节奏与行动指南',
+    title: '月度深度解读',
+    desc: '30天节奏与行动指南',
   },
   'love-topic': {
     title: '爱情专题深度报告',
-    desc: '恋爱人格、理想伴侣与感情运势',
+    desc: '恋爱人格、理想伴侣与感情模式',
   },
   'career-topic': {
     title: '事业专题深度报告',
-    desc: '职业天赋、职场人际与事业运势',
+    desc: '职业天赋、职场人际与事业潜能',
   },
   'wealth-topic': {
     title: '财富专题深度报告',
-    desc: '金钱关系、财富潜力与理财运势',
+    desc: '金钱关系、财富潜力与理财心理',
   },
 };
 
@@ -317,7 +317,7 @@ Page({
       // 使用硬编码 fallback 模块列表
       const FALLBACK_MODULES = {
         'natal-report': [
-          { id: 'overview', name: '星盘总览' },
+          { id: 'overview', name: '人格总览' },
           { id: 'love', name: '爱情与亲密关系' },
           { id: 'career', name: '事业与人生方向' },
           { id: 'emotion', name: '情感与内在世界' },
@@ -337,11 +337,11 @@ Page({
           { id: 'q2', name: '第二季度详解' },
           { id: 'q3', name: '第三季度详解' },
           { id: 'q4', name: '第四季度详解' },
-          { id: 'lucky', name: '开运指南' },
+          { id: 'lucky', name: '成长建议' },
         ],
         monthly: [
           { id: 'tone', name: '月度总基调' },
-          { id: 'dimensions', name: '分维度运势' },
+          { id: 'dimensions', name: '分维度分析' },
           { id: 'rhythm', name: '上中下旬节奏指南' },
           { id: 'lunar', name: '新月满月指南' },
           { id: 'dates', name: '关键日期速查表' },
@@ -351,19 +351,19 @@ Page({
           { id: 'personality', name: '恋爱人格画像' },
           { id: 'partner', name: '理想伴侣与关系模式' },
           { id: 'growth', name: '关系成长课题' },
-          { id: 'forecast', name: '未来12个月感情运势' },
+          { id: 'forecast', name: '未来12个月感情趋势' },
         ],
         'career-topic': [
           { id: 'talent', name: '天赋与职业方向' },
           { id: 'workplace', name: '职场人际与领导力' },
           { id: 'mission', name: '人生使命与蜕变' },
-          { id: 'forecast', name: '未来12个月事业运势' },
+          { id: 'forecast', name: '未来12个月事业趋势' },
         ],
         'wealth-topic': [
           { id: 'money-relation', name: '你与金钱的关系' },
           { id: 'potential', name: '财富潜力与增长路径' },
           { id: 'blindspot', name: '金钱盲区与理财建议' },
-          { id: 'forecast', name: '未来12个月财富运势' },
+          { id: 'forecast', name: '未来12个月财富趋势' },
         ],
       };
       const fallback = FALLBACK_MODULES[this.data.reportType] || [];

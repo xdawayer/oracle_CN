@@ -216,7 +216,7 @@ page {
   box-sizing: border-box;
 }
 
-/* 星盘概况卡片 */
+/* 分析概况卡片 */
 .report-chart-summary {
   background: var(--paper-50);
   padding: var(--spacing-lg);
@@ -326,7 +326,7 @@ page {
   white-space: pre-line;
 }
 
-/* 星象依据标注 */
+/* 分析依据标注 */
 .card-astro-basis {
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-sm);

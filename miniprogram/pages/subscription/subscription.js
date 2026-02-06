@@ -18,10 +18,10 @@ Page({
     agreedTerms: false,
     paying: false,
     benefits: [
-      { icon: '∞', title: '无限次星盘解读', desc: '不消耗积分，随时查看' },
-      { icon: '心', title: 'AI 深度心理分析', desc: '结合星象的心理分析' },
-      { icon: '☆', title: '行运星盘实时查看', desc: '掌控每一刻的宇宙能量' },
-      { icon: '♡', title: '高级合盘分析', desc: '多维度关系互动深度解析' },
+      { icon: '∞', title: '无限次深度解读', desc: '不消耗积分，随时查看' },
+      { icon: '心', title: 'AI 深度心理分析', desc: '结合个人特质的深度分析' },
+      { icon: '☆', title: '实时周期分析', desc: '掌握每日洞察指南' },
+      { icon: '♡', title: '高级关系分析', desc: '多维度关系互动深度解析' },
       { icon: '盾', title: '专属隐私保护', desc: '数据加密，仅你可见' },
     ],
   },
@@ -38,7 +38,7 @@ Page({
     const profile = storage.get('user_profile') || {};
     const avatarUrl = storage.get('user_avatar') || '';
     this.setData({
-      userName: profile.name || '星智用户',
+      userName: profile.name || '星语用户',
       avatarUrl,
       isVip: profile.isVip || false,
       vipExpireDate: profile.vipExpireDate || '',

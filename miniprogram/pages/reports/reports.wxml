@@ -12,7 +12,7 @@
     <!-- 空状态 -->
     <view wx:elif="{{reports.length === 0 && !loading}}" class="empty-state">
       <text class="empty-title">暂无收藏</text>
-      <text class="empty-desc">你的占星报告将保存在这里</text>
+      <text class="empty-desc">你的分析报告将保存在这里</text>
     </view>
 
     <view wx:for="{{reports}}" wx:key="id" class="report-card ink-border" bindtap="onSelectReport" data-report="{{item}}">

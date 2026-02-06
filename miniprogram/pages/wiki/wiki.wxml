@@ -3,7 +3,7 @@
   <view class="header">
     <view class="header-content">
       <view class="title-group">
-        <text class="main-title font-ancient">占星百科</text>
+        <text class="main-title font-ancient">知识百科</text>
         <text class="sub-title">UNIVERSAL KNOWLEDGE</text>
       </view>
     </view>

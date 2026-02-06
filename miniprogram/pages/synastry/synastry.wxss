@@ -406,7 +406,7 @@
   border-left: 4rpx solid #7c9cb0;
 }
 
-/* 星盘卡片 */
+/* 图谱卡片 */
 .chart-card {
   margin-bottom: var(--spacing-sm);
 }
@@ -1150,7 +1150,7 @@
   font-weight: 600;
 }
 
-/* ========== 星象依据 ========== */
+/* ========== 分析依据 ========== */
 .card-astro-basis {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);

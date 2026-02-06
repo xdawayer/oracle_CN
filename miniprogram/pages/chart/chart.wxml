@@ -403,7 +403,7 @@
 
   <view class="footer">
     <button class="action-btn {{loading ? 'loading' : ''}}" bindtap="{{resultStatus === 'idle' ? 'generateChart' : 'resetResult'}}" disabled="{{loading}}">
-       {{resultStatus === 'idle' ? (loading ? '正在计算星历...' : '生成专业星盘') : '再次排盘'}}
+       {{resultStatus === 'idle' ? (loading ? '正在计算...' : '生成专业图谱') : '再次生成'}}
     </button>
   </view>
 

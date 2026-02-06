@@ -223,7 +223,7 @@ Page({
           });
         }
         result = {
-          report_title: content.overview?.title || '星象解析',
+          report_title: content.overview?.title || '深度解析',
           synthesis: content.overview?.summary || '',
           modules
         };

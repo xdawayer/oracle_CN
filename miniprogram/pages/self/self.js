@@ -176,7 +176,7 @@ const DETAIL_SECTION_LABELS = {
   growth_path: '成长方向',
   direction: '方向',
   reflection_question: '反思问题',
-  astro_basis: '星象依据',
+  astro_basis: '分析依据',
   // 宫主星
   ruler: '宫主星',
   flies_to_house: '飞入宫位',
@@ -197,25 +197,25 @@ const DETAIL_SECTION_LABELS = {
 // 报告元数据（用于支付弹窗展示）
 const REPORT_PAYMENT_META = {
   annual: {
-    title: '2026 流年大运',
-    subtitle: '专属年度星象解读',
+    title: '2026 年度成长报告',
+    subtitle: '专属年度深度解读',
     features: [
-      { title: '年度总览', desc: '全年运势主题与能量走向' },
+      { title: '年度总览', desc: '全年指数主题与能量走向' },
       { title: '六大领域', desc: '事业、感情、健康、社交、成长、财运' },
-      { title: '季度详解', desc: '四季运势节奏与关键时间点' },
-      { title: '开运指南', desc: '幸运元素与能量提升建议' },
+      { title: '季度详解', desc: '四季指数节奏与关键时间点' },
+      { title: '成长建议', desc: '幸运元素与能量提升建议' },
     ],
     price: 500,
     note: '约 8000-10000 字深度解读，永久保存',
   },
   'natal-report': {
-    title: '本命深度解读',
-    subtitle: '专属星盘全维度解析',
+    title: '人格深度解读',
+    subtitle: '专属全维度深度解析',
     features: [
       { title: '核心人格解读', desc: '太阳、月亮、上升的深层心理分析' },
-      { title: '人生维度详解', desc: '事业、感情、健康等领域的星象指引' },
+      { title: '人生维度详解', desc: '事业、感情、健康等领域的心理指引' },
       { title: '行星相位解读', desc: '内在动力与潜在张力的深度剖析' },
-      { title: '成长建议', desc: '基于星盘的个性化发展方向' },
+      { title: '成长建议', desc: '基于分析的个性化发展方向' },
     ],
     price: 500,
     note: '约 5000-8000 字深度解读，永久保存',
@@ -241,7 +241,7 @@ Page({
     prefetchedContent: {}, // 从 /api/natal/full 预获取的 overview/coreThemes/dimension 内容
     statusBarHeight: 20,
     navTitle: 'Self',
-    // 流年报告任务状态
+    // 年度报告任务状态
     annualTaskStatus: 'none', // none | pending | processing | completed | failed
     annualTaskProgress: 0,
     annualTaskMessage: '',
@@ -316,7 +316,7 @@ Page({
     this.checkNatalReportAccess();
   },
 
-  /** 检查流年报告任务状态 */
+  /** 检查年度报告任务状态 */
   async checkAnnualReportAccess() {
     try {
       // 使用 user_profile 获取出生信息
@@ -645,12 +645,12 @@ Page({
         chartHouseCusps: houseCusps
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
-        // 星盘渲染完成后，后台预取 AI 内容（不阻塞界面）
+        // 图谱渲染完成后，后台预取 AI 内容（不阻塞界面）
         this.fetchNatalFull();
       });
     } catch (err) {
       console.error('Fetch natal chart failed', err);
-      wx.showToast({ title: '星盘数据获取失败', icon: 'none' });
+      wx.showToast({ title: '数据获取失败', icon: 'none' });
       this.setData({
         planets: [],
         aspects: [],
@@ -945,7 +945,7 @@ Page({
     }
   },
 
-  /** 创建流年报告异步任务 */
+  /** 创建年度报告异步任务 */
   async _createAnnualTask(birthData) {
     const result = await request({
       url: '/api/annual-task/create',
@@ -1015,7 +1015,7 @@ Page({
     }
   },
 
-  /** 流年报告入口点击处理 */
+  /** 年度报告入口点击处理 */
   onAnnualReportTap() {
     const { annualTaskStatus } = this.data;
 
@@ -1097,7 +1097,7 @@ Page({
     }
   },
 
-  /** 直接查看流年报告（兼容旧代码） */
+  /** 直接查看年度报告（兼容旧代码） */
   goToAnnualReport() {
     this.onAnnualReportTap();
   },
@@ -1327,7 +1327,7 @@ Page({
       type,
       key: type,
       title: `${label}解读`,
-      subtitle: '专业星象数据附录',
+      subtitle: '详细分析数据',
       chartData,
     });
   },
@@ -1646,10 +1646,10 @@ Page({
         cardColor: 'accent-red'
       });
     }
-    // 核心模式（新格式，含星象依据）
+    // 核心模式（新格式，含分析依据）
     if (Array.isArray(content.key_patterns) && content.key_patterns.length) {
       content.key_patterns.forEach((p, i) => {
-        const text = [p.description, p.astro_basis ? `星象依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
+        const text = [p.description, p.astro_basis ? `分析依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
         sections.push({ title: p.title || `核心模式 ${i + 1}`, text, cardColor: 'info' });
       });
     }
@@ -1699,7 +1699,7 @@ Page({
     }
     if (Array.isArray(content.key_patterns) && content.key_patterns.length) {
       content.key_patterns.forEach((p, i) => {
-        const text = [p.description, p.astro_basis ? `星象依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
+        const text = [p.description, p.astro_basis ? `分析依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
         sections.push({ title: p.title || `核心模式 ${i + 1}`, text, cardColor: 'info' });
       });
     }
@@ -1931,7 +1931,7 @@ Page({
 
   async openDetailReport({ type, key, title, subtitle, chartData }) {
     if (!chartData) {
-      wx.showToast({ title: '星盘数据未就绪，请稍后重试', icon: 'none' });
+      wx.showToast({ title: '数据未就绪，请稍后重试', icon: 'none' });
       return;
     }
     const cacheKey = this.getSelfDetailCacheKey(type, key);

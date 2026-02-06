@@ -13,12 +13,12 @@
 <view class="page-container">
   <view class="header">
     <text class="header-title font-ancient">探索自我</text>
-    <text class="header-desc">深入解析你的本命星盘与心理维度</text>
+    <text class="header-desc">深入解析你的核心人格与心理维度</text>
   </view>
 
   <view class="card-base section ink-border">
     <view class="section-header">
-      <text class="section-title font-ancient">本命星盘总览</text>
+      <text class="section-title font-ancient">性格图谱总览</text>
     </view>
     <view class="chart-box" style="height: {{chartSize}}px;">
       <astro-chart
@@ -89,11 +89,12 @@
     </view>
   </view>
 
-  <view class="section">
+  <!-- 专业数据审核期隐藏 -->
+  <view class="section" style="display: none;">
     <view class="section-header">
-      <text class="section-title font-ancient">专业星象数据附录</text>
+      <text class="section-title font-ancient">详细分析数据</text>
     </view>
-    
+
     <!-- 1. 元素矩阵 -->
     <view class="accordion-item ink-border">
       <view class="accordion-head" bindtap="toggleAccordion" data-id="elements">
@@ -346,13 +347,13 @@
 
   <view class="premium-banner natal-report-banner {{natalReportStatus === 'processing' ? 'processing' : natalReportStatus === 'completed' ? 'completed' : ''}}" bindtap="onNatalReportTap">
     <view class="premium-info">
-      <text class="premium-title">本命深度解读</text>
+      <text class="premium-title">人格深度解读</text>
       <text class="premium-desc">
-        {{natalReportStatus === 'none' ? '解锁你的星盘全维度解析' :
+        {{natalReportStatus === 'none' ? '解锁你的全维度人格解析' :
           natalReportStatus === 'pending' ? '任务排队中，请稍候...' :
           natalReportStatus === 'processing' ? '正在为你生成专属解读...' :
           natalReportStatus === 'completed' ? '查看你的专属深度解读' :
-          natalReportStatus === 'failed' ? '生成失败，点击重试' : '解锁你的星盘全维度解析'}}
+          natalReportStatus === 'failed' ? '生成失败，点击重试' : '解锁你的全维度人格解析'}}
       </text>
       <!-- 生成中进度条 -->
       <view wx:if="{{natalReportStatus === 'processing' || natalReportStatus === 'pending'}}" class="banner-progress">
@@ -434,7 +435,7 @@
   <view class="modal-mask" wx:if="{{isZoomed}}" style="background: var(--space-950);">
      <view class="full-screen-container">
        <view class="fs-header">
-          <text class="section-title">星盘详情</text>
+          <text class="section-title">图谱详情</text>
            <view class="close-btn" bindtap="toggleZoom" style="position: static;">X</view>
         </view>
        <view class="fs-content">

@@ -8,11 +8,11 @@ const isLoggedIn = () => {
 };
 
 const getTypeText = (type) => {
-  if (type === 'synastry') return '双人合盘';
-  if (type === 'daily') return '每日运势';
+  if (type === 'synastry') return '关系分析';
+  if (type === 'daily') return '每日洞察';
   if (type === 'natal') return '本命解读';
-  if (type === 'synthetica') return '占星实验';
-  return '占星报告';
+  if (type === 'synthetica') return '探索实验';
+  return '分析报告';
 };
 
 const getTypeClass = (type) => {

@@ -656,7 +656,7 @@
   border-color: transparent;
 }
 
-/* 流年报告 — 红色 */
+/* 年度报告 — 红色 */
 .annual-banner {
   background: var(--seal-red);
 }

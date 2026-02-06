@@ -34,7 +34,8 @@ Page({
     // 状态
     loading: false,
     loadingText: '处理中...',
-    canProceed: false
+    canProceed: false,
+    agreedTerms: false
   },
 
   // 搜索防抖定时器（不放在 data 中）
@@ -282,7 +283,12 @@ Page({
 
   // 下一步/完成
   async goNext() {
-    if (!this.data.canProceed) return;
+    if (!this.data.canProceed || !this.data.agreedTerms) {
+      if (!this.data.agreedTerms) {
+        wx.showToast({ title: '请先同意用户协议和隐私政策', icon: 'none' });
+      }
+      return;
+    }
 
     if (this.data.step === 1) {
       this.setData({ step: 2 });
@@ -354,6 +360,10 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  toggleAgreed() {
+    this.setData({ agreedTerms: !this.data.agreedTerms });
   },
 
   goToTerms() {

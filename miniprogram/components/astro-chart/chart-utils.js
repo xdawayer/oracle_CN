@@ -1,6 +1,6 @@
-// INPUT: 星盘绘制工具函数（几何计算、行星防重叠、相位分层）
-// OUTPUT: 导出星盘绘制所需的工具函数
-// POS: 小程序星盘绘制工具库
+// INPUT: 图谱绘制工具函数（几何计算、行星防重叠、相位分层）
+// OUTPUT: 导出图谱绘制所需的工具函数
+// POS: 小程序图谱绘制工具库
 
 import { SIGN_NAMES, MAJOR_PLANETS, ASPECT_ANGLES, ASPECT_ORDER } from '../../constants/chart-config.js';
 

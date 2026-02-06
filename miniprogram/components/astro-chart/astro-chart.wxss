@@ -1,4 +1,4 @@
-/* 星盘组件样式 */
+/* 图谱组件样式 */
 .astro-chart-container {
   position: relative;
   background-color: transparent;

@@ -5,8 +5,8 @@
     <view class="header ink-border">
       <view class="header-content">
         <view class="title-section">
-          <text class="app-title font-ancient">星象问答</text>
-          <text class="app-subtitle">ASTRO INSIGHT REPORT</text>
+          <text class="app-title font-ancient">AI 问答</text>
+          <text class="app-subtitle">INSIGHT REPORT</text>
         </view>
 
         <!-- Goal Selector -->
@@ -68,26 +68,26 @@
     <!-- Loading 状态 -->
     <view class="report-loading" wx:if="{{reportLoading}}">
       <view class="loading-spinner"></view>
-      <text class="loading-text">正在解析星盘能量...</text>
-      <text class="loading-hint">结合本命盘与当前行运分析中</text>
+      <text class="loading-text">正在深度分析中...</text>
+      <text class="loading-hint">结合你的个人特质综合解读</text>
     </view>
 
     <!-- 报告内容 -->
     <scroll-view scroll-y class="report-scroll" wx:if="{{reportData && !reportLoading}}" show-scrollbar="false">
 
-      <!-- 星盘概况（Canvas 在 scroll-view 中有层级问题，使用文字展示） -->
+      <!-- 分析概况（Canvas 在 scroll-view 中有层级问题，使用文字展示） -->
       <view class="report-chart-summary ink-border" wx:if="{{reportData.astroContext}}">
-        <text class="chart-label font-ancient">星盘概况</text>
+        <text class="chart-label font-ancient">分析概况</text>
         <view class="chart-info-list" wx:if="{{reportData.astroContext.keyPlanets && reportData.astroContext.keyPlanets.length > 0}}">
-          <text class="chart-info-title">关键行星</text>
+          <text class="chart-info-title">关键要素</text>
           <text class="chart-info-item" wx:for="{{reportData.astroContext.keyPlanets}}" wx:key="*this">{{item}}</text>
         </view>
         <view class="chart-info-list" wx:if="{{reportData.astroContext.keyAspects && reportData.astroContext.keyAspects.length > 0}}">
-          <text class="chart-info-title">关键相位</text>
+          <text class="chart-info-title">关键关联</text>
           <text class="chart-info-item" wx:for="{{reportData.astroContext.keyAspects}}" wx:key="*this">{{item}}</text>
         </view>
         <view class="chart-info-list" wx:if="{{reportData.astroContext.currentTransits && reportData.astroContext.currentTransits.length > 0}}">
-          <text class="chart-info-title">当前行运</text>
+          <text class="chart-info-title">当前周期</text>
           <text class="chart-info-item" wx:for="{{reportData.astroContext.currentTransits}}" wx:key="*this">{{item}}</text>
         </view>
       </view>
@@ -99,7 +99,7 @@
         <text class="question-category">{{reportCategory}}</text>
       </view>
 
-      <!-- 星象解读层 -->
+      <!-- 深度解读层 -->
       <block wx:for="{{reportData.sections}}" wx:key="index">
         <!-- astro_insight 类型 -->
         <view wx:if="{{item.type === 'astro_insight'}}" class="report-section">
@@ -110,7 +110,7 @@
             <text class="card-title">{{card.title}}</text>
             <text class="card-content">{{card.content}}</text>
             <view class="card-astro-basis" wx:if="{{card.astroBasis}}">
-              <text class="astro-label">星象依据</text>
+              <text class="astro-label">分析依据</text>
               <text class="astro-text">{{card.astroBasis}}</text>
             </view>
           </view>
@@ -125,7 +125,7 @@
             <text class="card-title">{{card.title}}</text>
             <text class="card-content">{{card.content}}</text>
             <view class="card-astro-basis" wx:if="{{card.astroBasis}}">
-              <text class="astro-label">星象依据</text>
+              <text class="astro-label">分析依据</text>
               <text class="astro-text">{{card.astroBasis}}</text>
             </view>
           </view>

@@ -1208,7 +1208,7 @@
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* ========== 月度运势入口卡片（复刻 premium-banner 样式） ========== */
+/* ========== 月度深度解读入口卡片（复刻 premium-banner 样式） ========== */
 .premium-banner {
   background: var(--ink-deep);
   padding: 32rpx;

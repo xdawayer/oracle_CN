@@ -1,6 +1,6 @@
-// INPUT: 星盘数据（行星位置、相位、宫位）
-// OUTPUT: Canvas 2D 绘制的星盘可视化
-// POS: 小程序星盘组件主逻辑
+// INPUT: 图谱数据（行星位置、相位、宫位）
+// OUTPUT: Canvas 2D 绘制的图谱可视化
+// POS: 小程序图谱组件主逻辑
 
 import {
   getChartConfig,
@@ -337,7 +337,7 @@ Component({
     },
 
     /**
-     * 绘制星盘
+     * 绘制图谱
      */
     drawChart() {
       if (!this.ctx) {
@@ -444,7 +444,7 @@ Component({
         isBiWheel,
       };
 
-      // 绘制星盘各层
+      // 绘制图谱各层
       this.drawZodiacWheel(ctx, cx, cy, baseRadius, rotation, layout);
       this.drawHouseCusps(ctx, cx, cy, baseRadius, houseCusps, rotation, layout);
       this.drawHouseCuspLabels(ctx, cx, cy, baseRadius, houseCusps, rotation, layout);
@@ -750,7 +750,7 @@ Component({
     },
 
     /**
-     * 绘制行星位置信息（参考专业星盘软件布局）
+     * 绘制行星位置信息（参考专业图谱软件布局）
      * 格式：行星符号 + 度数° + 星座符号 + 分' + 逆行R
      */
     drawPlanetInfo(ctx, cx, cy, baseRadius, planets, rotation, layout, isOuter) {

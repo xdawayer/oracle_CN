@@ -58,7 +58,7 @@ App({
     wx.onNeedPrivacyAuthorization((resolve) => {
       wx.showModal({
         title: '隐私保护提示',
-        content: '在使用星智服务之前，请阅读并同意《隐私政策》。您的出生信息仅用于占星分析，我们将严格保护您的个人数据。',
+        content: '在使用星语服务之前，请阅读并同意《隐私政策》。您的个人信息仅用于性格分析服务，我们将严格保护您的个人数据。',
         confirmText: '同意',
         cancelText: '不同意',
         success: (res) => {

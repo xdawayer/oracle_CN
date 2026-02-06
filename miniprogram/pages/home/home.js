@@ -21,13 +21,13 @@ const DEFAULT_PROFILE = {
 
 Page({
   data: {
-    greeting: '早安, 星智用户',
+    greeting: '早安, 星语用户',
     currentDate: '',
     avatarUrl: '',
     shareData: {
       score: '--',
       quote: '加载中...',
-      body: '正在获取今日运势...',
+      body: '正在获取今日洞察...',
       sunSign: '',
       lucky: {
         color: '--',
@@ -40,13 +40,13 @@ Page({
     showPayment: false,
     paymentLoading: false,
     paymentMeta: {
-      title: '2026 流年大运',
-      subtitle: '专属年度星象解读',
+      title: '2026 年度成长报告',
+      subtitle: '专属年度深度解读',
       features: [
-        { title: '年度总览', desc: '全年运势主题与能量走向' },
+        { title: '年度总览', desc: '全年指数主题与能量走向' },
         { title: '六大领域', desc: '事业、感情、健康、社交、成长、财运' },
-        { title: '季度详解', desc: '四季运势节奏与关键时间点' },
-        { title: '开运指南', desc: '幸运元素与能量提升建议' },
+        { title: '季度详解', desc: '四季指数节奏与关键时间点' },
+        { title: '成长建议', desc: '幸运元素与能量提升建议' },
       ],
       price: 500,
       note: '约 8000-10000 字深度解读，永久保存',
@@ -55,7 +55,7 @@ Page({
     isLoadingRecommendations: true,
     recommendations: [],
 
-    // 流年报告任务状态
+    // 年度报告任务状态
     annualTaskStatus: 'none', // none | pending | processing | completed | failed
     annualTaskProgress: 0,
     annualTaskMessage: ''
@@ -94,7 +94,7 @@ Page({
   onShareAppMessage() {
     const { score, quote, date } = this.data.shareData;
     return {
-      title: quote || `今日运势 ${score}分`,
+      title: quote || `今日洞察 ${score}分`,
       path: '/pages/home/home',
     };
   },
@@ -125,7 +125,7 @@ Page({
     }
   },
 
-  /** 检查流年报告任务状态 */
+  /** 检查年度报告任务状态 */
   async checkAnnualReportAccess() {
     try {
       const userProfile = storage.get('user_profile');
@@ -247,7 +247,7 @@ Page({
             ...this.data.shareData,
             score: '--',
             quote: '请先设置出生信息',
-            body: '前往"我的"页面设置您的出生日期、时间和地点，即可获取个性化运势解读。',
+            body: '前往"我的"页面设置您的出生日期、时间和地点，即可获取个性化洞察解读。',
             lucky: { color: '--', number: '--', direction: '--' }
           }
         });
@@ -334,7 +334,7 @@ Page({
           ...this.data.shareData,
           score: '--',
           quote: '获取失败',
-          body: '无法获取今日运势，请稍后重试。',
+          body: '无法获取今日洞察，请稍后重试。',
           lucky: { color: '--', number: '--', direction: '--' }
         }
       });
@@ -470,8 +470,8 @@ Page({
     const educationPool = [
       {
         id: 'edu_wiki',
-        title: '占星入门指南',
-        subtitle: '三分钟理解星盘结构',
+        title: '性格分析入门',
+        subtitle: '三分钟理解性格图谱',
         category: '教育内容',
         route: 'wiki',
         icon: '/images/icons/study.svg',
@@ -496,8 +496,8 @@ Page({
         recommendations: [
           {
             id: 'onboard_chart',
-            title: '生成你的本命盘',
-            subtitle: '建立专属星盘档案',
+            title: '生成你的性格图谱',
+            subtitle: '建立专属分析档案',
             category: '新手引导',
             route: 'self',
             icon: '/images/astro-symbols/sun.svg',
@@ -505,7 +505,7 @@ Page({
           },
           {
             id: 'onboard_synastry',
-            title: '了解双人合盘',
+            title: '了解关系分析',
             subtitle: '关系能量地图',
             category: '新手引导',
             route: 'synastry',
@@ -514,7 +514,7 @@ Page({
           },
           {
             id: 'onboard_wiki',
-            title: '占星入门指南',
+            title: '性格分析入门',
             subtitle: '从基础概念开始',
             category: '新手引导',
             route: 'wiki',
@@ -531,8 +531,8 @@ Page({
         id: 'chart_gen',
         priority: 10,
         title: '5分钟了解真实的自己',
-        subtitle: '生成星盘，开启探索之旅',
-        category: '本命盘引导',
+        subtitle: '生成图谱，开启探索之旅',
+        category: '性格图谱引导',
         route: 'self',
         icon: '/images/astro-symbols/sun.svg',
         accentClass: 'accent-gold'
@@ -546,8 +546,8 @@ Page({
           id: `event_${importantEvent.id}`,
           priority: 9,
           title: importantEvent.title,
-          subtitle: importantEvent.description || '查看本周星象提醒',
-          category: '星象提醒',
+          subtitle: importantEvent.description || '查看本周重要提醒',
+          category: '周期提醒',
           route: 'wiki',
           icon: '/images/astro-symbols/mercury.svg',
           accentClass: 'accent-mystic'
@@ -560,7 +560,7 @@ Page({
       recs.push({
         id: 'behavior_daily',
         priority: 8,
-        title: '查看今日星象细节',
+        title: '查看今日详细分析',
         subtitle: '延伸今日的关键能量',
         category: '行为推荐',
         route: 'daily',
@@ -591,7 +591,7 @@ Page({
         id: 'synastry_promo',
         priority: 6,
         title: '测测你们的契合度',
-        subtitle: '双人合盘深度解析',
+        subtitle: '关系分析深度解析',
         category: '社交推荐',
         route: 'synastry',
         icon: '/images/icons/relations.svg',
@@ -760,7 +760,7 @@ Page({
     }
   },
 
-  /** 流年报告入口点击处理 */
+  /** 年度报告入口点击处理 */
   onAnnualReportTap() {
     const { annualTaskStatus } = this.data;
 
@@ -853,7 +853,7 @@ Page({
 
   onCopyShare() {
     const { score, quote, date, sunSign } = this.data.shareData;
-    const text = `${sunSign ? sunSign + ' | ' : ''}${date} 运势 ${score}分\n${quote}\n\n—— 星智 AstroMind`;
+    const text = `${sunSign ? sunSign + ' | ' : ''}${date} 洞察 ${score}分\n${quote}\n\n—— 星语`;
     wx.setClipboardData({
       data: text,
       success: () => {

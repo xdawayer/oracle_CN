@@ -546,12 +546,12 @@ Page({
             ? res.content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/^#+\s+/gm, '').trim()
             : JSON.stringify(res.content);
           this.setData({
-            reportData: { sections: [{ type: 'mood_echo', title: '星象解读', content: text }] },
+            reportData: { sections: [{ type: 'mood_echo', title: 'AI 解读', content: text }] },
           });
         }
       } else {
         this.setData({
-          reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '记录完成，星象解读暂时不可用。' }] },
+          reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '记录完成，AI 解读暂时不可用。' }] },
         });
       }
 
@@ -560,7 +560,7 @@ Page({
     } catch (error) {
       console.error('Analysis Error:', error);
       this.setData({
-        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '星象解读服务暂时不可用，请稍后重试。' }] },
+        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，请稍后重试。' }] },
       });
     } finally {
       this.setData({ analyzing: false });

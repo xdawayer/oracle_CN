@@ -38,7 +38,7 @@
       bindtap="onViewModeChange"
       data-mode="chart"
     >
-      <text>命运山河</text>
+      <text>成长山河</text>
       <view class="mode-brush" wx:if="{{viewMode === 'chart'}}"></view>
     </view>
     <view
@@ -97,7 +97,7 @@
         >{{item.label}}</view>
       </view>
 
-      <!-- 今年运势 - 大开大合的卡片 -->
+      <!-- 今年指数 - 大开大合的卡片 -->
       <view class="year-hero" wx:if="{{currentYearData}}" bindtap="onCurrentYearClick">
         <view class="hero-left">
           <view class="hero-year">
@@ -115,7 +115,7 @@
           <view class="score-ring {{currentYearData.trend}}">
             <text class="score-num">{{currentYearData.score}}</text>
           </view>
-          <text class="score-hint">综合运势</text>
+          <text class="score-hint">综合指数</text>
         </view>
 
         <view class="hero-right">
@@ -128,7 +128,7 @@
       <!-- 人生节点 - 时间轴形式 -->
       <view class="milestones" wx:if="{{milestones.length > 0}}">
         <view class="section-head">
-          <text class="section-title font-ancient">命运转折</text>
+          <text class="section-title font-ancient">人生转折</text>
           <view class="section-line"></view>
         </view>
 
@@ -144,7 +144,7 @@
             <view class="timeline-content">
               <text class="timeline-year">{{item.year}}年</text>
               <text class="timeline-age">{{item.age}}岁</text>
-              <text class="timeline-event">{{item.isSaturnReturn ? (item.age < 35 ? '土星回归' : '二次土星') : '天王对分'}}</text>
+              <text class="timeline-event">{{item.isSaturnReturn ? (item.age < 35 ? '第一次蜕变期' : '第二次蜕变期') : '中年转型期'}}</text>
             </view>
           </view>
         </view>
@@ -156,7 +156,7 @@
       <!-- 人生长卷加载中 -->
       <view class="life-scroll-loading" wx:if="{{lifeScrollLoading}}">
         <view class="loading-spinner large"></view>
-        <text class="loading-text">AI 正在生成你的人生长卷...</text>
+        <text class="loading-text">AI 正在生成你的成长报告...</text>
         <text class="loading-hint">首次生成需要等待片刻</text>
       </view>
 
@@ -183,7 +183,7 @@
           <view class="scroll-icon-wrap">
             <text class="scroll-icon">卷</text>
           </view>
-          <text class="scroll-title">人生运势总览</text>
+          <text class="scroll-title">人生节奏总览</text>
           <text class="scroll-toggle">{{expandedSections.overview ? '收' : '展'}}</text>
         </view>
         <view class="scroll-body {{expandedSections.overview ? 'expanded' : ''}}">
@@ -263,7 +263,7 @@
       <!-- 解锁按钮 -->
       <view class="unlock-area" wx:if="{{!isUnlocked}}">
         <view class="unlock-btn" bindtap="onUnlockReport">
-          <text class="unlock-text">解锁完整命书</text>
+          <text class="unlock-text">解锁完整报告</text>
           <text class="unlock-price">¥29.9</text>
         </view>
         <text class="unlock-hint">或订阅VIP自动解锁</text>
@@ -272,7 +272,7 @@
 
     <!-- 底部声明 -->
     <view class="footer-note">
-      <text>命理推演，仅供参考。命运在己，行动为先。</text>
+      <text>分析结果仅供参考，人生在己，行动为先。</text>
     </view>
 
     <view class="safe-bottom"></view>
@@ -301,7 +301,7 @@
       <!-- 年度报告加载中 -->
       <view class="sheet-loading" wx:if="{{yearReportLoading}}">
         <view class="loading-spinner"></view>
-        <text class="loading-text">AI 正在分析{{selectedYear.year}}年运势...</text>
+        <text class="loading-text">AI 正在分析{{selectedYear.year}}年趋势...</text>
       </view>
 
       <!-- 年度报告加载失败 -->
@@ -435,18 +435,12 @@
           <view class="insight-block insight-block--astro">
             <view class="insight-accent"></view>
             <view class="insight-body">
-              <text class="insight-title">占星视角</text>
+              <text class="insight-title">心理学视角</text>
               <text class="insight-content">{{selectedYearReport.astroSummary}}</text>
             </view>
           </view>
 
-          <view class="insight-block insight-block--bazi">
-            <view class="insight-accent"></view>
-            <view class="insight-body">
-              <text class="insight-title">八字视角</text>
-              <text class="insight-content">{{selectedYearReport.baziSummary}}</text>
-            </view>
-          </view>
+          <!-- 传统视角已隐藏 -->
 
           <!-- 行动建议 -->
           <view class="action-block">
@@ -483,7 +477,7 @@
             <view class="single-accent"></view>
             <view class="single-body">
               <view class="single-head">
-                <text class="single-title">事业运势</text>
+                <text class="single-title">事业指数</text>
                 <text class="single-score career">{{selectedYearReport.dimensions.career.score}}/100</text>
               </view>
               <view class="single-bar">
@@ -517,7 +511,7 @@
             <view class="single-accent"></view>
             <view class="single-body">
               <view class="single-head">
-                <text class="single-title">感情运势</text>
+                <text class="single-title">感情指数</text>
                 <text class="single-score love">{{selectedYearReport.dimensions.love.score}}/100</text>
               </view>
               <view class="single-bar">

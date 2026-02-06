@@ -1,6 +1,6 @@
 /**
  * 人生K线页面
- * 展示人生100年的K线图及年度运势分析
+ * 展示人生100年的K线图及年度分析
  */
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
@@ -238,7 +238,7 @@ Page({
     const milestones = data.filter(d => d.isSaturnReturn || d.isUranusOpposition).slice(0, 5);
     const visibleData = data.slice(this.data.viewRange.start, this.data.viewRange.end);
 
-    // 计算本命盘
+    // 计算核心图谱
     const natalChart = this.calculateNatalChart(year, month, day, this.data.birthData.hour);
 
     this.setData({
@@ -251,7 +251,7 @@ Page({
   },
 
   /**
-   * 计算本命盘
+   * 计算核心图谱
    */
   calculateNatalChart(year, month, day, hour) {
     // 太阳星座
@@ -561,7 +561,7 @@ Page({
 
     wx.showModal({
       title: `「${name}」尚未解锁`,
-      content: '解锁完整命书即可查看全部章节内容，包括未来运势预测、人生里程碑、给未来自己的寄语。',
+      content: '解锁完整报告即可查看全部章节内容，包括未来趋势预测、人生里程碑、给未来自己的寄语。',
       confirmText: '立即解锁',
       cancelText: '取消',
       success: (res) => {
@@ -595,7 +595,7 @@ Page({
     // TODO: 正式版接入支付
     wx.showModal({
       title: '解锁完整报告',
-      content: '人生K线完整报告包含：\n• 未来30年运势详解\n• 人生里程碑预测\n• 给未来的你\n\n订阅VIP会员可自动解锁所有报告。',
+      content: '人生K线完整报告包含：\n• 未来30年趋势详解\n• 人生里程碑预测\n• 给未来的你\n\n订阅VIP会员可自动解锁所有报告。',
       confirmText: '了解VIP',
       cancelText: '取消',
       success: (res) => {

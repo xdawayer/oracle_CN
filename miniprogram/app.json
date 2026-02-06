@@ -28,7 +28,7 @@
   "window": {
     "navigationBarBackgroundColor": "#FDFBF7",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Astromind",
+    "navigationBarTitleText": "星语",
     "backgroundColor": "#FDFBF7",
     "backgroundTextStyle": "dark"
   },
@@ -77,8 +77,8 @@
     "astro-chart": "/components/astro-chart/astro-chart"
   },
   "__private_config__": {
-    "owner_desc": "星智（AstroMind）占星应用",
-    "setting_desc": "在这里您可以查看星智的隐私政策并管理您的授权。",
+    "owner_desc": "星语 — 心理洞察与自我认知应用",
+    "setting_desc": "在这里您可以查看星语的隐私政策并管理您的授权。",
     "owner_setting_page": "pages/agreement/agreement?type=privacy",
     "data": [
       {
@@ -87,7 +87,7 @@
       },
       {
         "type": "Location",
-        "desc": "用于确认出生城市的经纬度以计算星盘"
+        "desc": "用于确认出生城市以提供个性化分析"
       },
       {
         "type": "DeviceInfo",

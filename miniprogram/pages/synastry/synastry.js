@@ -45,7 +45,7 @@ Page({
       { id: 'natal_b', label: '本命B' },
       { id: 'syn_ab', label: '对比盘AB' },
       { id: 'syn_ba', label: '对比盘BA' },
-      { id: 'composite', label: '组合盘' }
+      { id: 'composite', label: '组合分析' }
     ],
 
     overviewData: {
@@ -67,12 +67,12 @@ Page({
     preloadingTab: null,    // 正在预加载的 tab
     tabLoadStatus: {},      // 各 tab 加载状态: 'pending' | 'loading' | 'loaded' | 'error'
 
-    // 星盘数据 - 分别存储不同类型的星盘
-    chartDataA: { positions: [], aspects: [], houseCusps: [] },       // A 的本命盘
-    chartDataB: { positions: [], aspects: [], houseCusps: [] },       // B 的本命盘
+    // 图谱数据 - 分别存储不同类型的图谱
+    chartDataA: { positions: [], aspects: [], houseCusps: [] },       // A 的人格图谱
+    chartDataB: { positions: [], aspects: [], houseCusps: [] },       // B 的人格图谱
     synastryChartAB: { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },  // 对比盘 A-B
     synastryChartBA: { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },  // 对比盘 B-A
-    compositeChart: { positions: [], aspects: [], houseCusps: [] },   // 组合盘
+    compositeChart: { positions: [], aspects: [], houseCusps: [] },   // 组合分析
 
     // 深度解读 overlay
     showDeepOverlay: false,
@@ -566,7 +566,7 @@ Page({
     return [];
   },
 
-  // 准备所有星盘数据
+  // 准备所有图谱数据
   prepareAllChartData(result) {
     const technical = result?.technical;
     const emptyChart = { positions: [], aspects: [], houseCusps: [] };
@@ -588,12 +588,12 @@ Page({
     const synBA = technical.syn_ba || {};
     const composite = technical.composite || {};
 
-    // A 的本命盘
+    // A 的人格图谱
     const positionsA = natalA.planets || [];
     const aspectsA = natalA.aspects || [];
     const houseCuspsA = this.calculateHouseCusps(positionsA);
 
-    // B 的本命盘
+    // B 的人格图谱
     const positionsB = natalB.planets || [];
     const aspectsB = natalB.aspects || [];
     const houseCuspsB = this.calculateHouseCusps(positionsB);
@@ -629,7 +629,7 @@ Page({
           planet2: a.planet1 && !a.planet1.startsWith('B-') ? `B-${a.planet1}` : a.planet1
         }));
 
-    // 组合盘（中点盘）
+    // 组合分析（中点盘）
     const compositePositions = composite.planets || [];
     const compositeAspects = composite.aspects || [];
     const compositeHouseCusps = this.calculateHouseCusps(compositePositions);
@@ -643,7 +643,7 @@ Page({
     };
   },
 
-  // 从 /full 端点响应中准备星盘数据
+  // 从 /full 端点响应中准备图谱数据
   // fullRes 格式: { chartA: { positions }, chartB: { positions }, synastryCore: { aspects, houseOverlays } }
   prepareChartDataFromFullResponse(fullRes) {
     const emptyChart = { positions: [], aspects: [], houseCusps: [] };
@@ -665,9 +665,9 @@ Page({
     const houseCuspsA = this.calculateHouseCusps(positionsA);
     const houseCuspsB = this.calculateHouseCusps(positionsB);
 
-    // A 的本命盘（/full 不含个人相位，留空）
+    // A 的人格图谱（/full 不含个人相位，留空）
     const chartDataA = { positions: positionsA, aspects: [], houseCusps: houseCuspsA };
-    // B 的本命盘
+    // B 的人格图谱
     const chartDataB = { positions: positionsB, aspects: [], houseCusps: houseCuspsB };
 
     // 对比盘 A-B（A 为内环，B 为外环）
@@ -701,7 +701,7 @@ Page({
       chartDataB: chartDataB,
       synastryChartAB: { innerPositions: positionsA, outerPositions: outerPositionsAB, aspects: aspectsAB, houseCusps: houseCuspsA },
       synastryChartBA: { innerPositions: positionsB, outerPositions: outerPositionsBA, aspects: aspectsBA, houseCusps: houseCuspsB },
-      // /full 端点不含组合盘数据，初始为空，等 composite tab 加载时补充
+      // /full 端点不含组合分析数据，初始为空，等 composite tab 加载时补充
       compositeChart: emptyChart
     };
   },
@@ -709,7 +709,7 @@ Page({
   formatTabContent(tabId, content) {
     if (!content || typeof content !== 'object') return { text: '', cards: [] };
 
-    // 新格式：本命盘（中国本土化）
+    // 新格式：人格图谱（中国本土化）
     if (tabId === 'natal_a' || tabId === 'natal_b') {
       if (content.love_persona) {
         return this.formatNatalCards(content);
@@ -726,7 +726,7 @@ Page({
       return { text: '', cards: [] };
     }
 
-    // 新格式：组合盘（中国本土化）
+    // 新格式：组合分析（中国本土化）
     if (tabId === 'composite') {
       if (content.cp_type) {
         return this.formatCompositeCards(content);
@@ -737,7 +737,7 @@ Page({
     return { text: '', cards: [] };
   },
 
-  // 本命盘卡片化
+  // 人格图谱卡片化
   formatNatalCards(content) {
     const cards = [];
 
@@ -1056,7 +1056,7 @@ Page({
     return { text: '', cards };
   },
 
-  // 组合盘卡片化
+  // 组合分析卡片化
   formatCompositeCards(content) {
     const cards = [];
 
@@ -1275,7 +1275,7 @@ Page({
             return null;
           });
 
-      // /technical 先到 → 立即渲染星盘图表
+      // /technical 先到 → 立即渲染图谱图表
       technicalRes = await technicalPromise;
       if (technicalRes) {
         const allChartData = this.prepareAllChartData(technicalRes);
@@ -1288,7 +1288,7 @@ Page({
 
       if (fullRes && !canChunked) {
         try {
-          // 从 /full 响应中提取星盘数据（如果 /technical 之前失败，用 /full 的数据补充）
+          // 从 /full 响应中提取图谱数据（如果 /technical 之前失败，用 /full 的数据补充）
           const chartData = technicalRes ? {} : this.prepareChartDataFromFullResponse(fullRes);
 
           // 解析 overview 内容
@@ -1355,7 +1355,7 @@ Page({
       const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
       const overviewData = this.parseOverview(res.content || {});
 
-      // 如果技术数据之前为空，用 AI 返回的 technical 数据补充星盘
+      // 如果技术数据之前为空，用 AI 返回的 technical 数据补充图谱
       let chartUpdate = {};
       if (!technicalRes && res.technical) {
         chartUpdate = this.prepareAllChartData(res);
@@ -1556,7 +1556,7 @@ Page({
       const { nameA, nameB, relation } = this.data;
       const relationLabel = this.data.relations.find(r => r.id === relation)?.label || '恋人';
 
-      // 构建 chartData：包含合盘信息 + 维度信息
+      // 构建 chartData：包含关系分析信息 + 维度信息
       const chartData = {
         dimensionKey,
         tabType,
@@ -1602,7 +1602,7 @@ Page({
     }
     if (Array.isArray(content.key_patterns) && content.key_patterns.length) {
       content.key_patterns.forEach((p, i) => {
-        const text = [p.description, p.astro_basis ? `星象依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
+        const text = [p.description, p.astro_basis ? `分析依据：${p.astro_basis}` : ''].filter(Boolean).join('\n');
         sections.push({ title: p.title || `核心模式 ${i + 1}`, text, cardColor: 'info' });
       });
     }
@@ -1651,7 +1651,7 @@ Page({
       showDeepOverlay: false,
       deepOverlayData: null,
       deepOverlayLoading: false,
-      // 清空所有星盘数据
+      // 清空所有图谱数据
       chartDataA: { positions: [], aspects: [], houseCusps: [] },
       chartDataB: { positions: [], aspects: [], houseCusps: [] },
       synastryChartAB: { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },

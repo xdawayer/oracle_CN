@@ -1,8 +1,8 @@
 <view class="page-container">
   <!-- 头部 -->
   <view class="header">
-    <text class="header-title font-ancient">2026 流年运势</text>
-    <text class="header-desc">专属于你的年度星象解读</text>
+    <text class="header-title font-ancient">2026 年度报告</text>
+    <text class="header-desc">专属于你的年度成长解读</text>
   </view>
 
   <!-- 加载状态 -->
@@ -163,18 +163,18 @@
       <text class="placeholder-text">第四季度详解生成中...</text>
     </view>
 
-    <!-- 模块11：开运指南 -->
+    <!-- 模块11：成长建议 -->
     <view wx:if="{{modules.lucky}}" class="module-section module-lucky">
       <view class="module-accent module-accent-lucky"></view>
       <view class="module-header">
-        <text class="module-title font-ancient module-title-lucky">开运指南</text>
+        <text class="module-title font-ancient module-title-lucky">成长建议</text>
       </view>
       <view class="module-body">
         <rich-text class="markdown-content" nodes="{{modules.lucky}}"></rich-text>
       </view>
     </view>
     <view wx:elif="{{moduleStatus.lucky === 'pending'}}" class="module-placeholder">
-      <text class="placeholder-text">开运指南生成中...</text>
+      <text class="placeholder-text">成长建议生成中...</text>
     </view>
 
     <!-- 底部留白 -->

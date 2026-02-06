@@ -148,7 +148,7 @@
   background: var(--ink-deep);
 }
 
-/* 本命盘模块配色 */
+/* 核心图谱模块配色 */
 .module-accent-overview  { background: linear-gradient(90deg, #5b6abf, #7b8ad0); }
 .module-accent-love      { background: linear-gradient(90deg, #d4707a, #e8939b); }
 .module-accent-career    { background: linear-gradient(90deg, #4a7fb5, #6a9fd0); }
@@ -158,7 +158,7 @@
 .module-accent-health    { background: linear-gradient(90deg, #5a9e5a, #7ab87a); }
 .module-accent-soul      { background: linear-gradient(90deg, #6b5b95, #8b7bb5); }
 
-/* 流年报告模块配色 */
+/* 年度报告模块配色 */
 .module-accent-social    { background: linear-gradient(90deg, #d4855a, #e8a57a); }
 .module-accent-growth    { background: linear-gradient(90deg, #4a9b8e, #6ab5a8); }
 .module-accent-q1        { background: linear-gradient(90deg, #6aaa6a, #8ac48a); }

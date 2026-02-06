@@ -1,7 +1,7 @@
 <view class="page">
   <view class="header">
-    <text class="title font-ancient">运势</text>
-    <text class="subtitle font-body">星辰指引与每日运势洞察</text>
+    <text class="title font-ancient">每日洞察</text>
+    <text class="subtitle font-body">每日心理指引与生活建议</text>
   </view>
 
   <view class="date-nav">
@@ -26,7 +26,7 @@
     <view class="overview-card ink-border">
       <view class="overview-header">
         <view class="overview-date">
-          <text class="date-label font-body">今日运势</text>
+          <text class="date-label font-body">今日指数</text>
           <text class="date-value font-ancient">{{currentDateStr}}</text>
         </view>
         
@@ -37,7 +37,7 @@
       </view>
       
       <view class="overview-summary">
-        <text class="summary-text">{{overviewSummary || '今日星象平和，适合稳步推进计划。'}}</text>
+        <text class="summary-text">{{overviewSummary || '今日适合稳步推进计划。'}}</text>
       </view>
       
       <view class="lucky-row">
@@ -59,7 +59,7 @@
     </view>
 
     <view class="dimensions-section">
-      <text class="section-title font-ancient">四维运势</text>
+      <text class="section-title font-ancient">四维指数</text>
 
       <view class="dimension-list">
         <view class="dimension-item" wx:for="{{dimensionItems}}" wx:key="key" bindtap="onViewDetail" data-type="{{item.key}}">
@@ -135,10 +135,10 @@
 
     <!-- ========== 深度解读层 ========== -->
     
-    <!-- 5. 今日行运星象 -->
-    <view class="card technical-card ink-border">
+    <!-- 专业分析数据审核期隐藏 -->
+    <view class="card technical-card ink-border" style="display: none;">
       <view class="card-header-row font-ancient">
-        <text class="card-title">今日行运星象</text>
+        <text class="card-title">今日周期分析</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="chart">全屏阅读</view>
       </view>
         
@@ -164,14 +164,14 @@
               bind:planetdetailclose="closePlanetDetail"
             ></astro-chart>
           </view>
-          <text class="chart-desc">内环：本命盘 | 外环：今日行运</text>
+          <text class="chart-desc">内环：个人图谱 | 外环：今日周期</text>
         </view>
       </view>
 
-    <!-- 6. 相位矩阵 -->
-    <view class="card technical-card ink-border" wx:if="{{technical.aspectMatrix}}">
+    <!-- 6. 相位矩阵 审核期隐藏 -->
+    <view class="card technical-card ink-border" wx:if="{{false}}">
       <view class="card-header-row font-ancient">
-        <text class="card-title">星象详情：相位矩阵</text>
+        <text class="card-title">详情：关系矩阵</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="aspects">全屏阅读</view>
       </view>
       <view class="technical-body">
@@ -191,10 +191,10 @@
       </view>
     </view>
 
-    <!-- 7. 行运行星 -->
-    <view class="card technical-card ink-border" wx:if="{{technical.transitPlanets}}">
+    <!-- 7. 行运行星 审核期隐藏 -->
+    <view class="card technical-card ink-border" wx:if="{{false}}">
       <view class="card-header-row font-ancient">
-        <text class="card-title">行运行星</text>
+        <text class="card-title">周期要素</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="planets">全屏阅读</view>
       </view>
         
@@ -232,10 +232,10 @@
         </view>
     </view>
 
-    <!-- 8. 行运小行星 -->
-    <view class="card technical-card ink-border" wx:if="{{technical.transitAsteroids}}">
+    <!-- 8. 行运小行星 审核期隐藏 -->
+    <view class="card technical-card ink-border" wx:if="{{false}}">
       <view class="card-header-row font-ancient">
-        <text class="card-title">行运小行星</text>
+        <text class="card-title">辅助要素</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="asteroids">全屏阅读</view>
       </view>
       <view class="technical-body">
@@ -272,10 +272,10 @@
       </view>
     </view>
 
-    <!-- 9. 宫主星 -->
-    <view class="card technical-card ink-border" wx:if="{{technical.houseRulers}}">
+    <!-- 9. 领域守护 审核期隐藏 -->
+    <view class="card technical-card ink-border" wx:if="{{false}}">
       <view class="card-header-row font-ancient">
-        <text class="card-title">宫主星</text>
+        <text class="card-title">领域守护</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">全屏阅读</view>
       </view>
       <view class="technical-body">
@@ -317,7 +317,7 @@
 
     <!-- ========== 趋势预览层 ========== -->
 
-    <!-- 8. 本周运势趋势 -->
+    <!-- 8. 本周趋势 -->
     <view class="weekly-section card ink-border">
       <text class="card-title weekly-title font-ancient">本周趋势 ({{weekRangeTitle}})</text>
 
@@ -349,16 +349,16 @@
       </view>
     </view>
 
-    <!-- 月度运势深度解读入口 -->
+    <!-- 月度深度解读入口 -->
     <view class="premium-banner monthly-banner {{monthlyColorClass}} {{monthlyReportStatus === 'processing' ? 'processing' : monthlyReportStatus === 'completed' ? 'completed' : ''}}" bindtap="onOpenMonthlyReport">
       <view class="premium-info">
         <text class="premium-title">{{monthlyEntryTitle}}</text>
         <text class="premium-desc">
-          {{monthlyReportStatus === 'none' ? '解锁当月运势深度指南' :
+          {{monthlyReportStatus === 'none' ? '解锁当月深度指南' :
             monthlyReportStatus === 'pending' ? '任务排队中，请稍候...' :
             monthlyReportStatus === 'processing' ? '正在为你生成专属报告...' :
-            monthlyReportStatus === 'completed' ? '查看你的专属月度运势' :
-            monthlyReportStatus === 'failed' ? '生成失败，点击重试' : '解锁当月运势深度指南'}}
+            monthlyReportStatus === 'completed' ? '查看你的专属月度报告' :
+            monthlyReportStatus === 'failed' ? '生成失败，点击重试' : '解锁当月深度指南'}}
         </text>
         <view wx:if="{{monthlyReportStatus === 'processing' || monthlyReportStatus === 'pending'}}" class="banner-progress">
           <view class="banner-progress-bar">
@@ -469,13 +469,13 @@
 
   <view class="section" wx:if="{{status === LoadingState.LOADING}}">
     <view class="card">
-      <text class="loading-text">正在生成今日运势...</text>
+      <text class="loading-text">正在生成今日洞察...</text>
     </view>
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.ERROR}}">
     <view class="card">
-      <text class="error-text">无法获取今日运势，请先完善出生信息。</text>
+      <text class="error-text">无法获取今日洞察，请先完善个人信息。</text>
     </view>
   </view>
 

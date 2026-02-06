@@ -6,7 +6,7 @@
 
       <view class="page-header">
         <text class="page-title font-ancient">心情日记</text>
-        <text class="page-subtitle">记录此刻，星象为你解读</text>
+        <text class="page-subtitle">记录此刻，AI 为你解读</text>
       </view>
 
       <!-- 日历 -->
@@ -216,7 +216,7 @@
       <!-- Loading 状态 -->
       <view wx:if="{{analyzing}}" class="result-loading fade-in">
         <view class="spinner"></view>
-        <text class="loading-text">星象解读中...</text>
+        <text class="loading-text">AI 解读中...</text>
       </view>
 
       <!-- 报告内容 -->
@@ -261,7 +261,7 @@
             </view>
           </view>
 
-          <!-- astro_insight: 星象解读 -->
+          <!-- astro_insight: AI 解读 -->
           <view wx:elif="{{item.type === 'astro_insight'}}" class="report-section fade-in">
             <text class="report-section-title font-ancient">{{item.title}}</text>
             <block wx:if="{{item.cards && item.cards.length > 0}}" wx:for="{{item.cards}}" wx:for-item="card" wx:key="title">
@@ -269,14 +269,14 @@
                 <text class="card-title font-ancient">{{card.title}}</text>
                 <text class="card-content">{{card.content}}</text>
                 <view wx:if="{{card.astroBasis}}" class="card-astro-basis">
-                  <text class="astro-basis-label">星象依据</text>
+                  <text class="astro-basis-label">分析依据</text>
                   <text class="astro-basis-text">{{card.astroBasis}}</text>
                 </view>
               </view>
             </block>
           </view>
 
-          <!-- action_plan: 星象建议 -->
+          <!-- action_plan: AI 建议 -->
           <view wx:elif="{{item.type === 'action_plan'}}" class="report-section fade-in">
             <text class="report-section-title font-ancient">{{item.title}}</text>
             <view wx:if="{{item.tips && item.tips.length > 0}}" class="tips-card ink-border">

@@ -30,7 +30,7 @@
     <block wx:else>
       <view class="empty-state" wx:if="{{!loading}}">
         <text class="empty-title">尚无测算记录</text>
-        <text class="empty-desc">快去"发现-双人合盘"中测算你与对方的缘分，记录将自动保存至此。</text>
+        <text class="empty-desc">快去"发现-关系分析"中测算你与对方的契合度，记录将自动保存至此。</text>
         <view class="empty-btn" bindtap="onGoToMatch">
           <text class="empty-btn-text">立即测算</text>
         </view>
@@ -46,7 +46,7 @@
           <text>×</text>
         </view>
         <view class="modal-title-box">
-          <text class="modal-title font-ancient">合盘详情</text>
+          <text class="modal-title font-ancient">分析详情</text>
           <text class="modal-subtitle">{{selectedRecord.nameA}} & {{selectedRecord.nameB}}</text>
         </view>
         <view class="spacer"></view>

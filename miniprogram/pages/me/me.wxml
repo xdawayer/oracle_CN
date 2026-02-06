@@ -12,7 +12,7 @@
       </view>
       <view class="user-info">
         <view class="name-row">
-          <text class="user-name font-ancient">{{userProfile.name || '星智用户'}}</text>
+          <text class="user-name font-ancient">{{userProfile.name || '星语用户'}}</text>
           <text class="name-chevron">></text>
         </view>
         <view class="vip-status-tag" wx:if="{{userProfile.isVip}}">
@@ -51,7 +51,7 @@
       <view class="stat-divider"></view>
       <view class="stat-item" bindtap="goToRecords">
         <text class="stat-value font-ancient">{{userProfile.matchCount || 0}}</text>
-        <text class="stat-label">合盘</text>
+        <text class="stat-label">分析</text>
       </view>
     </view>
 

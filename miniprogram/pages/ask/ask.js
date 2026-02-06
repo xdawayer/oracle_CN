@@ -21,7 +21,7 @@ const SUGGESTED_QUESTIONS = {
     '我的财富模式有什么特点？',
     '哪些行业或方向更适合长期发展？',
     '职场人际关系的核心课题是什么？',
-    '如何将星盘中的挑战转化为事业优势？'
+    '如何将性格中的挑战转化为事业优势？'
   ],
   'love': [
     '我在亲密关系中的核心需求是什么？',
@@ -36,7 +36,7 @@ const SUGGESTED_QUESTIONS = {
     '单身期是在为我准备什么功课？'
   ],
   'growth': [
-    '我的本命盘揭示了怎样的人生主题？',
+    '我的性格揭示了怎样的人生主题？',
     '内心深处最核心的恐惧是什么？',
     '如何认识和整合我的阴影面？',
     '我的防御机制是如何形成的？',
@@ -91,7 +91,7 @@ Page({
     reportQuestion: '',
     reportCategory: '',
 
-    // 星盘数据（用于报告内展示）
+    // 分析数据（用于报告内展示）
     reportChartData: null,
     reportTransitData: null
   },
@@ -293,7 +293,7 @@ Page({
     } catch (error) {
       console.error('Ask AI Fallback Error:', error);
       wx.showToast({
-        title: '星象连接中断，请稍后再试',
+        title: '分析服务中断，请稍后再试',
         icon: 'none'
       });
       this.setData({

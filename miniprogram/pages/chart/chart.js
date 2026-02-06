@@ -14,12 +14,12 @@ const { searchCities, formatCityDisplay, autoMatchCity } = require('../../utils/
 const CITY_SEARCH_DEBOUNCE = 300;
 
 const CHART_TYPES = [
-  { id: 'natal', label: '本命盘 (Natal Chart)', desc: '核心性格、天赋与人生底色', dual: false },
-  { id: 'synastry', label: '合盘 - 比较盘 (Synastry)', desc: '两人关系的互动与磨合分析', dual: true },
-  { id: 'transit', label: '行运盘 (Transit)', desc: '当前星象对个人的实时影响', dual: false },
-  { id: 'composite', label: '合盘 - 组合盘 (Composite)', desc: '两人作为共同体的命运走向', dual: true },
-  { id: 'davison', label: '合盘 - 时空盘 (Davison)', desc: '关系的中长期演化轨迹', dual: true },
-  { id: 'solar_return', label: '推运 - 太阳返照 (Solar Return)', desc: '生日起算的年度运势规划', dual: false },
+  { id: 'natal', label: '性格图谱 (Natal Chart)', desc: '核心性格、天赋与人生底色', dual: false },
+  { id: 'synastry', label: '关系分析 - 比较盘 (Synastry)', desc: '两人关系的互动与磨合分析', dual: true },
+  { id: 'transit', label: '行运盘 (Transit)', desc: '当前周期对个人的实时影响', dual: false },
+  { id: 'composite', label: '关系分析 - 组合 (Composite)', desc: '两人作为共同体的未来走向', dual: true },
+  { id: 'davison', label: '关系分析 - 时空盘 (Davison)', desc: '关系的中长期演化轨迹', dual: true },
+  { id: 'solar_return', label: '推运 - 太阳返照 (Solar Return)', desc: '生日起算的年度周期规划', dual: false },
   { id: 'pro_secondary', label: '推运 - 次限盘 (Secondary)', desc: '长期的心理状态与内在演化', dual: false },
   { id: 'pro_tertiary', label: '推运 - 三限盘 (Tertiary)', desc: '短期的情绪波动与事件预警', dual: false },
 ];
@@ -67,7 +67,7 @@ const CROSS_ASPECT_PLANETS = [
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
   'North Node', 'Ascendant', 'Descendant', 'Midheaven', 'IC'
 ];
-// 合盘精简列表 - 只包含主要行星，减少矩阵大小
+// 关系分析精简列表 - 只包含主要行星，减少矩阵大小
 const SYNASTRY_ASPECT_PLANETS = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
@@ -139,7 +139,7 @@ Page({
     const today = new Date().toISOString().split('T')[0];
     const sysInfo = wx.getSystemInfoSync();
     const windowWidth = sysInfo.windowWidth;
-    // 减少 padding，让星盘更大，然后缩放到90%
+    // 减少 padding，让图谱更大，然后缩放到90%
     const padding = 64 * (windowWidth / 750);
     const baseSize = Math.max(280, Math.floor(windowWidth - padding));
     const chartSize = Math.floor(baseSize * 0.9);
@@ -495,7 +495,7 @@ Page({
           houseRulerGroups,
           isDualResult: false,
           isTransitResult: true,
-          chartDesc: '内环：本命盘 | 外环：行运',
+          chartDesc: '内环：核心图谱 | 外环：行运',
           expandedSection: null,
         });
         return;
@@ -546,7 +546,7 @@ Page({
       });
     } catch (err) {
       console.error(err);
-      const message = err && err.message === 'EMPTY_CHART' ? '星盘数据为空，请检查出生信息' : '排盘失败';
+      const message = err && err.message === 'EMPTY_CHART' ? '数据为空，请检查出生信息' : '生成失败';
       wx.showToast({ title: message, icon: 'none' });
     } finally {
       this.setData({ loading: false });
