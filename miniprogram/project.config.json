@@ -26,10 +26,12 @@
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "file", "value": "images/astro-symbols/convert-to-png.js" }
+    ],
     "include": []
   },
-  "appid": "wxd6b9d50d4b1b6cb1",
+  "appid": "wxac265de181443b32",
   "editorSetting": {},
   "libVersion": "3.14.0"
 }
