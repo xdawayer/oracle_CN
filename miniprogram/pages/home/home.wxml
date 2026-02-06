@@ -88,7 +88,7 @@
           <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
         </view>
         <text class="quick-grid-title">人生K线</text>
-        <text class="quick-grid-desc font-body">命运起伏趋势</text>
+        <text class="quick-grid-desc font-body">成长起伏趋势</text>
       </view>
     </view>
   </view>
@@ -142,7 +142,7 @@
         </view>
         <view class="text-box">
           <text class="item-title">成长轨迹</text>
-          <text class="item-subtitle font-body">命运起伏趋势</text>
+          <text class="item-subtitle font-body">成长起伏趋势</text>
         </view>
       </view>
     </view>
