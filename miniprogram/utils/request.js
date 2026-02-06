@@ -1,7 +1,7 @@
 const storage = require('./storage');
 
 const DEFAULT_BASE_URL = 'https://api.astromind.com';
-const DEFAULT_DEV_BASE_URL = 'http://127.0.0.1:3003';
+const DEFAULT_DEV_BASE_URL = 'http://127.0.0.1:3001';
 const DEFAULT_TIMEOUT_MS = 120000;
 
 const getEnvVersion = () => {
