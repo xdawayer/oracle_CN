@@ -27,7 +27,8 @@
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [
-      { "type": "file", "value": "images/astro-symbols/convert-to-png.js" }
+      { "type": "file", "value": "images/astro-symbols/convert-to-png.js" },
+      { "type": "file", "value": "images/astro-symbols/generate-svgs.js" }
     ],
     "include": []
   },
