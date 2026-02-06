@@ -82,7 +82,14 @@
         <text class="quick-grid-title">AI问答</text>
         <text class="quick-grid-desc font-body">AI 深度咨询</text>
       </view>
-      <!-- 人生K线入口审核期隐藏 -->
+      <!-- 人生K线入口（审核期由 auditMode 控制） -->
+      <view class="quick-grid-item" wx:if="{{!auditMode}}" bindtap="onNavigateToChart" data-type="kline">
+        <view class="quick-grid-icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+        </view>
+        <text class="quick-grid-title">人生K线</text>
+        <text class="quick-grid-desc font-body">命运起伏趋势</text>
+      </view>
     </view>
   </view>
 
@@ -128,7 +135,16 @@
           <text class="item-subtitle font-body">了解真实自我</text>
         </view>
       </view>
-      <!-- 成长轨迹入口审核期隐藏 -->
+      <!-- 成长轨迹入口（审核期由 auditMode 控制） -->
+      <view class="chart-card" wx:if="{{!auditMode}}" bindtap="onNavigateToChart" data-type="kline">
+        <view class="icon-box">
+          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+        </view>
+        <view class="text-box">
+          <text class="item-title">成长轨迹</text>
+          <text class="item-subtitle font-body">命运起伏趋势</text>
+        </view>
+      </view>
     </view>
   </view>
 

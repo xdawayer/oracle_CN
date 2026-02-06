@@ -224,6 +224,7 @@ const REPORT_PAYMENT_META = {
 
 Page({
   data: {
+    auditMode: false,
     planets: [],
     aspects: [],
     big3: [],
@@ -293,6 +294,8 @@ Page({
   },
 
   onLoad() {
+    const app = getApp();
+    this.setData({ auditMode: !!(app && app.globalData && app.globalData.auditMode) });
     const sysInfo = wx.getSystemInfoSync();
     const windowWidth = sysInfo.windowWidth;
     const padding = 128 * (windowWidth / 750);

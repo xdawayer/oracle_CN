@@ -89,8 +89,8 @@
     </view>
   </view>
 
-  <!-- 专业数据审核期隐藏 -->
-  <view class="section" style="display: none;">
+  <!-- 详细分析数据（审核期由 auditMode 控制） -->
+  <view class="section" wx:if="{{!auditMode}}">
     <view class="section-header">
       <text class="section-title font-ancient">详细分析数据</text>
     </view>

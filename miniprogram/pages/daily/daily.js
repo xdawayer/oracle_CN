@@ -180,6 +180,7 @@ const TIME_WINDOW_STYLE_MAP = {
 
 Page({
   data: {
+    auditMode: false,
     LoadingState,
     status: LoadingState.IDLE,
     dates: [],
@@ -223,6 +224,8 @@ Page({
   _monthlyPollTimer: null,
 
   onLoad() {
+    const app = getApp();
+    this.setData({ auditMode: !!(app && app.globalData && app.globalData.auditMode) });
     this.initDates();
     this.initMonthlyEntry();
     this.loadProfile();

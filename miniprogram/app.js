@@ -113,6 +113,7 @@ App({
   },
   globalData: {
     userInfo: null,
-    theme: 'dark' 
+    theme: 'dark',
+    auditMode: true
   }
 })

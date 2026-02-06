@@ -21,6 +21,7 @@ const DEFAULT_PROFILE = {
 
 Page({
   data: {
+    auditMode: false,
     greeting: '早安, 星语用户',
     currentDate: '',
     avatarUrl: '',
@@ -62,6 +63,8 @@ Page({
   },
 
   onLoad() {
+    const app = getApp();
+    this.setData({ auditMode: !!(app && app.globalData && app.globalData.auditMode) });
     this.updateDate();
     this.loadUserProfile();
     this.fetchDailyForecast();

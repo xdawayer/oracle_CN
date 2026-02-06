@@ -135,8 +135,8 @@
 
     <!-- ========== 深度解读层 ========== -->
     
-    <!-- 专业分析数据审核期隐藏 -->
-    <view class="card technical-card ink-border" style="display: none;">
+    <!-- 5. 今日周期分析（审核期由 auditMode 控制） -->
+    <view class="card technical-card ink-border" wx:if="{{!auditMode}}">
       <view class="card-header-row font-ancient">
         <text class="card-title">今日周期分析</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="chart">全屏阅读</view>
@@ -168,8 +168,8 @@
         </view>
       </view>
 
-    <!-- 6. 相位矩阵 审核期隐藏 -->
-    <view class="card technical-card ink-border" wx:if="{{false}}">
+    <!-- 6. 相位矩阵（审核期由 auditMode 控制） -->
+    <view class="card technical-card ink-border" wx:if="{{!auditMode && technical.aspectMatrix}}">
       <view class="card-header-row font-ancient">
         <text class="card-title">详情：关系矩阵</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="aspects">全屏阅读</view>
@@ -191,8 +191,8 @@
       </view>
     </view>
 
-    <!-- 7. 行运行星 审核期隐藏 -->
-    <view class="card technical-card ink-border" wx:if="{{false}}">
+    <!-- 7. 行运行星（审核期由 auditMode 控制） -->
+    <view class="card technical-card ink-border" wx:if="{{!auditMode && technical.transitPlanets}}">
       <view class="card-header-row font-ancient">
         <text class="card-title">周期要素</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="planets">全屏阅读</view>
@@ -232,8 +232,8 @@
         </view>
     </view>
 
-    <!-- 8. 行运小行星 审核期隐藏 -->
-    <view class="card technical-card ink-border" wx:if="{{false}}">
+    <!-- 8. 行运小行星（审核期由 auditMode 控制） -->
+    <view class="card technical-card ink-border" wx:if="{{!auditMode && technical.transitAsteroids}}">
       <view class="card-header-row font-ancient">
         <text class="card-title">辅助要素</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="asteroids">全屏阅读</view>
@@ -272,8 +272,8 @@
       </view>
     </view>
 
-    <!-- 9. 领域守护 审核期隐藏 -->
-    <view class="card technical-card ink-border" wx:if="{{false}}">
+    <!-- 9. 领域守护（审核期由 auditMode 控制） -->
+    <view class="card technical-card ink-border" wx:if="{{!auditMode && technical.houseRulers}}">
       <view class="card-header-row font-ancient">
         <text class="card-title">领域守护</text>
         <view class="view-detail-btn" bindtap="onViewDetail" data-type="rulers">全屏阅读</view>
