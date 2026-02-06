@@ -4,6 +4,7 @@ const { request } = require('../../utils/request');
 
 Page({
   data: {
+    auditMode: false,
     userProfile: {},
     avatarUrl: '',
     isLoggedIn: false,
@@ -19,6 +20,10 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    if (app && app.globalData) {
+      this.setData({ auditMode: !!app.globalData.auditMode });
+    }
     this.loadUserProfile();
   },
 
