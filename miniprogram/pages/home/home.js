@@ -44,10 +44,10 @@ Page({
       title: '2026 年度成长报告',
       subtitle: '专属年度深度解读',
       features: [
-        { title: '年度总览', desc: '全年指数主题与能量走向' },
+        { title: '年度总览', desc: '全年主题与趋势走向' },
         { title: '六大领域', desc: '事业、感情、健康、社交、成长、财运' },
-        { title: '季度详解', desc: '四季指数节奏与关键时间点' },
-        { title: '成长建议', desc: '幸运元素与能量提升建议' },
+        { title: '季度详解', desc: '四季节奏与关键时间点' },
+        { title: '成长建议', desc: '个性化发展与提升建议' },
       ],
       price: 500,
       note: '约 8000-10000 字深度解读，永久保存',
@@ -449,22 +449,22 @@ Page({
     const recs = [];
     const trendingPool = [
       {
-        id: 'trending_retrograde',
-        title: '水星逆行生存指南',
-        subtitle: '高频场景的避坑策略',
+        id: 'trending_personality',
+        title: '了解你的沟通风格',
+        subtitle: '高频场景的应对策略',
         category: '热门内容',
         route: 'wiki',
-        icon: '/images/astro-symbols/mercury.svg',
+        icon: '/images/icons/relations.svg',
         accentClass: 'accent-gold',
         priority: 5
       },
       {
-        id: 'trending_wiki',
-        title: '冥王星入水瓶座',
-        subtitle: '时代能量的转向提示',
+        id: 'trending_growth',
+        title: '2026 个人成长趋势',
+        subtitle: '年度自我提升指南',
         category: '热门内容',
         route: 'wiki',
-        icon: '/images/astro-symbols/pluto.svg',
+        icon: '/images/icons/study.svg',
         accentClass: 'accent-mystic',
         priority: 5
       }
@@ -483,11 +483,11 @@ Page({
       },
       {
         id: 'edu_chart',
-        title: '认识你的太阳月亮上升',
-        subtitle: '核心人格的快速索引',
+        title: '发现你的核心人格特质',
+        subtitle: '三维人格的快速索引',
         category: '教育内容',
         route: 'self',
-        icon: '/images/astro-symbols/sun.svg',
+        icon: '/images/icons/study.svg',
         accentClass: 'accent-gold',
         priority: 4
       }
@@ -509,7 +509,7 @@ Page({
           {
             id: 'onboard_synastry',
             title: '了解关系分析',
-            subtitle: '关系能量地图',
+            subtitle: '关系匹配地图',
             category: '新手引导',
             route: 'synastry',
             icon: '/images/icons/love.svg',
@@ -564,7 +564,7 @@ Page({
         id: 'behavior_daily',
         priority: 8,
         title: '查看今日详细分析',
-        subtitle: '延伸今日的关键能量',
+        subtitle: '延伸今日的关键洞察',
         category: '行为推荐',
         route: 'daily',
         icon: '/images/astro-symbols/moon.svg',
@@ -856,7 +856,10 @@ Page({
 
   onCopyShare() {
     const { score, quote, date, sunSign } = this.data.shareData;
-    const text = `${sunSign ? sunSign + ' | ' : ''}${date} 洞察 ${score}分\n${quote}\n\n—— 星语`;
+    const app = getApp();
+    const audit = !!(app && app.globalData && app.globalData.auditMode);
+    const signPrefix = (!audit && sunSign) ? sunSign + ' | ' : '';
+    const text = `${signPrefix}${date} 洞察 ${score}分\n${quote}\n\n—— 星语`;
     wx.setClipboardData({
       data: text,
       success: () => {

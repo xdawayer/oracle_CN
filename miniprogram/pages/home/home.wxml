@@ -227,7 +227,7 @@
 
       <!-- 卡片内容 -->
       <view class="share-card-body">
-        <text class="share-sign font-body">{{shareData.sunSign}}</text>
+        <text class="share-sign font-body" wx:if="{{!auditMode && shareData.sunSign}}">{{shareData.sunSign}}</text>
         <text class="share-date font-body">{{shareData.date}}</text>
         <text class="share-score-label font-body">今日指数</text>
         <text class="share-score font-data">{{shareData.score}}分</text>

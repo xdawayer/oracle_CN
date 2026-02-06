@@ -374,10 +374,10 @@ Page({
         title: `${monthName}月度深度解读`,
         subtitle: '专属月度深度解读',
         features: [
-          { title: '月度总览', desc: '当月主题与能量走向' },
+          { title: '月度总览', desc: '当月主题与趋势走向' },
           { title: '重点领域', desc: '事业、感情、健康等月度指引' },
           { title: '关键时间点', desc: '本月重要节点与应对建议' },
-          { title: '行动指南', desc: '本月能量提升与成长方向' },
+          { title: '行动指南', desc: '本月个人提升与成长方向' },
         ],
         price: 200,
         note: '约 3000-5000 字深度解读，永久保存',
@@ -1219,7 +1219,7 @@ Page({
         : [];
       const sections = buildSections(
         { label: '整体判断', text: safeText(detailData.summary || forecast.theme_explanation) },
-        { label: '关键相位', text: safeText(keyAspects.join('；')) },
+        { label: '关键因素', text: safeText(keyAspects.join('；')) },
         { label: '机会', text: safeText((detailData.opportunities || []).join('；')) },
         { label: '挑战', text: safeText((detailData.challenges || []).join('；')) },
         { label: '行动建议', text: safeText((detailData.actions || []).join('；')) }
@@ -1262,11 +1262,11 @@ Page({
         subtitle: '',
         sections: buildSections(
           { label: '总体解读', text: safeText(detailData.summary) },
-          { label: '能量流向', text: safeText((detailData.energy_flow || []).join('；')) },
+          { label: '趋势走向', text: safeText((detailData.energy_flow || []).join('；')) },
           { label: '宜做', text: safeText((detailData.do_dont?.do || []).join('；')) },
           { label: '忌做', text: safeText((detailData.do_dont?.dont || []).join('；')) }
         ),
-        listTitle: '关键相位',
+        listTitle: '关键关联',
         list: fallback
       };
     }
@@ -1279,7 +1279,7 @@ Page({
         sections: buildSections(
           { label: '概览', text: safeText(detailData.summary) }
         ),
-        listTitle: list.length ? '要点' : '行运行星',
+        listTitle: list.length ? '要点' : '周期要素',
         list: list.length ? list : this.buildTransitList(this.data.technical?.transitPlanets)
       };
     }
@@ -1297,7 +1297,7 @@ Page({
           { label: '提醒', text: safeText(detailData.chiron_focus?.warning) },
           { label: '建议', text: safeText((detailData.suggestions || []).join('；')) }
         ),
-        listTitle: focusList.length ? '关键小行星' : '行运小行星',
+        listTitle: focusList.length ? '关键辅助要素' : '辅助要素',
         list: focusList.length ? focusList : this.buildTransitList(this.data.technical?.transitAsteroids)
       };
     }
@@ -1314,7 +1314,7 @@ Page({
           { label: '重点链条', text: safeText((detailData.deep_focus || []).map((item) => `${item.title}：${item.description}`).join('；')) },
           { label: '宫位联动', text: safeText((detailData.combinations || []).map((item) => `第${item.from_house}宫→第${item.to_house}宫：${item.theme}（${item.suggestion}）`).join('；')) }
         ),
-        listTitle: list.length ? '宫主星路径' : '宫主星路径',
+        listTitle: list.length ? '领域路径' : '领域路径',
         list: list.length ? list : this.buildHouseRulerList(this.data.technical?.houseRulers)
       };
     }
@@ -1348,7 +1348,7 @@ Page({
       const aspectList = Array.isArray(data.key_aspects)
         ? data.key_aspects.map((item) => `${item.aspect}：${item.meaning}`)
         : [];
-      addSection('关键相位', '', aspectList, 'info');
+      addSection('关键因素', '', aspectList, 'info');
       addSection('机会', '', data.opportunities || [], 'success');
       addSection('挑战', '', data.challenges || [], 'warning');
       addSection('行动建议', '', data.actions || [], 'success');
@@ -1388,7 +1388,7 @@ Page({
           const time = h.exact_time ? `[${h.exact_time}]` : '';
           return `${h.aspect || ''} ${time}：${h.impact || ''}`.trim();
         });
-        addSection('关键行运', '', hlList, 'info');
+        addSection('关键周期', '', hlList, 'info');
       }
       // 个人影响
       if (data.personal_impact) {
@@ -1442,7 +1442,7 @@ Page({
       if (data.overall_weather) {
         const ow = data.overall_weather;
         const owText = [ow.tone ? `氛围：${ow.tone}` : '', ow.summary || ''].filter(Boolean).join('\n');
-        addSection('能量天气', owText, null, 'accent-red');
+        addSection('整体氛围', owText, null, 'accent-red');
       }
       // 今日焦点
       if (data.today_highlight) {
@@ -1459,7 +1459,7 @@ Page({
             at.intensity ? `强度：${'★'.repeat(at.intensity)}` : '',
             at.interpretation || ''
           ].filter(Boolean).join('\n');
-          addSection(header || '行运相位', parts, null, 'info');
+          addSection(header || '周期关联', parts, null, 'info');
         });
       }
       // 支持性相位
@@ -1467,14 +1467,14 @@ Page({
         const sa = data.supportive_aspects;
         const saList = Array.isArray(sa.aspects) ? sa.aspects : [];
         const saText = sa.opportunity || '';
-        if (saList.length || saText) addSection('支持能量', saText, saList, 'success');
+        if (saList.length || saText) addSection('有利因素', saText, saList, 'success');
       }
       // 挑战性相位
       if (data.challenging_aspects) {
         const ca = data.challenging_aspects;
         const caList = Array.isArray(ca.aspects) ? ca.aspects : [];
         const caText = ca.advice || '';
-        if (caList.length || caText) addSection('挑战能量', caText, caList, 'warning');
+        if (caList.length || caText) addSection('挑战因素', caText, caList, 'warning');
       }
       // 兼容旧格式
       if (!data.overall_weather && !data.active_transits) {
@@ -1482,8 +1482,8 @@ Page({
         const keyList = Array.isArray(data.key_aspects)
           ? data.key_aspects.map((item) => `${item.aspect}：${item.impact}｜${item.advice}`)
           : [];
-        addSection('关键相位', '', keyList, 'info');
-        addSection('能量流向', '', data.energy_flow || [], 'default');
+        addSection('关键关联', '', keyList, 'info');
+        addSection('趋势走向', '', data.energy_flow || [], 'default');
         addSection('宜做', '', data.do_dont?.do || [], 'success');
         addSection('忌做', '', data.do_dont?.dont || [], 'warning');
       }
@@ -1595,7 +1595,7 @@ Page({
       if (Array.isArray(data.ruler_chains_activated)) {
         data.ruler_chains_activated.forEach(chain => {
           const text = [chain.trigger_point ? `触发点：${chain.trigger_point}` : '', chain.ripple_effect || ''].filter(Boolean).join('\n');
-          addSection(chain.chain_description || '宫主星链', text, null, 'success');
+          addSection(chain.chain_description || '领域关联', text, null, 'success');
         });
       }
       if (data.key_insight) {
@@ -1617,7 +1617,7 @@ Page({
         const rulerList = Array.isArray(data.rulers)
           ? data.rulers.map((item) => `第${item.house}宫 ${item.sign}｜${item.ruler} → 第${item.flies_to_house}宫 ${item.flies_to_sign}：${item.theme}（${item.advice}）`)
           : [];
-        addSection('宫主星路径', '', rulerList, 'default');
+        addSection('领域路径', '', rulerList, 'default');
       }
       return { title: reportTitle, subtitle, sections };
     }
@@ -1824,15 +1824,15 @@ Page({
 
   translateDetailType(type) {
     const map = {
-      chart: '行运图谱',
-      aspects: '相位矩阵',
-      planets: '行运行星',
-      asteroids: '小行星',
-      rulers: '宫主星',
-      career: '事业运',
-      wealth: '财运',
-      love: '爱情运',
-      health: '健康运'
+      chart: '周期图谱',
+      aspects: '关联矩阵',
+      planets: '周期要素',
+      asteroids: '辅助要素',
+      rulers: '领域守护',
+      career: '事业指数',
+      wealth: '财运指数',
+      love: '爱情指数',
+      health: '健康指数'
     };
     return map[type] || '详情';
   }
