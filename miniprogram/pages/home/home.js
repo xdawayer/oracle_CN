@@ -447,6 +447,7 @@ Page({
 
   generateRecommendations(userStatus, astroEvents) {
     const recs = [];
+    const hiddenRoutes = this.data.auditMode ? ['kline', 'chart', 'wiki', 'synthetica'] : [];
     const trendingPool = [
       {
         id: 'trending_personality',
@@ -494,37 +495,38 @@ Page({
     ];
 
     if (userStatus.isNewUser) {
+      const newUserRecs = [
+        {
+          id: 'onboard_chart',
+          title: '生成你的性格图谱',
+          subtitle: '建立专属分析档案',
+          category: '新手引导',
+          route: 'self',
+          icon: '/images/astro-symbols/sun.svg',
+          accentClass: 'accent-gold'
+        },
+        {
+          id: 'onboard_synastry',
+          title: '了解关系分析',
+          subtitle: '关系匹配地图',
+          category: '新手引导',
+          route: 'synastry',
+          icon: '/images/icons/love.svg',
+          accentClass: 'accent-love'
+        },
+        {
+          id: 'onboard_wiki',
+          title: '性格分析入门',
+          subtitle: '从基础概念开始',
+          category: '新手引导',
+          route: 'wiki',
+          icon: '/images/icons/study.svg',
+          accentClass: 'accent-psycho'
+        }
+      ].filter(r => !hiddenRoutes.includes(r.route));
       this.setData({
         isLoadingRecommendations: false,
-        recommendations: [
-          {
-            id: 'onboard_chart',
-            title: '生成你的性格图谱',
-            subtitle: '建立专属分析档案',
-            category: '新手引导',
-            route: 'self',
-            icon: '/images/astro-symbols/sun.svg',
-            accentClass: 'accent-gold'
-          },
-          {
-            id: 'onboard_synastry',
-            title: '了解关系分析',
-            subtitle: '关系匹配地图',
-            category: '新手引导',
-            route: 'synastry',
-            icon: '/images/icons/love.svg',
-            accentClass: 'accent-love'
-          },
-          {
-            id: 'onboard_wiki',
-            title: '性格分析入门',
-            subtitle: '从基础概念开始',
-            category: '新手引导',
-            route: 'wiki',
-            icon: '/images/icons/study.svg',
-            accentClass: 'accent-psycho'
-          }
-        ]
+        recommendations: newUserRecs
       });
       return;
     }
@@ -606,9 +608,10 @@ Page({
     recs.push(educationPool[0]);
 
     recs.sort((a, b) => b.priority - a.priority);
+    const filtered = hiddenRoutes.length > 0 ? recs.filter(r => !hiddenRoutes.includes(r.route)) : recs;
     this.setData({
       isLoadingRecommendations: false,
-      recommendations: recs.slice(0, 4)
+      recommendations: filtered.slice(0, 4)
     });
   },
 
