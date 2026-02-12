@@ -1,6 +1,7 @@
 const { request, getBaseUrl } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 // 星座英文→中文名映射
 const SIGN_CN = {
@@ -168,7 +169,7 @@ Page({
         });
       }
     } catch (error) {
-      console.log('Check annual task status:', error?.statusCode || error);
+      logger.log('Check annual task status:', error?.statusCode || error);
       this.setData({ annualTaskStatus: 'none' });
     }
   },
@@ -402,7 +403,7 @@ Page({
       const res = await request({ url: API_ENDPOINTS.USER_STATUS });
       return this.normalizeUserStatus(res);
     } catch (error) {
-      console.warn('Fetch user status failed', error);
+      logger.warn('Fetch user status failed', error);
       const profile = storage.get('user_profile');
       const synastryProfiles = storage.get('synastry_profiles') || [];
       return this.normalizeUserStatus({
@@ -440,7 +441,7 @@ Page({
         return res.events;
       }
     } catch (error) {
-      console.warn('Fetch astro events failed', error);
+      logger.warn('Fetch astro events failed', error);
     }
     return [];
   },

@@ -11,7 +11,7 @@ import {
 import { generateParallel } from '../services/parallel-generator';
 import { generateAIContent } from '../services/ai';
 import { entitlementServiceV2 } from '../services/entitlementServiceV2';
-import { optionalAuthMiddleware } from './auth';
+import { optionalAuthMiddleware, requireAuth } from './auth';
 import { calculateAge, getAgeGroup } from '../utils/age';
 
 const router = Router();
@@ -330,6 +330,93 @@ router.get('/life-scroll', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('人生长卷生成失败:', error);
+    return res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * GET /api/kline/unlock-status
+ * 检查用户是否已解锁完整报告（VIP 或 已购买）
+ */
+router.get('/unlock-status', async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.json({ unlocked: false, method: null });
+    }
+
+    const entitlements = await entitlementServiceV2.getEntitlements(userId);
+
+    // VIP 用户自动解锁
+    if (entitlements.isSubscriber || entitlements.isTrialing) {
+      return res.json({ unlocked: true, method: 'vip' });
+    }
+
+    // 检查是否已购买过 kline 解锁
+    const purchased = entitlements.purchasedFeatures.details.includes('kline_full_report');
+    if (purchased) {
+      return res.json({ unlocked: true, method: 'points' });
+    }
+
+    return res.json({ unlocked: false, method: null, credits: entitlements.credits });
+  } catch (error) {
+    console.error('检查解锁状态失败:', error);
+    return res.status(500).json({ error: '服务器内部错误' });
+  }
+});
+
+/**
+ * POST /api/kline/unlock
+ * 解锁完整报告（VIP 直接解锁，非 VIP 扣除积分）
+ */
+router.post('/unlock', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId!;
+
+    const entitlements = await entitlementServiceV2.getEntitlements(userId);
+
+    // VIP 用户直接解锁
+    if (entitlements.isSubscriber || entitlements.isTrialing) {
+      return res.json({ success: true, method: 'vip' });
+    }
+
+    // 已购买过
+    if (entitlements.purchasedFeatures.details.includes('kline_full_report')) {
+      return res.json({ success: true, method: 'points' });
+    }
+
+    // 积分购买（500 积分）
+    const price = 500;
+    if (entitlements.credits < price) {
+      return res.json({
+        success: false,
+        error: 'Insufficient credits',
+        balance: entitlements.credits,
+        price,
+      });
+    }
+
+    const record = await entitlementServiceV2.purchaseWithCredits(
+      userId,
+      'detail',
+      'kline_full_report',
+      'permanent',
+      price
+    );
+
+    if (!record) {
+      return res.json({
+        success: false,
+        error: 'Insufficient credits',
+        balance: entitlements.credits,
+        price,
+      });
+    }
+
+    const updated = await entitlementServiceV2.getEntitlements(userId);
+    return res.json({ success: true, method: 'points', balance: updated.credits });
+  } catch (error) {
+    console.error('解锁报告失败:', error);
     return res.status(500).json({ error: '服务器内部错误' });
   }
 });

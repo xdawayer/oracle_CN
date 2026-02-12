@@ -33,6 +33,8 @@ import {
   stripOuterPrefix,
 } from './chart-utils.js';
 
+const logger = require('../../utils/logger');
+
 Component({
   properties: {
     // 盘型：'natal' | 'transit' | 'synastry' | 'composite'
@@ -286,10 +288,10 @@ Component({
     ensureImagesLoaded() {
       if (this.imagesLoaded || this.isImagesLoading) return;
       this.isImagesLoading = true;
-      console.log('[Canvas Init] Canvas initialized, loading images...');
+      logger.log('[Canvas Init] Canvas initialized, loading images...');
       this.loadImages().then(() => {
         this.isImagesLoading = false;
-        console.log('[Canvas Init] Images loaded, drawing chart...');
+        logger.log('[Canvas Init] Images loaded, drawing chart...');
         this.drawChart();
       });
     },
@@ -341,19 +343,19 @@ Component({
      */
     drawChart() {
       if (!this.ctx) {
-        console.warn('[Draw Chart] Canvas context not initialized');
+        logger.warn('[Draw Chart] Canvas context not initialized');
         return;
       }
 
       // 检查图片是否加载完成
       if (!this.imagesLoaded) {
-        console.warn('[Draw Chart] Images not loaded yet, waiting...');
+        logger.warn('[Draw Chart] Images not loaded yet, waiting...');
         // 等待图片加载完成后再绘制
         setTimeout(() => this.drawChart(), 100);
         return;
       }
 
-      console.log('[Draw Chart] Starting chart drawing with loaded images');
+      logger.log('[Draw Chart] Starting chart drawing with loaded images');
 
       const ctx = this.ctx;
       const { width, height, type, positions, outerPositions, houseCusps } = this.data;
@@ -468,13 +470,13 @@ Component({
      */
     processPlanets(positions) {
       if (!Array.isArray(positions) || positions.length === 0) {
-        console.warn('[processPlanets] Empty or invalid positions array');
+        logger.warn('[processPlanets] Empty or invalid positions array');
         return [];
       }
 
       const result = positions.map(p => {
         if (!p || !p.name) {
-          console.warn('[processPlanets] Invalid planet data:', p);
+          logger.warn('[processPlanets] Invalid planet data:', p);
           return null;
         }
         const absAngle = getAbsoluteAngle(p.sign, p.degree, p.minute || 0);
@@ -487,7 +489,7 @@ Component({
 
       // 调试日志：打印前3个行星的数据
       if (result.length > 0) {
-        console.log('[processPlanets] Sample planets:', result.slice(0, 3).map(p => ({
+        logger.log('[processPlanets] Sample planets:', result.slice(0, 3).map(p => ({
           name: p.name,
           sign: p.sign,
           degree: p.degree,
@@ -891,7 +893,7 @@ Component({
      */
     onCanvasTap(e) {
       if (!this.clickAreas) {
-        console.log('[Canvas Tap] No click areas defined');
+        logger.log('[Canvas Tap] No click areas defined');
         return;
       }
 
@@ -900,7 +902,7 @@ Component({
       query.select('#astro-chart-canvas')
         .boundingClientRect((rect) => {
           if (!rect) {
-            console.log('[Canvas Tap] Canvas rect not found');
+            logger.log('[Canvas Tap] Canvas rect not found');
             return;
           }
 
@@ -928,8 +930,8 @@ Component({
             }
           }
 
-          console.log(`[Canvas Tap] Click at (${x.toFixed(1)}, ${y.toFixed(1)})`);
-          console.log(`[Canvas Tap] ${this.clickAreas.length} click areas available`);
+          logger.log(`[Canvas Tap] Click at (${x.toFixed(1)}, ${y.toFixed(1)})`);
+          logger.log(`[Canvas Tap] ${this.clickAreas.length} click areas available`);
 
           // 查找点击的行星
           for (const area of this.clickAreas) {
@@ -944,16 +946,16 @@ Component({
               hit = distance <= area.radius;
             }
 
-            console.log(`[Canvas Tap] Distance to ${area.planet.name}: ${distance.toFixed(1)}px (radius: ${area.radius})`);
+            logger.log(`[Canvas Tap] Distance to ${area.planet.name}: ${distance.toFixed(1)}px (radius: ${area.radius})`);
 
             if (hit) {
-              console.log(`[Canvas Tap] Hit planet: ${area.planet.name}`);
+              logger.log(`[Canvas Tap] Hit planet: ${area.planet.name}`);
               this.showPlanetDetail(area.planet, x, y, rect);
               return;
             }
           }
 
-          console.log('[Canvas Tap] No planet hit, closing detail');
+          logger.log('[Canvas Tap] No planet hit, closing detail');
           // 点击空白处关闭详情卡片
           this.closePlanetDetail();
         })

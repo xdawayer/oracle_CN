@@ -1,5 +1,6 @@
-const { request } = require('../../utils/request');
+const { request, getBaseUrl } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const logger = require('../../utils/logger');
 
 Page({
   data: {
@@ -151,26 +152,35 @@ Page({
       const isLocalTemp = avatarUrl && (avatarUrl.startsWith('wxfile://') || avatarUrl.startsWith('http://tmp'));
 
       if (isLocalTemp) {
-        // 尝试使用微信云存储上传（如果已配置）
+        // 通过后端接口上传头像文件
         try {
-          if (wx.cloud) {
-            const cloudRes = await wx.cloud.uploadFile({
-              cloudPath: `avatars/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`,
+          const uploadRes = await new Promise((resolve, reject) => {
+            wx.uploadFile({
+              url: getBaseUrl() + '/api/user/avatar/upload',
               filePath: avatarUrl,
+              name: 'file',
+              header: {
+                Authorization: `Bearer ${storage.get('access_token')}`,
+              },
+              success: (res) => {
+                try {
+                  resolve(JSON.parse(res.data));
+                } catch (e) {
+                  reject(e);
+                }
+              },
+              fail: reject,
             });
-            if (cloudRes.fileID) {
-              avatarUrl = cloudRes.fileID;
-            }
+          });
+          if (uploadRes && uploadRes.url) {
+            avatarUrl = uploadRes.url;
           }
         } catch (err) {
-          // 云存储未配置或上传失败，使用原有头像
-          console.warn('头像上传失败，将保留原有头像:', err);
+          // 上传失败，保留原有头像
           avatarUrl = this.data.originalData.avatarUrl || avatarUrl;
         }
-      }
-
-      // 同步头像 URL 到后端
-      if (avatarUrl && avatarUrl !== this.data.originalData.avatarUrl) {
+      } else if (avatarUrl && avatarUrl !== this.data.originalData.avatarUrl) {
+        // 非本地临时文件（如微信头像 URL），直接同步到后端
         try {
           await request({
             url: '/api/user/avatar',

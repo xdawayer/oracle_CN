@@ -4,6 +4,8 @@
 
 import { SIGN_NAMES, MAJOR_PLANETS, ASPECT_ANGLES, ASPECT_ORDER } from '../../constants/chart-config.js';
 
+const logger = require('../../utils/logger');
+
 // 外环前缀正则
 const OUTER_PREFIX_RE = /^(T-|B-)/;
 
@@ -24,7 +26,7 @@ export function stripOuterPrefix(name) {
 export function getAbsoluteAngle(sign, degree, minute = 0) {
   const signIndex = SIGN_NAMES.indexOf(sign);
   if (signIndex < 0) {
-    console.warn(`[getAbsoluteAngle] Unknown sign: "${sign}", returning 0`);
+    logger.warn(`[getAbsoluteAngle] Unknown sign: "${sign}", returning 0`);
     return (Number(degree) || 0) + (Number(minute) || 0) / 60;
   }
   return (signIndex * 30) + (Number(degree) || 0) + (Number(minute) || 0) / 60;

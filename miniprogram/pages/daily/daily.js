@@ -1,6 +1,7 @@
 const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 const LoadingState = {
   IDLE: 'IDLE',
@@ -588,7 +589,7 @@ Page({
       const transitPromise = cachedTransit
         ? Promise.resolve(cachedTransit)
         : request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`, method: 'GET' }).catch(err => {
-            console.warn('[Daily] /transit failed:', err);
+            logger.warn('[Daily] /transit failed:', err);
             return null;
           });
 
@@ -627,13 +628,13 @@ Page({
               },
               onDone: () => resolve(streamState.chart && streamState.forecast ? streamState : null),
               onError: (err) => {
-                console.warn('[Daily] /full/stream failed:', err);
+                logger.warn('[Daily] /full/stream failed:', err);
                 resolve(null);
               },
             });
           })
         : request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET' }).catch(err => {
-            console.warn('[Daily] /full failed:', err);
+            logger.warn('[Daily] /full failed:', err);
             return null;
           });
 

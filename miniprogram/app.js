@@ -1,5 +1,7 @@
 const auth = require('./utils/auth');
 const storage = require('./utils/storage');
+const logger = require('./utils/logger');
+const { request } = require('./utils/request');
 
 const DEVICE_FINGERPRINT_KEY = 'device_fingerprint';
 
@@ -17,8 +19,8 @@ App({
       family: 'SourceHanSerifSC',
       source: 'url("https://fonts.gstatic.com/s/notoserifsc/v22/H4c8BXePl9DZ0Xe7gG9cyOj7mm63SzZBEtERe7U.woff2")',
       scopes: ['webview', 'native'],
-      success: res => console.log('Noto Serif SC font loaded:', res.status),
-      fail: err => console.warn('Noto Serif SC font load failed, using system fallback:', err)
+      success: res => logger.log('Noto Serif SC font loaded:', res.status),
+      fail: err => logger.warn('Noto Serif SC font load failed, using system fallback:', err)
     });
 
     // Load decorative ancient font for titles
@@ -26,8 +28,8 @@ App({
       family: 'AncientFont',
       source: 'url("https://fonts.gstatic.com/s/zhimangxing/v10/m8JXjf9Y4K992R_Sj0BfP_3vYfC1rM-R.woff2")',
       scopes: ['webview', 'native'],
-      success: res => console.log('Ancient font loaded:', res.status),
-      fail: err => console.warn('Ancient font load failed:', err)
+      success: res => logger.log('Ancient font loaded:', res.status),
+      fail: err => logger.warn('Ancient font load failed:', err)
     });
 
     const deviceFingerprint = storage.get(DEVICE_FINGERPRINT_KEY);
@@ -69,6 +71,27 @@ App({
           }
         }
       });
+    });
+
+    // 全局错误监控
+    wx.onError((error) => {
+      const pages = getCurrentPages();
+      const currentPage = pages.length > 0 ? pages[pages.length - 1].route : '';
+      request({
+        url: '/api/log/error',
+        method: 'POST',
+        data: { type: 'js_error', message: String(error).slice(0, 2000), page: currentPage },
+      }).catch(() => {});
+    });
+
+    wx.onUnhandledRejection((res) => {
+      const pages = getCurrentPages();
+      const currentPage = pages.length > 0 ? pages[pages.length - 1].route : '';
+      request({
+        url: '/api/log/error',
+        method: 'POST',
+        data: { type: 'promise_rejection', message: String(res.reason).slice(0, 2000), page: currentPage },
+      }).catch(() => {});
     });
 
     this.autoLogin();

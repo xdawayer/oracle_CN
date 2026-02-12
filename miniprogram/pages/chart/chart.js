@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 const {
   MAJOR_PLANETS,
   PLANET_META,
@@ -393,8 +394,8 @@ Page({
         const chartAspects = this.prefixSynastryAspects(aspects, 'B-');
 
         // 调试日志：检查数据结构
-        console.log('[Synastry] innerPositions:', JSON.stringify(innerPositions.slice(0, 3)));
-        console.log('[Synastry] outerPositions:', JSON.stringify(outerPositions.slice(0, 3)));
+        logger.log('[Synastry] innerPositions:', JSON.stringify(innerPositions.slice(0, 3)));
+        logger.log('[Synastry] outerPositions:', JSON.stringify(outerPositions.slice(0, 3)));
 
         if (!innerPositions.length) {
           throw new Error('EMPTY_CHART');
@@ -406,10 +407,10 @@ Page({
         if (ascendantA && ascendantA.sign) {
           const ascLongitude = this.getAbsoluteAngle(ascendantA.sign, ascendantA.degree, ascendantA.minute);
           houseCusps = Array.from({ length: 12 }, (_, i) => this.normalizeAngle(ascLongitude + i * 30));
-          console.log('[Synastry] Ascendant found:', ascendantA.sign, ascendantA.degree);
-          console.log('[Synastry] houseCusps calculated:', houseCusps);
+          logger.log('[Synastry] Ascendant found:', ascendantA.sign, ascendantA.degree);
+          logger.log('[Synastry] houseCusps calculated:', houseCusps);
         } else {
-          console.warn('[Synastry] Ascendant not found in innerPositions');
+          logger.warn('[Synastry] Ascendant not found in innerPositions');
         }
 
         const planetGroups = [
@@ -589,7 +590,7 @@ Page({
   getAbsoluteAngle(sign, degree, minute = 0) {
     const signIndex = SIGN_NAMES.indexOf(sign);
     if (signIndex < 0) {
-      console.warn('[getAbsoluteAngle] Unknown sign:', sign);
+      logger.warn('[getAbsoluteAngle] Unknown sign:', sign);
       return 0;
     }
     return (signIndex * 30) + (Number(degree) || 0) + (Number(minute) || 0) / 60;

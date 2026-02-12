@@ -33,6 +33,7 @@ import { reportRouter } from './api/report.js';
 import wxpayRouter from './api/wxpay.js';
 import wxpayService from './services/wxpayService.js';
 import { userRouter } from './api/user.js';
+import logRouter from './api/log.js';
 import { apiResponseMiddleware } from './utils/apiResponse.js';
 
 const envPaths = [
@@ -83,6 +84,9 @@ app.use('/api/wxpay/refund-notify', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(apiResponseMiddleware);
 
+// 静态文件服务（头像上传等）
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+
 // API Routes
 app.use('/api/natal', natalRouter);
 app.use('/api/daily', dailyRouter);
@@ -111,6 +115,7 @@ app.use('/api/pairing', pairingRouter);  // 星座配对
 app.use('/api/report', reportRouter);   // 通用报告（本命深度解读、流年运势等）
 app.use('/api/wxpay', wxpayRouter);    // 微信支付
 app.use('/api/user', userRouter);      // 用户资料
+app.use('/api/log', logRouter);       // 错误日志上报
 
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok' }));

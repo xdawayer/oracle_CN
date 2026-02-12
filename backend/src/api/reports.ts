@@ -156,7 +156,7 @@ router.post('/generate', authMiddleware, requireAuth, async (req: Request, res: 
 router.post('/purchase', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
     const { reportType } = req.body;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep'];
+    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report'];
 
     if (!reportType || !validTypes.includes(reportType)) {
       return res.status(400).json({ error: 'Invalid report type' });

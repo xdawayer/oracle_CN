@@ -1,5 +1,8 @@
 // 用户资料与积分 API 路由
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { authMiddleware, requireAuth } from './auth.js';
 import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
@@ -282,6 +285,54 @@ router.get('/points-history', authMiddleware, requireAuth, async (req: Request, 
   } catch (error) {
     console.error('Get points history error:', error);
     res.status(500).json({ error: 'Failed to get points history' });
+  }
+});
+
+// POST /api/user/avatar/upload - 上传头像文件
+const uploadDir = path.resolve(process.cwd(), 'uploads', 'avatars');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.jpg';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /^image\/(jpeg|jpg|png|gif|webp)$/;
+    cb(null, allowed.test(file.mimetype));
+  },
+});
+
+router.post('/avatar/upload', authMiddleware, requireAuth, upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    const file = (req as any).file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // 构建可访问的 URL
+    // 生产环境建议改为上传到对象存储（腾讯云 COS 等）并返回 CDN URL
+    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const avatarUrl = `${baseUrl}/uploads/avatars/${file.filename}`;
+
+    // 更新数据库
+    if (isSupabaseConfigured()) {
+      await supabase
+        .from('users')
+        .update({ avatar: avatarUrl })
+        .eq('id', req.userId!);
+    }
+
+    res.json({ success: true, url: avatarUrl });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ error: 'Failed to upload avatar' });
   }
 });
 

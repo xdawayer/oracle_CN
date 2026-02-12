@@ -2,6 +2,7 @@ const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const { searchCities, formatCityDisplay, autoMatchCity, getCityCoordinates } = require('../../utils/city-search');
+const logger = require('../../utils/logger');
 
 const SELF_PROFILE_ID = 'self_profile';
 const CITY_SEARCH_DEBOUNCE = 300;
@@ -1198,7 +1199,7 @@ Page({
       let technicalRes = null;
       const technicalPromise = technicalQuery
         ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}` }).catch(err => {
-            console.warn('[Synastry] /technical failed:', err);
+            logger.warn('[Synastry] /technical failed:', err);
             return null;
           })
         : Promise.resolve(null);
@@ -1265,13 +1266,13 @@ Page({
                 resolve(streamSuccess ? streamState : null);
               },
               onError: (err) => {
-                console.warn('[Synastry] /full/stream failed:', err);
+                logger.warn('[Synastry] /full/stream failed:', err);
                 resolve(null);
               }
             });
           })
         : request({ url: `${API_ENDPOINTS.SYNASTRY_FULL}?${fullQuery}` }).catch(err => {
-            console.warn('[Synastry] /full failed:', err);
+            logger.warn('[Synastry] /full failed:', err);
             return null;
           });
 

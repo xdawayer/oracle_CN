@@ -1,6 +1,7 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 // 专题报告元数据（用于支付弹窗展示）
 const TOPIC_REPORT_META = {
@@ -154,7 +155,7 @@ Page({
           });
         }
       } catch (error) {
-        console.log(`Check ${reportType} status:`, error?.statusCode || error);
+        logger.log(`Check ${reportType} status:`, error?.statusCode || error);
         this.setData({ [stateKeys[reportType].status]: 'none' });
       }
     }

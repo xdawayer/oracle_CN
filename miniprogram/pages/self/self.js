@@ -1,6 +1,8 @@
 const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
+const { isDev } = logger;
 const {
   MAJOR_PLANETS,
   PLANET_META,
@@ -362,7 +364,7 @@ Page({
         });
       }
     } catch (error) {
-      console.log('Check annual task status:', error?.statusCode || error);
+      logger.log('Check annual task status:', error?.statusCode || error);
       this.setData({ annualTaskStatus: 'none' });
     }
   },
@@ -704,7 +706,7 @@ Page({
 
         if (Object.keys(prefetched).length > 0) {
           this.setData({ prefetchedContent: prefetched });
-          console.log('[natal/full] Prefetched blocks:', Object.keys(prefetched).join(', '));
+          logger.log('[natal/full] Prefetched blocks:', Object.keys(prefetched).join(', '));
         }
         return;
       }
@@ -730,19 +732,19 @@ Page({
           onDone: () => {
             if (Object.keys(prefetched).length > 0) {
               this.setData({ prefetchedContent: prefetched });
-              console.log('[natal/full/stream] Prefetched blocks:', Object.keys(prefetched).join(', '));
+              logger.log('[natal/full/stream] Prefetched blocks:', Object.keys(prefetched).join(', '));
             }
             resolve();
           },
           onError: (err) => {
-            console.log('[natal/full/stream] Prefetch failed, will fallback to /api/detail:', err?.message || err);
+            logger.log('[natal/full/stream] Prefetch failed, will fallback to /api/detail:', err?.message || err);
             resolve();
           },
         });
       });
     } catch (err) {
       // 静默失败，fallback 到原有单端点模式
-      console.log('[natal/full] Prefetch failed, will fallback to /api/detail:', err?.statusCode || err?.message || err);
+      logger.log('[natal/full] Prefetch failed, will fallback to /api/detail:', err?.statusCode || err?.message || err);
     }
   },
 
@@ -900,9 +902,8 @@ Page({
       accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
     };
 
-    // TODO: 开发阶段 - 暂未接入支付，直接创建任务
-    // 正式上线后需要先进行支付，支付成功后再创建任务
-    const DEV_MODE = true;
+    // 开发环境跳过支付，生产环境走积分扣除流程
+    const DEV_MODE = isDev;
 
     try {
       if (!DEV_MODE) {
@@ -1148,7 +1149,7 @@ Page({
         });
       }
     } catch (error) {
-      console.log('Check natal report status:', error?.statusCode || error);
+      logger.log('Check natal report status:', error?.statusCode || error);
       this.setData({ natalReportStatus: 'none' });
     }
   },

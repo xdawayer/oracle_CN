@@ -239,6 +239,8 @@
   align-items: center;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding: 16rpx 24rpx;
   justify-content: center;
 }
 
@@ -286,6 +288,7 @@
   display: flex;
   gap: var(--spacing-md);
   align-items: stretch;
+  margin-top: var(--spacing-sm);
 }
 
 .btn-primary {
