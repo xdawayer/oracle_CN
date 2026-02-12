@@ -605,11 +605,11 @@ export const WIKI_CLASSICS_MARKDOWN_EN = [
 ];
 
 // Helper functions for backend API
-export function getWikiClassics(lang) {
+export function getWikiClassics(lang: string) {
   return lang === 'en' ? WIKI_CLASSICS_MARKDOWN_EN : WIKI_CLASSICS_MARKDOWN_ZH;
 }
 
-export function getWikiClassicDetail(id, lang) {
+export function getWikiClassicDetail(id: string, lang: string) {
   const books = lang === 'en' ? WIKI_CLASSICS_MARKDOWN_EN : WIKI_CLASSICS_MARKDOWN_ZH;
   return books.find(book => book.id === id) || null;
 }
