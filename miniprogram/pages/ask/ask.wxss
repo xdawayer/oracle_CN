@@ -24,9 +24,28 @@ page {
   margin-bottom: var(--spacing-lg);
 }
 
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+}
+
 .app-title {
   font-size: 52rpx;
   color: var(--ink-deep);
+}
+
+.quota-badge {
+  flex-shrink: 0;
+}
+
+.quota-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.quota-empty {
+  color: var(--seal-red);
 }
 
 .app-subtitle {

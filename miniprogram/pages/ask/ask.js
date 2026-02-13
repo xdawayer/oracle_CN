@@ -85,6 +85,12 @@ Page({
     currentGoalLabel: '事业发展与财富',
     currentSuggestions: SUGGESTED_QUESTIONS['career'],
 
+    // 配额信息（askCost 需与后端 PRICING.ASK_SINGLE 保持一致）
+    askTotalLeft: 0,
+    credits: 0,
+    askCost: 50,
+    quotaLoaded: false,
+
     // 全屏报告状态
     showReport: false,
     reportLoading: false,
@@ -158,9 +164,59 @@ Page({
     this.setData({ inputValue: text, inputFocus: true });
   },
 
+  onShow() {
+    this._fetchQuota();
+  },
+
+  async _fetchQuota() {
+    try {
+      const res = await request({
+        url: API_ENDPOINTS.ENTITLEMENTS_V2,
+        method: 'GET',
+      });
+      if (res && res.ask) {
+        this.setData({
+          askTotalLeft: res.ask.totalLeft || 0,
+          credits: res.credits || 0,
+          quotaLoaded: true,
+        });
+      }
+    } catch (err) {
+      logger.warn('Fetch ask quota failed:', err);
+    }
+  },
+
   onSend() {
     const text = this.data.inputValue.trim();
     if (!text) return;
+
+    const { askTotalLeft, credits, askCost, quotaLoaded } = this.data;
+
+    // 配额已加载且本周次数用完
+    if (quotaLoaded && askTotalLeft <= 0) {
+      if (credits >= askCost) {
+        // 有足够积分，弹窗确认
+        wx.showModal({
+          title: '本周免费次数已用完',
+          content: `是否消耗 ${askCost} 积分进行提问？（当前积分: ${credits}）`,
+          confirmText: '确认消耗',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.sendMessage(text);
+            }
+          },
+        });
+      } else {
+        wx.showToast({
+          title: `本周次数已用完，积分不足（需${askCost}积分）`,
+          icon: 'none',
+          duration: 2500,
+        });
+      }
+      return;
+    }
+
     this.sendMessage(text);
   },
 
@@ -210,26 +266,8 @@ Page({
       requestData.pairingContext = this.pairingContext;
     }
 
-    // 使用流式请求，逐步渲染 AI 内容
+    // 使用流式请求，完成后解析 JSON 渲染结构化报告
     let streamText = '';
-    let _flushTimer = null;
-    const FLUSH_INTERVAL = 100; // 每 100ms 最多刷新一次 UI
-
-    const flushToUI = (force) => {
-      if (_flushTimer && !force) return; // 已有定时器等待中
-      if (force && _flushTimer) {
-        clearTimeout(_flushTimer);
-        _flushTimer = null;
-      }
-      if (force) {
-        this.setData({ reportData: streamText, reportLoading: false });
-        return;
-      }
-      _flushTimer = setTimeout(() => {
-        _flushTimer = null;
-        this.setData({ reportData: streamText, reportLoading: false });
-      }, FLUSH_INTERVAL);
-    };
 
     this._streamTask = requestStream({
       url: `${API_ENDPOINTS.ASK}/stream`,
@@ -243,26 +281,33 @@ Page({
       },
       onChunk: (chunk) => {
         streamText += chunk;
-        flushToUI(false);
       },
       onDone: () => {
-        if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
         this.setData({
-          reportData: streamText,
+          reportData: this._parseReport(streamText),
           reportLoading: false,
           isLoading: false
         });
         this._streamTask = null;
+        this._fetchQuota();
       },
       onError: (err) => {
         logger.error('Ask Stream Error:', err);
+        // 403 配额不足（后端已检查积分，走到这里说明次数和积分均不足）
+        if (err && err.statusCode === 403) {
+          this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
+          this._streamTask = null;
+          this._fetchQuota();
+          wx.showToast({ title: '本周提问次数已用完', icon: 'none', duration: 2500 });
+          return;
+        }
         // 如果流式未获得任何内容，降级为非流式请求
         if (!streamText) {
           this._fallbackNonStream(requestData);
         } else {
-          // 已有部分内容，显示已获取的部分
+          // 已有部分内容，尝试解析已获取的部分
           this.setData({
-            reportData: streamText,
+            reportData: this._parseReport(streamText),
             reportLoading: false,
             isLoading: false
           });
@@ -270,6 +315,57 @@ Page({
         }
       }
     });
+  },
+
+  // 清理文本中的 markdown 标记（**加粗**、*斜体*、### 标题 等）
+  _stripMarkdown(str) {
+    if (typeof str !== 'string') return str;
+    return str
+      .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold**
+      .replace(/\*(.+?)\*/g, '$1')        // *italic*
+      .replace(/^#{1,6}\s+/gm, '')        // ### heading
+      .replace(/`([^`]+)`/g, '$1');       // `code`
+  },
+
+  // 递归清理对象中所有字符串值的 markdown 标记
+  _cleanMarkdown(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(item => this._cleanMarkdown(item));
+    const cleaned = {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (typeof val === 'string') {
+        cleaned[key] = this._stripMarkdown(val);
+      } else if (typeof val === 'object' && val !== null) {
+        cleaned[key] = this._cleanMarkdown(val);
+      } else {
+        cleaned[key] = val;
+      }
+    }
+    return cleaned;
+  },
+
+  _parseReport(raw) {
+    if (!raw) return null;
+    // 已经是对象，直接清理 markdown 后返回
+    if (typeof raw === 'object' && raw !== null) return this._cleanMarkdown(raw);
+    // 剥离 markdown 代码块标记（```json ... ``` 或 ``` ... ```）
+    let text = typeof raw === 'string' ? raw.trim() : String(raw);
+    const fenceMatch = text.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
+    if (fenceMatch) text = fenceMatch[1].trim();
+    // 字符串 → 尝试 JSON 解析
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === 'object') return this._cleanMarkdown(parsed);
+    } catch (_) { /* 非 JSON，走下方兜底 */ }
+    // 兜底：将纯文本包装为模板可渲染的结构
+    return {
+      sections: [{
+        type: 'deep_analysis',
+        title: '解读',
+        cards: [{ title: '', content: this._stripMarkdown(text) }]
+      }]
+    };
   },
 
   async _fallbackNonStream(requestData) {
@@ -281,9 +377,8 @@ Page({
       });
 
       if (res && res.content) {
-        const reportData = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
         this.setData({
-          reportData,
+          reportData: this._parseReport(res.content),
           reportChartData: res.chart || null,
           reportTransitData: res.transits || null,
           reportLoading: false

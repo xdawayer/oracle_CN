@@ -94,7 +94,7 @@ export const PRICING = {
   DETAIL_VIEW: 10,                   // 10 积分 - 深度详情
   SYNASTRY_FULL: 30,                 // 30 积分 - 合盘单次
   SYNASTRY_DETAIL: 10,               // 10 积分 - 合盘内查看详情
-  ASK_SINGLE: 20,                    // 20 积分 - Ask 单次
+  ASK_SINGLE: 50,                    // 50 积分 - Ask 单次（每周免费次数用完后）
   CBT_STATS_MONTHLY: 20,             // 20 积分 - CBT 统计月度
   SYNTHETICA_USE: 10,                // 10 积分 - Synthetica 单次使用
 };

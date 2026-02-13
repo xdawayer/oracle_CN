@@ -5,7 +5,13 @@
     <view class="header ink-border">
       <view class="header-content">
         <view class="title-section">
-          <text class="app-title font-ancient">AI 问答</text>
+          <view class="title-row">
+            <text class="app-title font-ancient">AI 问答</text>
+            <view class="quota-badge" wx:if="{{quotaLoaded}}">
+              <text class="quota-text" wx:if="{{askTotalLeft > 0}}">本周剩余 {{askTotalLeft}} 次</text>
+              <text class="quota-text quota-empty" wx:else>本周次数已用完 · {{askCost}}积分/次</text>
+            </view>
+          </view>
           <text class="app-subtitle">INSIGHT REPORT</text>
         </view>
 

@@ -20,6 +20,7 @@ const API_ENDPOINTS = {
   CYCLE_LIST: '/api/cycle/list',
   CBT_ANALYSIS: '/api/cbt/analysis',
   CBT_RECORDS: '/api/cbt/records',
+  CBT_AGGREGATE_ANALYSIS: '/api/cbt/aggregate-analysis',
   WIKI_HOME: '/api/wiki/home',
   WIKI_ITEMS: '/api/wiki/items',
   WIKI_SEARCH: '/api/wiki/search',
@@ -54,6 +55,8 @@ const API_ENDPOINTS = {
   USER_AVATAR: '/api/user/avatar',
   USER_SUBSCRIPTION: '/api/user/subscription',
   POINTS_HISTORY: '/api/user/points-history',
+  // 权益
+  ENTITLEMENTS_V2: '/api/entitlements/v2',
 };
 
 module.exports = {
