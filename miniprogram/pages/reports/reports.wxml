@@ -1,7 +1,7 @@
 <view class="container">
   <!-- List View -->
   <view class="list-container" wx:if="{{!selectedReport}}">
-    <!-- 未登录状态 -->
+    <!-- 未登录 -->
     <view wx:if="{{needLogin}}" class="empty-state">
       <text class="empty-title">登录后查看收藏的报告</text>
       <view class="login-btn" bindtap="goToLogin">
@@ -15,65 +15,80 @@
       <text class="empty-desc">你的分析报告将保存在这里</text>
     </view>
 
+    <!-- 报告列表 -->
     <view wx:for="{{reports}}" wx:key="id" class="report-card ink-border" bindtap="onSelectReport" data-report="{{item}}">
       <view class="card-header">
-        <view class="tag">{{item.typeText}}</view>
+        <view class="tag {{item.typeClass}}">{{item.typeText}}</view>
         <text class="date-label">{{item.dateFormatted}}</text>
       </view>
       <text class="card-title font-ancient">{{item.title}}</text>
-      <text class="card-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
       <view class="card-footer">
-        <text class="card-action">点击查看详情 ></text>
+        <text class="card-action">查看详情 ></text>
       </view>
     </view>
   </view>
 
   <!-- Detail View -->
-  <scroll-view scroll-y class="detail-container" wx:else show-scrollbar="false">
-    <view class="detail-meta">
-      <view class="tag">{{selectedReport.typeText}}</view>
-      <text class="detail-date">{{selectedReport.date}} 生成</text>
+  <scroll-view scroll-y class="detail-scroll" wx:else show-scrollbar="false">
+    <!-- 报告头部 -->
+    <view class="detail-hero">
+      <view class="detail-hero-inner">
+        <view class="detail-tag-row">
+          <view class="tag {{selectedReport.typeClass}}">{{selectedReport.typeText}}</view>
+          <text class="detail-date">{{selectedReport.date}}</text>
+        </view>
+        <text class="detail-title font-ancient">{{selectedReport.title}}</text>
+        <view class="detail-stat-row">
+          <text class="detail-stat">共 {{selectedReport.moduleCount}} 个章节</text>
+        </view>
+      </view>
+      <!-- 水墨装饰线 -->
+      <view class="ink-divider"></view>
     </view>
 
-    <view class="report-header-section">
-      <text class="report-main-title font-ancient">{{selectedReport.content.title}}</text>
-      <text class="report-subtitle" wx:if="{{selectedReport.content.subtitle}}">{{selectedReport.content.subtitle}}</text>
-      <view class="report-summary-box ink-border" wx:if="{{selectedReport.content.summary}}">
-        <text class="summary-text">"{{selectedReport.content.summary}}"</text>
+    <!-- 模块目录 -->
+    <view class="toc-section" wx:if="{{selectedReport.moduleList.length > 1}}">
+      <view class="toc-inner">
+        <view class="toc-item" wx:for="{{selectedReport.moduleList}}" wx:key="id">
+          <view class="toc-dot"></view>
+          <text class="toc-text">{{item.title}}</text>
+        </view>
       </view>
     </view>
 
-    <block wx:for="{{selectedReport.content.sections}}" wx:key="title">
-      <view class="section-card ink-border">
-        <view class="section-title font-ancient">
-          <text>{{item.title}}</text>
-          <text class="section-rating" wx:if="{{item.rating}}">{{item.rating}}分</text>
-        </view>
-        <view class="section-content" wx:if="{{item.content}}">
-          <text>{{item.content}}</text>
-        </view>
-        <view class="highlights-box" wx:if="{{item.highlights && item.highlights.length > 0}}">
-          <view class="highlight-item" wx:for="{{item.highlights}}" wx:for-item="hl" wx:key="*this">
-            <text>{{hl}}</text>
+    <!-- 模块卡片 -->
+    <view class="modules-container">
+      <block wx:for="{{selectedReport.moduleList}}" wx:key="id">
+        <view class="module-card" style="animation-delay: {{index * 60}}ms;">
+          <!-- 顶部色条 -->
+          <view class="module-accent module-accent-{{item.id}}"></view>
+          <!-- 模块头 -->
+          <view class="module-header">
+            <view class="module-index-badge">
+              <text class="module-index-text">{{index + 1}}</text>
+            </view>
+            <text class="module-title font-ancient module-title-{{item.id}}">{{item.title}}</text>
+            <text class="module-rating" wx:if="{{item.rating}}">{{item.rating}}/10</text>
+          </view>
+          <!-- 模块内容 -->
+          <view class="module-body">
+            <rich-text class="markdown-content" nodes="{{item.htmlContent}}"></rich-text>
           </view>
         </view>
-        <view class="advice-box" wx:if="{{item.advice}}">
-          <text class="advice-label">建议</text>
-          <text class="advice-content">{{item.advice}}</text>
-        </view>
-      </view>
-    </block>
-
-    <view class="security-footer">
-      <text class="security-text">此报告已加密存储，仅您本人可查看。</text>
+      </block>
     </view>
 
-    <view class="back-btn-wrap">
-      <view class="back-detail-btn" bindtap="onBack">
-        <text>返回列表</text>
+    <!-- 底部 -->
+    <view class="detail-footer">
+      <view class="security-badge">
+        <text class="security-icon">🔒</text>
+        <text class="security-label">此报告已加密存储，仅您本人可查看</text>
+      </view>
+      <view class="back-btn" bindtap="onBack">
+        <text class="back-btn-text">返回列表</text>
       </view>
     </view>
 
-    <view style="height: 40rpx;"></view>
+    <view style="height: 80rpx;"></view>
   </scroll-view>
 </view>

@@ -1,12 +1,9 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
+const { markdownToHtml } = require('../../utils/markdown');
 
-/** 检查是否已登录 */
-const isLoggedIn = () => {
-  const token = storage.get('access_token');
-  return !!token;
-};
+const isLoggedIn = () => !!storage.get('access_token');
 
 const TYPE_TEXT_MAP = {
   synastry: '关系分析',
@@ -25,30 +22,60 @@ const getTypeClass = (type) => {
   if (type === 'synastry') return 'tag-synastry';
   if (type === 'daily') return 'tag-daily';
   if (type === 'natal' || type === 'natal-report') return 'tag-natal';
-  if (type && type.endsWith('-topic')) return 'tag-natal';
+  if (type && type.endsWith('-topic')) return 'tag-topic';
   return 'tag-default';
-};
-
-/** 将 modules+meta 格式转换为 sections 数组 */
-const modulesToSections = (modules, meta) => {
-  if (!modules || typeof modules !== 'object') return [];
-  const entries = Object.entries(modules);
-  return entries
-    .map(([id, content]) => {
-      const m = (meta && meta[id]) || {};
-      return {
-        id,
-        title: m.name || id,
-        content: typeof content === 'string' ? content : (content && content.text) || '',
-        order: m.order || 999,
-      };
-    })
-    .sort((a, b) => a.order - b.order);
 };
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   return dateStr.split('T')[0];
+};
+
+/**
+ * 将 modules+meta 格式转为渲染用的模块数组
+ * 每个模块包含 { id, title, htmlContent, order }
+ */
+const buildModuleList = (modules, meta) => {
+  if (!modules || typeof modules !== 'object') return [];
+  return Object.entries(modules)
+    .map(([id, content]) => {
+      const m = (meta && meta[id]) || {};
+      const raw = typeof content === 'string'
+        ? content
+        : (content && (content.content || content.text)) || '';
+      return {
+        id,
+        title: m.name || id,
+        htmlContent: markdownToHtml(raw),
+        order: m.order != null ? m.order : 999,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+};
+
+/**
+ * 将旧格式 sections 数组转为渲染用的模块数组
+ */
+const buildSectionList = (sections) => {
+  if (!Array.isArray(sections)) return [];
+  return sections.map((section, idx) => {
+    const parts = [];
+    if (section.content) parts.push(section.content);
+    if (Array.isArray(section.highlights) && section.highlights.length > 0) {
+      parts.push(section.highlights.map(h => `- ${h}`).join('\n'));
+    }
+    if (section.advice) {
+      const adviceText = Array.isArray(section.advice) ? section.advice.join('；') : section.advice;
+      parts.push(`**建议**：${adviceText}`);
+    }
+    return {
+      id: section.id || `section-${idx}`,
+      title: section.title || '',
+      htmlContent: markdownToHtml(parts.join('\n\n')),
+      rating: section.rating || 0,
+      order: idx,
+    };
+  });
 };
 
 Page({
@@ -64,20 +91,14 @@ Page({
   },
 
   onShow() {
-    // 返回页面时重新检查登录状态
     if (this.data.needLogin && isLoggedIn()) {
       this.checkAndFetch();
     }
   },
 
-  /** 检查登录状态并获取数据 */
   checkAndFetch() {
     if (!isLoggedIn()) {
-      this.setData({
-        loading: false,
-        needLogin: true,
-        reports: [],
-      });
+      this.setData({ loading: false, needLogin: true, reports: [] });
       return;
     }
     this.setData({ needLogin: false });
@@ -88,40 +109,24 @@ Page({
     this.setData({ loading: true });
     try {
       const res = await request({ url: '/api/reports' });
-      // Map list data from { reports: [...] }
       const rawReports = res.reports || (Array.isArray(res) ? res : []);
-
       const reports = rawReports.map(item => ({
         ...item,
         typeText: getTypeText(item.type),
         typeClass: getTypeClass(item.type),
         dateFormatted: formatDate(item.generatedAt || item.date),
-        summary: ''
       }));
-
-      this.setData({
-        reports,
-        loading: false
-      });
+      this.setData({ reports, loading: false });
     } catch (err) {
       logger.error('Failed to fetch reports', err);
-      // 如果是认证错误，显示登录提示
       if (err.message && err.message.includes('refresh token')) {
-        this.setData({
-          reports: [],
-          loading: false,
-          needLogin: true,
-        });
+        this.setData({ reports: [], loading: false, needLogin: true });
         return;
       }
-      this.setData({
-        reports: [],
-        loading: false
-      });
+      this.setData({ reports: [], loading: false });
     }
   },
 
-  /** 跳转到登录/个人中心 */
   goToLogin() {
     wx.switchTab({ url: '/pages/me/me' });
   },
@@ -131,49 +136,31 @@ Page({
     if (!reportItem || !reportItem.id) return;
 
     wx.showLoading({ title: '加载中' });
-    
+
     try {
       const res = await request({ url: `/api/reports/${reportItem.id}` });
-      
-      // Map details from { content, title, type, generatedAt }
-      // Assume content contains the structured data needed for the view
+
       let detailData = res.content;
-      // If content is a stringified JSON, parse it (API safety)
       if (typeof detailData === 'string') {
-        try {
-          detailData = JSON.parse(detailData);
-        } catch (e) {
-          logger.error('Parse content error', e);
-        }
+        try { detailData = JSON.parse(detailData); } catch (e) { logger.error('Parse content error', e); }
       }
 
-      let normalizedContent;
-      if (detailData && detailData.sections) {
-        // 旧格式：直接使用 sections 数组
-        normalizedContent = {
-          ...detailData,
-          sections: detailData.sections.map(section => ({
-            ...section,
-            advice: Array.isArray(section.advice) ? section.advice.join('；') : section.advice,
-          })),
-        };
-      } else if (detailData && detailData.modules) {
-        // 新格式（专题报告）：将 modules+meta 转为 sections
-        normalizedContent = {
-          ...detailData,
-          sections: modulesToSections(detailData.modules, detailData.meta),
-        };
-      } else {
-        normalizedContent = detailData;
+      // 构建模块列表（兼容新旧两种格式）
+      let moduleList = [];
+      if (detailData && detailData.modules) {
+        moduleList = buildModuleList(detailData.modules, detailData.meta);
+      } else if (detailData && detailData.sections) {
+        moduleList = buildSectionList(detailData.sections);
       }
 
       const selectedReport = {
         ...res,
-        content: normalizedContent || {}, 
+        title: (detailData && detailData.title) || res.title || '',
+        moduleList,
         date: formatDate(res.generatedAt || res.date),
         typeText: getTypeText(res.type),
         typeClass: getTypeClass(res.type),
-        summary: detailData && detailData.summary ? detailData.summary : ''
+        moduleCount: moduleList.length,
       };
 
       this.setData({ selectedReport });
@@ -191,5 +178,5 @@ Page({
     } else {
       wx.navigateBack();
     }
-  }
+  },
 });
