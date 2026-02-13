@@ -44,6 +44,18 @@ export const EXPRESSION_MAP: Array<{ formal: string; casual: string; context: st
   { formal: '适合独处反思', casual: '适合一个人待着', context: '日运' },
   { formal: '财运较好', casual: '搞钱运在线', context: '日运' },
   { formal: '感情运势上升', casual: '桃花运来了', context: '日运' },
+
+  // 大陆特色表达
+  { formal: '工作压力大', casual: '被996卷到飞起', context: '事业' },
+  { formal: '年龄焦虑', casual: '35岁危机实锤', context: '成长' },
+  { formal: '经济压力', casual: '钱包在哭泣', context: '通用' },
+  { formal: '获得好运', casual: '运气buff叠满', context: '日运' },
+  { formal: '情绪波动大', casual: '今天过山车了', context: '情绪' },
+  { formal: '对未来迷茫', casual: '人生路在施工中', context: '成长' },
+  { formal: '事情顺利', casual: '稳稳拿捏', context: '通用' },
+  { formal: '被别人影响情绪', casual: '被别人的节奏带跑了', context: '情绪' },
+  { formal: '需要独处', casual: '电量不足请充电', context: '通用' },
+  { formal: '社交能力强', casual: '社牛属性全开', context: '社交' },
 ];
 
 /** 获取指定场景的表达示例 */

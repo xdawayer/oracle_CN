@@ -7,11 +7,12 @@
 import type { PromptTemplate, PromptContext } from '../../core/types';
 import { compactChartSummary, compactTransitSummary } from '../../core/compact';
 import { registry } from '../../core/registry';
+import { getSeasonalContext, getFestivalContext } from '../../cultural/seasonal';
 
 export const dailyForecastPrompt: PromptTemplate = {
   meta: {
     id: 'daily-forecast',
-    version: '9.1',
+    version: '9.2',
     module: 'daily',
     priority: 'P0',
     description: '今日运势概览',
@@ -62,8 +63,9 @@ export const dailyForecastPrompt: PromptTemplate = {
   "share_text": "str:13字以内,一句话金句"
 }
 
-## 节气融入
+## 节气与节日融入
 如果当日处于节气前后（±3天），在 summary 中自然融入节气氛围。如："大寒时节，内心戏更重了，适合安静独处"、"立春前后，新计划的灵感已经在酝酿了"。不在节气附近则忽略。
+如果当日是传统节日（春节/元宵/清明/端午/七夕/中秋/重阳/冬至/腊八等），在 summary 和 advice 中融入节日氛围。如：春节前后可建议"给自己设个新年flag"，中秋可关注"家庭关系和归属感"。不是节日则忽略。
 
 ## 宜忌风格
 advice 采用趣味黄历风格，标题简练、内容现代化：
@@ -87,9 +89,17 @@ details 必须是具体可执行的生活场景（赶地铁时听播客、午饭
 5. share_text 必须≤13个字（含标点），一句精炼金句，如"今天适合躺平充电"、"行动力全开的一天"
 6. summary、theme_explanation、description 等所有文本字段中不得出现任何行星、星座、宫位、相位名称`,
 
-  user: (ctx: PromptContext) => `日期：${ctx.date || '今日'}
+  user: (ctx: PromptContext) => {
+    const dateStr = ctx.date || '今日';
+    const date = ctx.date ? new Date(ctx.date) : new Date();
+    const seasonal = getSeasonalContext(date);
+    const festival = getFestivalContext(date);
+    const culturalContext = [seasonal, festival].filter(Boolean).join('\n');
+
+    return `日期：${dateStr}
 个人参数：${compactChartSummary(ctx.chart_summary)}
-周期参数：${compactTransitSummary(ctx.transit_summary)}`,
+周期参数：${compactTransitSummary(ctx.transit_summary)}${culturalContext ? `\n时令参考：${culturalContext}` : ''}`;
+  },
 };
 
 // 注册

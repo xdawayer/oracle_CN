@@ -28,7 +28,36 @@ const SENSITIVE_WORD_MAP: Record<string, string> = {
   '血光之灾': '健康提醒',
   '破财': '财务波动',
   '桃花劫': '感情变化',
+  // 封建迷信高风险词替换
+  '劫数': '挑战期',
+  '渡劫': '度过考验期',
+  '克夫': '关系课题',
+  '克妻': '关系课题',
+  '冲太岁': '今年变化较多',
+  '犯太岁': '今年变化较多',
+  '天谴': '自然反馈',
+  '天罚': '自然反馈',
+  '因果报应': '因果关系',
+  '报应': '自然后果',
 };
+
+// 按 key 长度降序排列的词条（长词优先替换，避免子串冲突）
+const SORTED_SENSITIVE_ENTRIES = Object.entries(SENSITIVE_WORD_MAP)
+  .sort((a, b) => b[0].length - a[0].length);
+
+// 政治敏感关键词（严格禁止出现）
+const POLITICAL_KEYWORDS = [
+  '习近平', '毛泽东', '共产党', '国民党', '六四',
+  '天安门事件', '法轮功', '台独', '藏独', '疆独',
+  '反华', '颠覆政权', '分裂国家', '达赖', '民运',
+  '政治改革', '一党专政', '维权', '翻墙', '文化大革命',
+];
+
+// 宗教风险关键词
+const RELIGIOUS_RISK_WORDS = [
+  '全能神', '东方闪电', '呼喊派', '门徒会', '统一教',
+  '法轮大法', '真善忍', '转法轮', '李洪志', '传教',
+];
 
 // 高风险关键词（出现则需要整体审查）
 const HIGH_RISK_KEYWORDS = [
@@ -41,17 +70,60 @@ const HIGH_RISK_KEYWORDS = [
  */
 export function replaceSensitiveWords(content: string): string {
   let result = content;
-  for (const [sensitive, replacement] of Object.entries(SENSITIVE_WORD_MAP)) {
+  for (const [sensitive, replacement] of SORTED_SENSITIVE_ENTRIES) {
     result = result.replaceAll(sensitive, replacement);
   }
   return result;
 }
 
 /**
- * 检查是否包含高风险关键词
+ * 检查是否包含高风险关键词（含政治/宗教敏感词）
  */
 export function containsHighRiskContent(content: string): boolean {
-  return HIGH_RISK_KEYWORDS.some(keyword => content.includes(keyword));
+  return HIGH_RISK_KEYWORDS.some(keyword => content.includes(keyword))
+    || POLITICAL_KEYWORDS.some(keyword => content.includes(keyword))
+    || RELIGIOUS_RISK_WORDS.some(keyword => content.includes(keyword));
+}
+
+// Prompt injection 常见模式
+const INJECTION_PATTERNS = [
+  /ignore\s+(previous|above|all)\s+(instructions|prompts)/gi,
+  /you\s+are\s+now\s+/gi,
+  /system\s*:\s*/gi,
+  /\bact\s+as\b/gi,
+  /\brole\s*play\b/gi,
+  /disregard\s+(your|the)\s+(rules|instructions)/gi,
+  /忽略(之前|上面|所有)(的)?(指令|规则|设定)/g,
+  /你现在是/g,
+  /假装你是/g,
+  /请?扮演(一个|成)/g,
+];
+
+/**
+ * 净化用户输入
+ *
+ * - 截断超长输入（500 字）
+ * - 去除 prompt injection 模式
+ * - 替换高风险词
+ */
+export function sanitizeUserInput(input: string): string {
+  if (!input) return '';
+
+  // 截断超长输入
+  let sanitized = input.length > 500 ? input.slice(0, 500) : input;
+
+  // 去除 prompt injection 模式
+  for (const pattern of INJECTION_PATTERNS) {
+    pattern.lastIndex = 0;
+    sanitized = sanitized.replace(pattern, '');
+  }
+
+  // 替换高风险词（长词优先，避免子串冲突）
+  for (const [sensitive, replacement] of SORTED_SENSITIVE_ENTRIES) {
+    sanitized = sanitized.replaceAll(sensitive, replacement);
+  }
+
+  return sanitized.trim();
 }
 
 /**

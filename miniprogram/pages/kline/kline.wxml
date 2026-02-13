@@ -555,4 +555,7 @@
       </scroll-view>
     </view>
   </view>
+
+  <!-- 积分不足弹窗 -->
+  <credits-modal show="{{showCreditsModal}}" price="{{creditsModalPrice}}" balance="{{creditsModalBalance}}" bind:cancel="onCreditsModalCancel" bind:recharge="onCreditsModalRecharge" />
 </view>

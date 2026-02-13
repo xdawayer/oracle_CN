@@ -132,6 +132,40 @@ export function getWuxingMapping(planet: string, sign: string): string {
   return `${planetWuxing.element}配${signWuxing.element}，互相调和`;
 }
 
+/** 五行中医体质映射 */
+export const WUXING_TCM_MAPPING: Record<WuxingElement, {
+  organ: string;
+  emotion: string;
+  season: string;
+  color: string;
+  healthTip: string;
+}> = {
+  '金': { organ: '肺/大肠', emotion: '悲忧', season: '秋', color: '白', healthTip: '注意呼吸系统，秋冬润肺防燥' },
+  '木': { organ: '肝/胆', emotion: '怒', season: '春', color: '青', healthTip: '注意疏导情绪，春季养肝舒气' },
+  '水': { organ: '肾/膀胱', emotion: '恐惊', season: '冬', color: '黑', healthTip: '注意休息恢复，冬季养肾藏精' },
+  '火': { organ: '心/小肠', emotion: '喜', season: '夏', color: '红', healthTip: '注意心火过旺，夏季清心安神' },
+  '土': { organ: '脾/胃', emotion: '思', season: '长夏', color: '黄', healthTip: '注意消化系统，饮食规律健脾' },
+};
+
+/**
+ * 生成一句话健康提示（基于五行强弱）
+ */
+export function getWuxingHealthInsight(dominant: WuxingElement, weak: WuxingElement): string {
+  const d = WUXING_TCM_MAPPING[dominant];
+  const w = WUXING_TCM_MAPPING[weak];
+  return `${dominant}旺（${d.organ}偏亢，${d.emotion}情绪易显），${weak}弱（${w.organ}需养护，${w.healthTip}）`;
+}
+
+/**
+ * 生成供 health 类 prompt 注入的五行摘要
+ */
+export function getWuxingPromptSnippet(planets: Record<string, string>): string {
+  const { dominant, weak } = calculateWuxingBalance(planets);
+  const d = WUXING_TCM_MAPPING[dominant];
+  const w = WUXING_TCM_MAPPING[weak];
+  return `五行体质参考：${dominant}旺${weak}弱。${d.organ}功能偏强，${w.organ}相对薄弱。${w.healthTip}。（仅供参考，不构成医学建议）`;
+}
+
 /** 获取紧凑的五行摘要（用于注入 prompt） */
 export function getCompactWuxingSummary(planets: Record<string, string>): string {
   const { summary } = calculateWuxingBalance(planets);

@@ -80,10 +80,12 @@ export {
   JUNGIAN_CONCEPTS,
   ATTACHMENT_STYLES,
   COGNITIVE_DISTORTIONS,
+  CHINESE_PHILOSOPHY_PARALLELS,
   PSYCHOLOGY_MAPPING,
   getCognitiveDistortion,
   getAttachmentStyle,
   getJungianConcept,
+  getPhilosophyParallel,
 } from './psychology';
 
 // === 导入具体内容 ===
@@ -123,16 +125,21 @@ export function getCulturalConfig(): CulturalConfig {
 export {
   PLANET_WUXING,
   SIGN_WUXING,
+  WUXING_TCM_MAPPING,
   calculateWuxingBalance,
   getWuxingMapping,
   getCompactWuxingSummary,
+  getWuxingHealthInsight,
+  getWuxingPromptSnippet,
   type WuxingElement,
 } from './wuxing';
 
 // === 节气语境 ===
 export {
   JIEQI_DATA,
+  TRADITIONAL_FESTIVALS,
   getSeasonalContext,
+  getFestivalContext,
   getSeasonalMood,
 } from './seasonal';
 

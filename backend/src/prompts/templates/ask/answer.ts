@@ -6,6 +6,7 @@
 
 import type { PromptTemplate, PromptContext } from '../../core/types';
 import { registry } from '../../core/registry';
+import { formatChartPositions, formatChartSummary, formatTransitSummary, formatTransits } from './utils';
 
 /** 获取分类聚焦指南 */
 function getCategoryFocus(category?: string): string {
@@ -15,103 +16,20 @@ function getCategoryFocus(category?: string): string {
     case 'love':
       return '感情与关系：重点关注金星（爱的方式）、7宫（伴侣关系）、5宫（恋爱）、月亮（情感需求）相关行星和相位。从依恋模式、择偶倾向、关系课题等角度分析。';
     case 'growth':
-      return '成长与自我：重点关注太阳（核心自我）、上升（人格面具）、土星（成长课题）、冥王星（深层转化）。从人生主题、内在成长、潜能释放等角度分析。可融入传统文化智慧（如"知行合一""阴阳平衡"）作为思考框架。';
+      return '成长与自我：重点关注太阳（核心自我）、上升（人格面具）、土星（成长课题）、冥王星（深层转化）。从人生主题、内在成长、潜能释放等角度分析。可融入中国哲学框架作为补充视角：知行合一（王阳明·认知与行动统一）、阴阳平衡（道家·接纳对立面）、否极泰来（易经·低谷是转机）、道法自然（老子·顺势而为）。';
     case 'social':
       return '社交与人际：重点关注水星（沟通方式）、11宫（社交圈）、3宫（日常交流）、7宫（一对一关系）。从社交风格、人际课题、贵人模式等角度分析。';
     case 'health':
-      return '健康与平衡：重点关注6宫（健康习惯）、1宫（身体活力）、月亮（情绪健康）、火星（精力分配）。从身心能量、生活节奏、情绪管理等角度分析。可结合当前节气给出养生建议（如"春分后适合舒展肝气""冬至前后注意保暖养肾"）。';
+      return '健康与平衡：重点关注6宫（健康习惯）、1宫（身体活力）、月亮（情绪健康）、火星（精力分配）。从身心能量、生活节奏、情绪管理等角度分析。可结合五行体质视角（如金旺注意呼吸系统、水弱注意肾脏保养）和当前节气给出中医养生提示（如"春分后适合舒展肝气""冬至前后注意保暖养肾"）。注意：必须注明"仅供参考，不构成医学建议"。';
     default:
       return '综合分析：根据问题内容，选择最相关的行星和宫位进行分析。';
   }
 }
 
-/** 将 NatalChart positions 转为紧凑文本 */
-function formatChartPositions(chart: any): string {
-  if (!chart?.positions?.length) return '无星盘数据';
-  const lines: string[] = [];
-  for (const p of chart.positions) {
-    const name = p.name || p.planet || '';
-    const sign = p.sign || '';
-    const house = p.house ?? '';
-    const deg = typeof p.degree === 'number' ? `${p.degree.toFixed(1)}°` : '';
-    lines.push(`${name} ${sign} ${house ? house + '宫' : ''} ${deg}`.trim());
-  }
-  if (chart.aspects?.length) {
-    const topAspects = chart.aspects.slice(0, 8);
-    for (const a of topAspects) {
-      lines.push(`${a.planet1 || a.body1 || ''} ${a.aspect || a.type || ''} ${a.planet2 || a.body2 || ''} (${typeof a.orb === 'number' ? a.orb.toFixed(1) : a.orb}°)`);
-    }
-  }
-  return lines.join('\n');
-}
-
-/** 将紧凑星盘摘要转为文本 */
-function formatChartSummary(summary: any): string {
-  if (!summary) return '';
-  const lines: string[] = [];
-  const big3 = summary.big3 || {};
-  const sun = big3.sun;
-  const moon = big3.moon;
-  const rising = big3.rising;
-  if (sun) lines.push(`太阳 ${sun.sign || ''} ${sun.house ? sun.house + '宫' : ''}`.trim());
-  if (moon) lines.push(`月亮 ${moon.sign || ''} ${moon.house ? moon.house + '宫' : ''}`.trim());
-  if (rising) lines.push(`上升 ${rising.sign || ''} ${rising.house ? rising.house + '宫' : ''}`.trim());
-  if (summary.personal_planets?.length) {
-    for (const p of summary.personal_planets) {
-      lines.push(`${p.name || ''} ${p.sign || ''} ${p.house ? p.house + '宫' : ''}`.trim());
-    }
-  }
-  if (summary.top_aspects?.length) {
-    const top = summary.top_aspects.slice(0, 8);
-    for (const a of top) {
-      lines.push(`${a.planet1 || ''} ${a.type || a.aspect || ''} ${a.planet2 || ''} (${typeof a.orb === 'number' ? a.orb.toFixed(1) : a.orb}°)`);
-    }
-  }
-  return lines.join('\n');
-}
-
-/** 将行运摘要转为紧凑文本 */
-function formatTransitSummary(summary: any): string {
-  if (!summary) return '';
-  const lines: string[] = [];
-  if (summary.key_transits?.length) {
-    for (const p of summary.key_transits) {
-      lines.push(`行运${p.name || ''} ${p.sign || ''} ${p.house ? p.house + '宫' : ''}`.trim());
-    }
-  }
-  if (summary.top_aspects?.length) {
-    for (const a of summary.top_aspects.slice(0, 6)) {
-      lines.push(`行运${a.planet1 || ''} ${a.type || a.aspect || ''} 本命${a.planet2 || ''}`);
-    }
-  }
-  if (summary.moon_phase) {
-    lines.push(`月相：${summary.moon_phase}`);
-  }
-  return lines.join('\n');
-}
-
-/** 将行运数据转为紧凑文本 */
-function formatTransits(transits: any): string {
-  if (!transits) return '';
-  if (transits.positions?.length) {
-    const lines: string[] = [];
-    for (const p of transits.positions) {
-      lines.push(`行运${p.name || ''} ${p.sign || ''} ${p.house ? p.house + '宫' : ''}`);
-    }
-    if (transits.aspects?.length) {
-      for (const a of transits.aspects.slice(0, 6)) {
-        lines.push(`行运${a.transit || a.planet1 || ''} ${a.aspect || a.type || ''} 本命${a.natal || a.planet2 || ''}`);
-      }
-    }
-    return lines.join('\n');
-  }
-  return JSON.stringify(transits).slice(0, 500);
-}
-
 export const askAnswerPrompt: PromptTemplate = {
   meta: {
     id: 'ask-answer',
-    version: '10.1',
+    version: '10.2',
     module: 'ask',
     priority: 'P0',
     description: 'AI问答全屏报告',
@@ -182,7 +100,7 @@ ${categoryFocus}
 3. action_plan 的 tips 数组包含 3-5 条建议，每条必须具体可执行
 4. 用"倾向于""往往""可能"替代"一定""肯定""必然"
 5. 先共情再分析，内容温暖真诚不说教
-6. 融合中国文化元素：可引用节气时令、五行对应、传统智慧（如"水逆期间类似古人说的文曲星不利，适合回顾而非开始"），用作补充视角而非主导
+6. 融合中国文化元素（占比不超20%）：可引用节气时令、五行体质、中国哲学（知行合一/阴阳互根/道法自然/否极泰来），用作补充视角而非主导。传统智慧要自然融入，避免生硬引用
 7. 语气像一个懂很多的朋友在跟你聊天，不是老师在上课，可以用"你这个情况其实挺有意思""说实话""坦白讲"这类朋友间的口吻
 8. 禁止：预测具体事件、医学/法律/投资建议、宿命论表述
 9. 每张卡片的 astroBasis 必须填写对应的星象依据

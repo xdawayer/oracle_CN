@@ -265,6 +265,8 @@
 /* Results */
 .result-container {
   padding-top: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Tabs Container */
@@ -328,6 +330,7 @@
 
 .result-scroll {
   flex: 1;
+  height: 0;
   padding: 20rpx;
   width: 100%;
   box-sizing: border-box;
@@ -1207,7 +1210,7 @@
 .deep-overlay-header {
   display: flex;
   align-items: center;
-  padding: calc(env(safe-area-inset-top) + 16rpx) 20rpx 16rpx;
+  padding: 16rpx 20rpx;
   background: var(--paper-100);
   border-bottom: 1rpx solid var(--border-color);
 }
@@ -1246,6 +1249,7 @@
 
 .deep-overlay-scroll {
   flex: 1;
+  height: 0;
   padding: var(--spacing-md) 20rpx;
   padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
 }

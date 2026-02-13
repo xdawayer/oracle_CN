@@ -20,12 +20,33 @@
         <view class="calendar-grid">
           <block wx:for="{{calendarDays}}" wx:key="id">
             <view class="day-cell {{item.empty ? 'empty' : ''}}">
-              <view wx:if="{{!item.empty}}" class="day-content {{item.isCurrent ? 'current' : ''}}" style="opacity: {{item.opacity}}">
-                <view wx:if="{{item.moodId}}" class="mood-dot mood-group-{{item.moodGroup || 'calm'}}"></view>
+              <view
+                wx:if="{{!item.empty}}"
+                class="day-content {{item.isCurrent ? 'current' : ''}} {{item.moodGroup ? 'has-mood' : ''}} {{item.opacity < 1 ? 'future' : 'tappable'}}"
+                style="opacity: {{item.opacity}}"
+                bindtap="onDayTap"
+                data-day="{{item.day}}"
+                data-mood="{{item.moodGroup}}"
+                data-datekey="{{item.dateKey}}"
+              >
+                <image wx:if="{{item.moodGroup}}" class="mood-face-icon mood-face-cal" src="/images/icons/mood-{{item.moodGroup}}.svg" mode="aspectFit" />
                 <text wx:else class="day-number">{{item.day}}</text>
               </view>
             </view>
           </block>
+        </view>
+      </view>
+
+      <!-- 月度心情统计 -->
+      <view class="mood-stats-bar ink-border">
+        <block wx:for="{{monthlyMoodCounts}}" wx:key="id">
+          <view class="mood-stat-item">
+            <image class="mood-face-icon mood-face-stat" src="{{item.icon}}" mode="aspectFit" />
+            <text class="mood-stat-count">×{{item.count}}</text>
+          </view>
+        </block>
+        <view class="stats-more" bindtap="onMonthlyAnalysis">
+          <text class="more-dots">···</text>
         </view>
       </view>
 
@@ -36,7 +57,7 @@
           <!-- 记录卡片 -->
           <view wx:if="{{item.type === 'record'}}" class="history-card">
             <view class="history-card-main">
-              <text class="history-card-emoji">{{item.data.moodGroupEmoji}}</text>
+              <image class="mood-face-icon mood-face-md" src="{{item.data.moodGroupIcon}}" mode="aspectFit" />
               <view class="history-card-info">
                 <text class="history-card-date">{{item.data.weekDay}}, {{item.data.dateStr}}</text>
                 <view class="history-card-mood-row">
@@ -44,10 +65,16 @@
                   <text class="history-card-time">{{item.data.timeStr}}</text>
                 </view>
               </view>
+              <view class="history-card-more" bindtap="onViewReport" data-datekey="{{item.data.dateKey}}">
+                <text class="more-dots">···</text>
+              </view>
             </view>
             <view wx:if="{{item.data.detailTags.length > 0}}" class="history-card-tags">
               <block wx:for="{{item.data.detailTags}}" wx:for-item="tag" wx:key="label">
-                <text class="history-tag">{{tag.emoji}} {{tag.label}}</text>
+                <view class="history-tag">
+                  <image class="tag-icon-sm" src="{{tag.icon}}" mode="aspectFit" />
+                  <text>{{tag.label}}</text>
+                </view>
                 <text wx:if="{{index < item.data.detailTags.length - 1}}" class="history-tag-dot">·</text>
               </block>
             </view>
@@ -74,29 +101,28 @@
   <scroll-view wx:elif="{{viewMode === 'record'}}" scroll-y class="content-scroll" show-scrollbar="{{false}}">
     <view class="record-content">
 
-      <!-- ① 心情选择（单选） -->
+      <!-- ① 心情选择（单选） — 图标 + 标签 -->
       <view class="section-block fade-in">
         <text class="section-title font-ancient">今天心情怎么样？</text>
         <view class="mood-group-grid">
           <block wx:for="{{moodGroups}}" wx:key="id">
             <view
-              class="mood-group-item {{record.moodGroup === item.id ? 'selected' : ''}}"
+              class="mood-group-item {{record.moodGroup === item.id ? 'selected mood-group-' + item.id : ''}}"
               bindtap="onMoodGroupTap"
               data-id="{{item.id}}"
             >
-              <text class="mood-group-emoji">{{item.emoji}}</text>
+              <image class="mood-face-icon mood-face-lg" src="{{item.icon}}" mode="aspectFit" />
               <text class="mood-group-label">{{item.label}}</text>
             </view>
           </block>
         </view>
       </view>
 
-      <!-- ② 情绪细分（多选） -->
+      <!-- ② 情绪细分（多选）— 仅显示当前心情组 -->
       <view wx:if="{{record.moodGroup}}" class="section-block fade-in">
         <text class="section-title font-ancient">具体是哪些感觉？</text>
         <text class="section-hint">可以选多个</text>
 
-        <!-- 当前选中组的情绪（自动展开） -->
         <view class="mood-detail-grid">
           <block wx:for="{{currentMoodItems}}" wx:key="id">
             <view
@@ -104,39 +130,12 @@
               bindtap="onMoodToggle"
               data-id="{{item.id}}"
             >
-              <text class="mood-detail-emoji">{{item.emoji}}</text>
+              <image class="mood-face-icon mood-face-detail" src="{{item.icon}}" mode="aspectFit" />
               <text class="mood-detail-label">{{item.label}}</text>
               <text class="mood-detail-desc">{{item.desc}}</text>
             </view>
           </block>
         </view>
-
-        <!-- 其他组折叠展开 -->
-        <block wx:for="{{moodGroups}}" wx:key="id">
-          <block wx:if="{{item.id !== record.moodGroup}}">
-            <view
-              class="other-group-header"
-              bindtap="toggleMoodGroup"
-              data-group="{{item.id}}"
-            >
-              <text class="other-group-label">{{item.emoji}} {{item.label}}</text>
-              <text class="group-arrow {{expandedGroup === item.id ? 'open' : ''}}">›</text>
-            </view>
-            <view wx:if="{{expandedGroup === item.id}}" class="mood-detail-grid fade-in">
-              <block wx:for="{{expandedMoodItems}}" wx:for-item="mood" wx:key="id">
-                <view
-                  class="mood-detail-item {{selectedMoodsMap[mood.id] ? 'selected' : ''}}"
-                  bindtap="onMoodToggle"
-                  data-id="{{mood.id}}"
-                >
-                  <text class="mood-detail-emoji">{{mood.emoji}}</text>
-                  <text class="mood-detail-label">{{mood.label}}</text>
-                  <text class="mood-detail-desc">{{mood.desc}}</text>
-                </view>
-              </block>
-            </view>
-          </block>
-        </block>
       </view>
 
       <!-- ③ 场景标签（单选） -->
@@ -149,7 +148,7 @@
               bindtap="onSceneTap"
               data-id="{{item.id}}"
             >
-              <text class="tag-emoji">{{item.emoji}}</text>
+              <image class="tag-icon" src="{{item.icon}}" mode="aspectFit" />
               <text class="tag-label">{{item.label}}</text>
             </view>
           </block>
@@ -166,7 +165,7 @@
               bindtap="onSleepTap"
               data-id="{{item.id}}"
             >
-              <text class="sleep-emoji">{{item.emoji}}</text>
+              <image class="tag-icon" src="{{item.icon}}" mode="aspectFit" />
               <text class="sleep-label">{{item.label}}</text>
             </view>
           </block>
@@ -184,7 +183,7 @@
               bindtap="onBodyToggle"
               data-id="{{item.id}}"
             >
-              <text class="tag-emoji">{{item.emoji}}</text>
+              <image class="tag-icon" src="{{item.icon}}" mode="aspectFit" />
               <text class="tag-label">{{item.label}}</text>
             </view>
           </block>
@@ -223,26 +222,32 @@
       <block wx:else>
         <!-- 报告头部 -->
         <view class="result-header fade-in">
-          <text class="result-header-emoji">{{recordSummary.moodEmoji}}</text>
-          <text class="result-header-title font-ancient">心情报告</text>
+          <image wx:if="{{recordSummary.moodIcon}}" class="mood-face-icon mood-face-xl" src="{{recordSummary.moodIcon}}" mode="aspectFit" />
+          <text class="result-header-title font-ancient">{{recordSummary.headerTitle || '心情报告'}}</text>
           <text class="result-header-date">{{recordSummary.date}}</text>
         </view>
 
         <!-- 记录摘要卡片 -->
-        <view wx:if="{{recordSummary}}" class="record-summary ink-border fade-in">
+        <view wx:if="{{recordSummary && !recordSummary.isMonthly}}" class="record-summary ink-border fade-in">
           <text class="summary-title font-ancient">今日记录</text>
           <view class="summary-row">
-            <text>{{recordSummary.moodEmoji}} {{recordSummary.moodLabels}}</text>
+            <image wx:if="{{recordSummary.moodIcon}}" class="tag-icon-sm" src="{{recordSummary.moodIcon}}" mode="aspectFit" />
+            <text>{{recordSummary.moodLabels}}</text>
           </view>
           <view wx:if="{{recordSummary.sceneLabel}}" class="summary-row">
-            <text>{{recordSummary.sceneEmoji}} {{recordSummary.sceneLabel}}</text>
+            <image wx:if="{{recordSummary.sceneIcon}}" class="tag-icon-sm" src="{{recordSummary.sceneIcon}}" mode="aspectFit" />
+            <text>{{recordSummary.sceneLabel}}</text>
           </view>
           <view wx:if="{{recordSummary.sleepLabel}}" class="summary-row">
-            <text>{{recordSummary.sleepEmoji}} {{recordSummary.sleepLabel}}</text>
+            <image wx:if="{{recordSummary.sleepIcon}}" class="tag-icon-sm" src="{{recordSummary.sleepIcon}}" mode="aspectFit" />
+            <text>{{recordSummary.sleepLabel}}</text>
           </view>
           <view wx:if="{{recordSummary.bodyLabels.length > 0}}" class="summary-row">
             <block wx:for="{{recordSummary.bodyLabels}}" wx:key="label">
-              <text class="summary-body-tag">{{item.emoji}} {{item.label}}</text>
+              <view class="summary-body-tag">
+                <image wx:if="{{item.icon}}" class="tag-icon-sm" src="{{item.icon}}" mode="aspectFit" />
+                <text>{{item.label}}</text>
+              </view>
             </block>
           </view>
           <view wx:if="{{recordSummary.note}}" class="summary-row summary-note">
@@ -256,7 +261,7 @@
           <!-- mood_echo: 共情回应 -->
           <view wx:if="{{item.type === 'mood_echo'}}" class="report-section fade-in">
             <text class="report-section-title font-ancient">{{item.title}}</text>
-            <view class="report-card ink-border">
+            <view class="report-card ink-border card-{{item.color || 'neutral'}}">
               <text class="card-content">{{item.content}}</text>
             </view>
           </view>

@@ -1,15 +1,15 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
+const { RECHARGE_TIERS } = require('../../utils/credits');
 
-const PACKAGES = [
-  { amount: 1, price: 100, priceText: '1.00' },
-  { amount: 10, price: 1000, priceText: '10.00' },
-  { amount: 50, price: 5000, priceText: '50.00', badge: '热门' },
-  { amount: 100, price: 10000, priceText: '100.00' },
-  { amount: 200, price: 20000, priceText: '200.00' },
-  { amount: 500, price: 50000, priceText: '500.00', badge: '推荐' },
-];
+const BADGES = { 50: '热门', 500: '推荐' };
+const PACKAGES = RECHARGE_TIERS.map((amount) => ({
+  amount,
+  price: amount * 10,               // 1 RMB = 10 积分，单位：分
+  priceText: (amount / 10).toFixed(2),
+  ...(BADGES[amount] ? { badge: BADGES[amount] } : {}),
+}));
 
 Page({
   data: {
@@ -21,7 +21,14 @@ Page({
     paying: false,
   },
 
-  onLoad() {
+  onLoad(options) {
+    if (options.defaultIndex != null) {
+      const idx = parseInt(options.defaultIndex, 10);
+      const pkg = PACKAGES[idx];
+      if (pkg) {
+        this.setData({ selectedIndex: idx, selectedPriceText: pkg.priceText });
+      }
+    }
     this.loadBalance();
   },
 

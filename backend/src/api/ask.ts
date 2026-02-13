@@ -11,6 +11,7 @@ import { optionalAuthMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { PRICING } from '../config/auth.js';
 import { calculateAge, getAgeGroup } from '../utils/age.js';
+import { sanitizeUserInput } from '../services/content-security.js';
 
 export const askRouter = Router();
 
@@ -25,17 +26,23 @@ const getChartType = (category?: string): AskChartType => {
 askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
   try {
     const requestStart = performance.now();
-    const { birth, question, context, category, lang: langInput } = req.body as AskRequest;
+    const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = req.body as AskRequest & { mode?: string };
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
+    const question = sanitizeUserInput(rawQuestion || '');
+    const context = rawContext ? sanitizeUserInput(rawContext) : rawContext;
     const chartType = getChartType(category);
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+    const promptId = mode === 'oracle' ? 'oracle-answer' : 'ask-answer';
 
-    const access = await entitlementServiceV2.checkAccess(
-      req.userId || null,
-      'ask',
-      undefined,
-      deviceFingerprint
-    );
+    // Parallelize access check with chart calculations
+    const coreStart = performance.now();
+    const [access, chart, transits] = await Promise.all([
+      entitlementServiceV2.checkAccess(req.userId || null, 'ask', undefined, deviceFingerprint),
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, new Date()),
+    ]);
+    const coreMs = performance.now() - coreStart;
+
     if (!access.canAccess) {
       return res.status(403).json({
         error: 'Feature not available',
@@ -44,14 +51,6 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
-    // Calculate natal chart and transits in parallel
-    const coreStart = performance.now();
-    const [chart, transits] = await Promise.all([
-      ephemerisService.calculateNatalChart(birth),
-      ephemerisService.calculateTransits(birth, new Date()),
-    ]);
-    const coreMs = performance.now() - coreStart;
-
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
     const userAge = calculateAge(birth.date);
@@ -59,7 +58,7 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
 
     const aiStart = performance.now();
     const { content, meta } = await generateAIContentWithMeta({
-      promptId: 'ask-answer',
+      promptId,
       context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category, userAge, userAgeGroup, userBirthDate: birth.date },
       lang,
     });
@@ -101,23 +100,28 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
 askRouter.post('/stream', optionalAuthMiddleware, async (req, res) => {
   try {
     const requestStart = performance.now();
-    const { birth, question, context, category, lang: langInput } = req.body as AskRequest;
+    const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = req.body as AskRequest & { mode?: string };
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
+    const question = sanitizeUserInput(rawQuestion || '');
+    const context = rawContext ? sanitizeUserInput(rawContext) : rawContext;
     const chartType = getChartType(category);
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
-    const promptId = 'ask-answer';
+    const promptId = mode === 'oracle' ? 'oracle-answer' : 'ask-answer';
 
     // 若 prompt 不支持流式，降级为非流式
     if (!isStreamablePrompt(promptId)) {
       return res.status(400).json({ error: 'Streaming not supported for this prompt' });
     }
 
-    const access = await entitlementServiceV2.checkAccess(
-      req.userId || null,
-      'ask',
-      undefined,
-      deviceFingerprint
-    );
+    // Parallelize access check with chart calculations
+    const coreStart = performance.now();
+    const [access, chart, transits] = await Promise.all([
+      entitlementServiceV2.checkAccess(req.userId || null, 'ask', undefined, deviceFingerprint),
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, new Date()),
+    ]);
+    const coreMs = performance.now() - coreStart;
+
     if (!access.canAccess) {
       return res.status(403).json({
         error: 'Feature not available',
@@ -125,14 +129,6 @@ askRouter.post('/stream', optionalAuthMiddleware, async (req, res) => {
         price: access.price,
       });
     }
-
-    // Calculate natal chart and transits in parallel
-    const coreStart = performance.now();
-    const [chart, transits] = await Promise.all([
-      ephemerisService.calculateNatalChart(birth),
-      ephemerisService.calculateTransits(birth, new Date()),
-    ]);
-    const coreMs = performance.now() - coreStart;
 
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);

@@ -3,11 +3,14 @@
  */
 
 export { askAnswerPrompt } from './answer';
+export { oracleAnswerPrompt } from './oracle-answer';
 
 import { askAnswerPrompt } from './answer';
+import { oracleAnswerPrompt } from './oracle-answer';
 import type { PromptTemplate } from '../../core/types';
 
 /** 问答模块所有 Prompt */
 export const askPrompts: PromptTemplate[] = [
   askAnswerPrompt,
+  oracleAnswerPrompt,
 ];

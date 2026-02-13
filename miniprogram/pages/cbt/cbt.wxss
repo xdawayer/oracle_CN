@@ -18,6 +18,23 @@
   height: 200rpx;
 }
 
+/* ===== Mood Face Icons ===== */
+.mood-face-icon {
+  flex-shrink: 0;
+}
+
+.mood-face-xl { width: 80rpx; height: 80rpx; }
+.mood-face-lg { width: 64rpx; height: 64rpx; }
+.mood-face-md { width: 56rpx; height: 56rpx; }
+.mood-face-detail { width: 48rpx; height: 48rpx; }
+.mood-face-stat { width: 44rpx; height: 44rpx; }
+.mood-face-cal { width: 36rpx; height: 36rpx; }
+.mood-face-xs { width: 28rpx; height: 28rpx; }
+
+/* 通用标签图标 */
+.tag-icon { width: 36rpx; height: 36rpx; flex-shrink: 0; }
+.tag-icon-sm { width: 28rpx; height: 28rpx; flex-shrink: 0; }
+
 /* ===== Dashboard ===== */
 .dashboard-content {
   padding: var(--spacing-xl) var(--spacing-lg) 0;
@@ -115,23 +132,66 @@
   color: var(--paper-50);
 }
 
+.day-content.has-mood {
+  background-color: transparent;
+}
+
+.day-content.current.has-mood {
+  background-color: transparent;
+  box-shadow: 0 0 0 3rpx var(--ink-deep);
+}
+
+.day-content.tappable {
+  cursor: pointer;
+}
+
+.day-content.future {
+  pointer-events: none;
+}
+
 .day-number {
   font-size: 22rpx;
   color: var(--ink-medium);
 }
 
-.mood-dot {
-  width: 16rpx;
-  height: 16rpx;
-  background-color: var(--ink-deep);
-  border-radius: 50%;
+/* ===== Monthly Mood Stats Bar ===== */
+.mood-stats-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--paper-50);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-xl);
 }
 
-.mood-dot.mood-group-happy { background-color: var(--success); }
-.mood-dot.mood-group-calm { background-color: var(--info); }
-.mood-dot.mood-group-sad { background-color: var(--danger); }
-.mood-dot.mood-group-angry { background-color: var(--warning); }
-.mood-dot.mood-group-confused { background-color: var(--ink-medium); }
+.mood-stat-item {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  margin-top: 12rpx;
+}
+
+.mood-stat-count {
+  font-size: 22rpx;
+  color: var(--ink-medium);
+  letter-spacing: 1rpx;
+}
+
+.stats-more {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 20rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-more:active {
+  background-color: var(--paper-200);
+}
 
 /* ===== History Cards ===== */
 .history-section {
@@ -149,12 +209,6 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-}
-
-.history-card-emoji {
-  font-size: 72rpx;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 .history-card-info {
@@ -183,15 +237,37 @@
 }
 
 /* 心情组颜色 */
-.mood-color-happy { color: #F5A623; }
-.mood-color-calm { color: #7EB8DA; }
-.mood-color-sad { color: #E57373; }
-.mood-color-angry { color: #FF8A65; }
-.mood-color-confused { color: #A0A0A0; }
+.mood-color-happy { color: #FFB347; }
+.mood-color-calm { color: #81C784; }
+.mood-color-sad { color: #9575CD; }
+.mood-color-angry { color: #EF5350; }
+.mood-color-confused { color: #90A4AE; }
 
 .history-card-time {
   font-size: 22rpx;
   color: var(--ink-light);
+}
+
+/* "..." 查看报告按钮 */
+.history-card-more {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.history-card-more:active {
+  background-color: var(--paper-200);
+}
+
+.more-dots {
+  font-size: 32rpx;
+  color: var(--ink-light);
+  letter-spacing: -16rpx;
+  line-height: 1;
 }
 
 .history-card-tags {
@@ -204,6 +280,9 @@
 }
 
 .history-tag {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
   font-size: 24rpx;
   color: var(--ink-medium);
 }
@@ -273,7 +352,7 @@
   letter-spacing: 2rpx;
 }
 
-/* ===== ① 心情组 Emoji 网格 ===== */
+/* ===== ① 心情组图标网格 ===== */
 .mood-group-grid {
   display: flex;
   justify-content: space-between;
@@ -286,21 +365,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  justify-content: center;
+  gap: 6rpx;
   padding: var(--spacing-md) 0;
   background-color: var(--paper-50);
   border: 2rpx solid transparent;
+  border-radius: 16rpx;
   transition: all 0.2s ease;
 }
 
 .mood-group-item.selected {
-  background-color: var(--paper-200);
-  border-color: var(--ink-deep);
-}
-
-.mood-group-emoji {
-  font-size: 48rpx;
-  line-height: 1;
+  border-width: 3rpx;
 }
 
 .mood-group-label {
@@ -311,6 +386,29 @@
 
 .mood-group-item.selected .mood-group-label {
   color: var(--ink-deep);
+  font-weight: 600;
+}
+
+/* 各心情选中态彩色边框 + 浅色背景 */
+.mood-group-item.selected.mood-group-happy {
+  border-color: #FFB347;
+  background-color: rgba(255, 179, 71, 0.1);
+}
+.mood-group-item.selected.mood-group-calm {
+  border-color: #81C784;
+  background-color: rgba(129, 199, 132, 0.1);
+}
+.mood-group-item.selected.mood-group-sad {
+  border-color: #9575CD;
+  background-color: rgba(149, 117, 205, 0.1);
+}
+.mood-group-item.selected.mood-group-angry {
+  border-color: #EF5350;
+  background-color: rgba(239, 83, 80, 0.1);
+}
+.mood-group-item.selected.mood-group-confused {
+  border-color: #90A4AE;
+  background-color: rgba(144, 164, 174, 0.1);
 }
 
 /* ===== ② 情绪细分网格 ===== */
@@ -337,11 +435,6 @@
   border-color: var(--ink-deep);
 }
 
-.mood-detail-emoji {
-  font-size: 36rpx;
-  line-height: 1;
-}
-
 .mood-detail-label {
   font-size: 26rpx;
   color: var(--ink-deep);
@@ -351,32 +444,6 @@
 .mood-detail-desc {
   font-size: 20rpx;
   color: var(--ink-light);
-}
-
-/* 其他组折叠头 */
-.other-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-top: var(--spacing-sm);
-  background-color: var(--paper-50);
-}
-
-.other-group-label {
-  font-size: 24rpx;
-  color: var(--ink-medium);
-  letter-spacing: 2rpx;
-}
-
-.group-arrow {
-  font-size: 32rpx;
-  color: var(--ink-light);
-  transition: transform 0.2s ease;
-}
-
-.group-arrow.open {
-  transform: rotate(90deg);
 }
 
 /* ===== ③ 场景 & ⑤ 身体标签网格 ===== */
@@ -401,11 +468,6 @@
 .tag-item.selected {
   background-color: var(--paper-200);
   border-color: var(--ink-deep);
-}
-
-.tag-emoji {
-  font-size: 32rpx;
-  line-height: 1;
 }
 
 .tag-label {
@@ -441,11 +503,6 @@
 .sleep-item.selected {
   background-color: var(--paper-200);
   border-color: var(--ink-deep);
-}
-
-.sleep-emoji {
-  font-size: 36rpx;
-  line-height: 1;
 }
 
 .sleep-label {
@@ -494,12 +551,12 @@
 .result-header {
   text-align: center;
   padding: var(--spacing-xl) 0 var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.result-header-emoji {
-  display: block;
-  font-size: 72rpx;
-  line-height: 1;
+.result-header .mood-face-xl {
   margin-bottom: var(--spacing-sm);
 }
 
@@ -536,13 +593,18 @@
 .summary-row {
   font-size: 26rpx;
   color: var(--ink-medium);
-  line-height: 1.8;
+  line-height: 1.6;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  align-items: center;
+  gap: 6rpx;
+  margin-bottom: 6rpx;
 }
 
 .summary-body-tag {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
   font-size: 24rpx;
   color: var(--ink-medium);
 }
@@ -567,13 +629,20 @@
   margin-bottom: var(--spacing-md);
 }
 
-/* 内容卡片（左侧红色边线） */
+/* 内容卡片（左侧边线） */
 .report-card {
   background-color: var(--paper-50);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
   border-left: 6rpx solid var(--accent, var(--ink-deep));
 }
+
+/* 月度报告卡片颜色变体 */
+.card-warm { border-left-color: #c4a07c; }
+.card-neutral { border-left-color: var(--ink-light); }
+.card-alert { border-left-color: #9c7c7c; }
+.card-astro { border-left-color: #7c9cb0; }
+.card-growth { border-left-color: #81C784; }
 
 .card-title {
   display: block;

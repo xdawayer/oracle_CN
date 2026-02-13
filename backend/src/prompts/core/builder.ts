@@ -13,6 +13,8 @@ import { hashInput, buildCacheKey } from './cache';
 import type { PromptContext, BuildResult, PromptModule } from './types';
 import { getToneGuide } from '../cultural/tone';
 import { getCompactExpressionGuide } from '../cultural/expressions';
+import { getSeasonalContext, getFestivalContext } from '../cultural/seasonal';
+import { getComplianceGuard } from '../instructions/safety';
 import { getAgeContentGuide, getSynastryAgeGuide } from '../../utils/age';
 
 /**
@@ -42,8 +44,12 @@ export const BASE_SYSTEM = `你是星智，一个面向中国年轻人的心理�
 - 禁止预测具体事件（升职/分手/发财的时间或结果）
 - 用"倾向于/很可能/往往"替代"一定/肯定/必然"
 - 场景举例要具体可代入，用中国年轻人熟悉的场景
+- 遇到相关话题可自然融入中国传统智慧（阴阳、知行合一、道法自然），作为补充视角而非主导
+- 健康/财务话题必须声明"仅供参考，不构成医学/投资建议"
 
-输出：严格 JSON 格式，简体中文，无 markdown 标记`;
+输出：严格 JSON 格式，简体中文，无 markdown 标记
+
+${getComplianceGuard()}`;
 
 // === Cultural Context 自动注入 ===
 
@@ -112,6 +118,13 @@ export function getCulturalContextFull(module: PromptModule): string {
   const extra = MODULE_EXTRA[module];
   const parts = [persona, TONE_GUIDE_FULL, EXPRESSION_GUIDE, SCENARIO_EXAMPLES];
   if (extra) parts.push(extra);
+
+  // 自动注入节气/节日上下文（非空时追加）
+  const seasonal = getSeasonalContext();
+  const festival = getFestivalContext();
+  if (seasonal) parts.push(seasonal);
+  if (festival) parts.push(festival);
+
   return parts.join('\n');
 }
 

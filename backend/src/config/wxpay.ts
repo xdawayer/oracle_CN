@@ -28,14 +28,14 @@ export const VIP_PLANS = {
   yearly: { price: 12800, originalPrice: 36000, days: 365, label: '年度会员' },
 } as const;
 
-// 积分充值档位（单位：分）
+// 积分充值档位（单位：分）— 1 RMB = 10 积分
 export const POINTS_PACKAGES = [
-  { amount: 1, price: 100 },
-  { amount: 10, price: 1000 },
-  { amount: 50, price: 5000 },
-  { amount: 100, price: 10000 },
-  { amount: 200, price: 20000 },
-  { amount: 500, price: 50000 },
+  { amount: 1, price: 10 },
+  { amount: 10, price: 100 },
+  { amount: 50, price: 500 },
+  { amount: 100, price: 1000 },
+  { amount: 200, price: 2000 },
+  { amount: 500, price: 5000 },
 ] as const;
 
 // 生成随机字符串

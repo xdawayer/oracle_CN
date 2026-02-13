@@ -3,6 +3,7 @@ const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
+const { creditsModalData, creditsModalMethods } = require('../../utils/credits');
 
 const GOALS = [
   { id: 'career', label: '事业发展与财富' },
@@ -101,7 +102,9 @@ Page({
 
     // 分析数据（用于报告内展示）
     reportChartData: null,
-    reportTransitData: null
+    reportTransitData: null,
+
+    ...creditsModalData,
   },
 
   onLoad(options) {
@@ -218,10 +221,10 @@ Page({
           },
         });
       } else {
-        wx.showToast({
-          title: `本周次数已用完，积分不足（需${askCost}积分）`,
-          icon: 'none',
-          duration: 2500,
+        this.setData({
+          showCreditsModal: true,
+          creditsModalPrice: askCost,
+          creditsModalBalance: credits,
         });
       }
       return;
@@ -427,5 +430,7 @@ Page({
       reportQuestion: '',
       reportCategory: ''
     });
-  }
+  },
+
+  ...creditsModalMethods,
 });

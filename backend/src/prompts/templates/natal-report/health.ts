@@ -13,6 +13,7 @@ import {
   extractPlanetAspects,
   extractHouseData,
 } from './system';
+import { getWuxingPromptSnippet } from '../../cultural/wuxing';
 
 export const natalReportHealthPrompt: PromptTemplate = {
   meta: {
@@ -36,6 +37,19 @@ export const natalReportHealthPrompt: PromptTemplate = {
       ? `\n## 前序模块摘要\n${previousSummary}\n\n在这个章节的开头，用1句话自然过渡到当前话题。\n`
       : '';
 
+    // 提取行星星座映射，生成五行摘要
+    const planets: Record<string, string> = {};
+    if (ctx.chart_summary) {
+      const big3 = (ctx.chart_summary as any).big3 || {};
+      if (big3.sun?.sign) planets.sun = big3.sun.sign;
+      if (big3.moon?.sign) planets.moon = big3.moon.sign;
+      const personalPlanets = (ctx.chart_summary as any).personal_planets || [];
+      for (const p of personalPlanets) {
+        if (p.name && p.sign) planets[p.name.toLowerCase()] = p.sign;
+      }
+    }
+    const wuxingSnippet = Object.keys(planets).length > 0 ? getWuxingPromptSnippet(planets) : '';
+
     return `## 完整星盘数据
 ${chartText}
 
@@ -43,7 +57,7 @@ ${chartText}
 - 上升星座：${rising}
 - ${house6}
 - ${marsData}
-
+${wuxingSnippet ? `\n## 五行体质参考\n${wuxingSnippet}` : ''}
 ## 火星相位
 ${marsAspects}
 ${transitionNote}

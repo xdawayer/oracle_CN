@@ -16,6 +16,7 @@ Page({
     resultReady: false,
     activeTab: 'overview',
     loading: false,
+    statusBarHeight: 20,
 
     openDropdown: null,
 
@@ -98,6 +99,8 @@ Page({
   selectedCurrentCity: null,
 
   onLoad() {
+    const sysInfo = wx.getSystemInfoSync();
+    this.setData({ statusBarHeight: sysInfo.statusBarHeight || 20 });
     this.loadProfiles();
   },
 

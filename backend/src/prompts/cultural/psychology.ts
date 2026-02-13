@@ -194,6 +194,60 @@ export const COGNITIVE_DISTORTIONS = {
   },
 };
 
+/** 中国哲学与西方心理学对照 */
+export const CHINESE_PHILOSOPHY_PARALLELS: Record<string, {
+  western: string;
+  chinese: string;
+  source: string;
+  explanation: string;
+}> = {
+  individuation: {
+    western: 'Individuation（个体化）',
+    chinese: '知行合一',
+    source: '王阳明',
+    explanation: '认识真正的自己并活出来——知道自己要什么，也有勇气去做',
+  },
+  shadow_integration: {
+    western: 'Shadow Integration（阴影整合）',
+    chinese: '阴阳互根',
+    source: '道家',
+    explanation: '光明与阴暗是一体两面，接纳自己的"暗面"才能完整',
+  },
+  balance: {
+    western: 'Balance（心理平衡）',
+    chinese: '中庸之道',
+    source: '儒家',
+    explanation: '不走极端，在各种力量之间找到动态平衡',
+  },
+  acceptance: {
+    western: 'Acceptance（接纳）',
+    chinese: '道法自然',
+    source: '老子',
+    explanation: '不和现实较劲，顺应自然规律，在接纳中找到力量',
+  },
+  resilience: {
+    western: 'Resilience（心理韧性）',
+    chinese: '否极泰来',
+    source: '易经',
+    explanation: '低谷是转折的前奏，坚持住就能迎来新的开始',
+  },
+  mindfulness: {
+    western: 'Mindfulness（正念）',
+    chinese: '活在当下',
+    source: '禅宗',
+    explanation: '不纠结过去，不焦虑未来，把注意力放在此刻',
+  },
+};
+
+/**
+ * 获取中国哲学对照
+ */
+export function getPhilosophyParallel(concept: string): string {
+  const p = CHINESE_PHILOSOPHY_PARALLELS[concept];
+  if (!p) return '';
+  return `${p.chinese}（${p.source}）：${p.explanation}`;
+}
+
 /** 心理学概念映射表 */
 export const PSYCHOLOGY_MAPPING = {
   jungian: JUNGIAN_CONCEPTS,

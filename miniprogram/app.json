@@ -79,7 +79,8 @@
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents",
   "usingComponents": {
-    "astro-chart": "/components/astro-chart/astro-chart"
+    "astro-chart": "/components/astro-chart/astro-chart",
+    "credits-modal": "/components/credits-modal/credits-modal"
   },
   "__private_config__": {
     "owner_desc": "星语 — 心理洞察与自我认知应用",

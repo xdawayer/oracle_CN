@@ -41,6 +41,51 @@ export const JIEQI_DATA: JieqiInfo[] = [
   { name: '大寒', month: 1, dayApprox: 20, implication: '天地收藏之际，适合内省复盘', advice: '回顾这一年，想清楚接下来要走的路' },
 ];
 
+/** 传统节日数据 */
+interface FestivalInfo {
+  name: string;
+  ranges: Array<{ year: number; month: number; day: number }>;
+  greeting: string;
+}
+
+/** 传统节日（含 2025-2027 年公历日期） */
+export const TRADITIONAL_FESTIVALS: FestivalInfo[] = [
+  { name: '春节', ranges: [{ year: 2025, month: 1, day: 29 }, { year: 2026, month: 2, day: 17 }, { year: 2027, month: 2, day: 6 }], greeting: '新年伊始，万象更新，适合设立新目标' },
+  { name: '元宵节', ranges: [{ year: 2025, month: 2, day: 12 }, { year: 2026, month: 3, day: 3 }, { year: 2027, month: 2, day: 20 }], greeting: '月圆人团圆，适合关注亲密关系' },
+  { name: '清明节', ranges: [{ year: 2025, month: 4, day: 4 }, { year: 2026, month: 4, day: 5 }, { year: 2027, month: 4, day: 5 }], greeting: '慎终追远，适合内省和整理情绪' },
+  { name: '端午节', ranges: [{ year: 2025, month: 5, day: 31 }, { year: 2026, month: 6, day: 19 }, { year: 2027, month: 6, day: 9 }], greeting: '仲夏时节，注意身心平衡' },
+  { name: '七夕', ranges: [{ year: 2025, month: 8, day: 29 }, { year: 2026, month: 8, day: 19 }, { year: 2027, month: 8, day: 8 }], greeting: '佳期如梦，适合关注感情和自我价值' },
+  { name: '中秋节', ranges: [{ year: 2025, month: 10, day: 6 }, { year: 2026, month: 9, day: 25 }, { year: 2027, month: 9, day: 15 }], greeting: '月满人圆，适合感恩和家庭联结' },
+  { name: '重阳节', ranges: [{ year: 2025, month: 10, day: 29 }, { year: 2026, month: 10, day: 18 }, { year: 2027, month: 10, day: 8 }], greeting: '登高望远，适合回顾和规划' },
+  { name: '冬至', ranges: [{ year: 2025, month: 12, day: 22 }, { year: 2026, month: 12, day: 22 }, { year: 2027, month: 12, day: 22 }], greeting: '阴极阳生的转折点，适合蓄力和内修' },
+  { name: '腊八节', ranges: [{ year: 2025, month: 1, day: 7 }, { year: 2026, month: 1, day: 27 }, { year: 2027, month: 1, day: 16 }], greeting: '年味渐浓，适合总结这一年的收获' },
+];
+
+/**
+ * 获取节日上下文
+ *
+ * @param date 日期
+ * @returns 节日语境描述，节日当天或前后 1 天返回，否则返回空字符串
+ */
+export function getFestivalContext(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  for (const festival of TRADITIONAL_FESTIVALS) {
+    for (const range of festival.ranges) {
+      if (range.year !== year || range.month !== month) continue;
+      const dist = Math.abs(day - range.day);
+      if (dist <= 1) {
+        const proximity = dist === 0 ? '今天是' : '临近';
+        return `节日：${proximity}${festival.name}。${festival.greeting}`;
+      }
+    }
+  }
+
+  return '';
+}
+
 /**
  * 获取当前节气语境
  *

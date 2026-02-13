@@ -521,7 +521,17 @@ const requestStream = (options) => {
     enableChunked: true,
     responseType: 'text',
     timeout: timeoutMs,
-    success: () => {},
+    success: (res) => {
+      if (aborted) return;
+      // 非 2xx 状态码（如 403 配额不足）需要触发 onError，否则页面永远卡在 loading
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300) && onError) {
+        const errData = typeof res.data === 'string' ? (() => { try { return JSON.parse(res.data); } catch(_) { return {}; } })() : (res.data || {});
+        const err = new Error(errData.error || `HTTP ${res.statusCode}`);
+        err.statusCode = res.statusCode;
+        err.data = errData;
+        onError(err);
+      }
+    },
     fail: (err) => {
       if (!aborted && onError) onError(err);
     },

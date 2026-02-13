@@ -1,0 +1,31 @@
+<view class="modal-overlay" wx:if="{{show}}" catchtouchmove="preventBubble" bindtap="onCancel">
+  <view class="modal-content credits-modal-card" catchtap="preventBubble">
+    <!-- 标题 -->
+    <view class="modal-header">
+      <text class="modal-title">积分不足</text>
+    </view>
+
+    <!-- 信息 -->
+    <view class="modal-body">
+      <view class="credits-info-row">
+        <text class="credits-label">操作所需</text>
+        <text class="credits-value">{{price}} 积分</text>
+      </view>
+      <view class="credits-info-row">
+        <text class="credits-label">当前余额</text>
+        <text class="credits-value">{{balance}} 积分</text>
+      </view>
+      <view class="ink-divider"></view>
+      <view class="credits-info-row credits-deficit-row">
+        <text class="credits-label">还需充值</text>
+        <text class="credits-value text-seal-red">{{deficit}} 积分</text>
+      </view>
+    </view>
+
+    <!-- 按钮 -->
+    <view class="modal-footer">
+      <view class="btn-outline credits-btn" bindtap="onCancel">取消</view>
+      <view class="btn-seal credits-btn" bindtap="onRecharge">去充值</view>
+    </view>
+  </view>
+</view>

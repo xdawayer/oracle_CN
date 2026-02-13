@@ -18,11 +18,13 @@
               mode="aspectFit"
               binderror="onIconErrorA"
             ></image>
-            <text class="avatar-name font-ancient">{{zodiacSigns[signAIndex].name}}</text>
           </view>
           <view class="picker-group">
             <picker range="{{zodiacSigns}}" range-key="name" value="{{signAIndex}}" bindchange="bindSignAChange">
               <view class="picker-item ink-border">{{zodiacSigns[signAIndex].name}}</view>
+            </picker>
+            <picker range="{{chineseAnimals}}" range-key="name" value="{{animalAIndex}}" bindchange="bindAnimalAChange">
+              <view class="picker-item ink-border">属{{chineseAnimals[animalAIndex].name}}</view>
             </picker>
           </view>
         </view>
@@ -41,11 +43,13 @@
               mode="aspectFit"
               binderror="onIconErrorB"
             ></image>
-            <text class="avatar-name font-ancient">{{zodiacSigns[signBIndex].name}}</text>
           </view>
           <view class="picker-group">
             <picker range="{{zodiacSigns}}" range-key="name" value="{{signBIndex}}" bindchange="bindSignBChange">
               <view class="picker-item ink-border">{{zodiacSigns[signBIndex].name}}</view>
+            </picker>
+            <picker range="{{chineseAnimals}}" range-key="name" value="{{animalBIndex}}" bindchange="bindAnimalBChange">
+              <view class="picker-item ink-border">属{{chineseAnimals[animalBIndex].name}}</view>
             </picker>
           </view>
         </view>
@@ -81,6 +85,7 @@
             mode="aspectFit"
           ></image>
           <text class="report-sign-name font-ancient">{{finalData.signA.name}}</text>
+          <text class="report-animal" wx:if="{{finalData.animalA}}">属{{finalData.animalA.name}}</text>
         </view>
         <view class="report-connector">
           <text class="report-heart">❤️</text>
@@ -92,12 +97,18 @@
             mode="aspectFit"
           ></image>
           <text class="report-sign-name font-ancient">{{finalData.signB.name}}</text>
+          <text class="report-animal" wx:if="{{finalData.animalB}}">属{{finalData.animalB.name}}</text>
         </view>
       </view>
 
       <view class="report-score-area">
         <text class="report-score-label">性格契合度</text>
-        <text class="report-score-value font-ancient">{{finalData.score}}<text class="report-score-unit">%</text></text>
+        <block wx:if="{{aiLoading}}">
+          <view class="score-skeleton"></view>
+        </block>
+        <block wx:else>
+          <text class="report-score-value font-ancient">{{finalData.score}}<text class="report-score-unit">%</text></text>
+        </block>
       </view>
     </view>
 
@@ -108,19 +119,25 @@
         <view class="dim-card ink-border" wx:for="{{finalData.dimensions}}" wx:key="key">
           <view class="dim-card-header">
             <text class="dim-card-label">{{item.label}}</text>
-            <text class="dim-card-score font-ancient">{{item.score}}%</text>
+            <block wx:if="{{aiLoading}}">
+              <view class="skeleton-score"></view>
+            </block>
+            <block wx:else>
+              <text class="dim-card-score font-ancient">{{item.score}}%</text>
+            </block>
           </view>
-          <view class="dim-card-bar">
-            <view class="dim-card-bar-inner" style="width: {{item.score}}%"></view>
-          </view>
-          <!-- AI 文字描述 -->
-          <block wx:if="{{item.desc}}">
-            <text class="dim-card-desc">{{item.desc}}</text>
-          </block>
-          <!-- 骨架屏 -->
-          <block wx:elif="{{aiLoading}}">
+          <block wx:if="{{aiLoading}}">
+            <view class="dim-card-bar">
+              <view class="dim-card-bar-inner dim-card-bar-loading"></view>
+            </view>
             <view class="skeleton-line"></view>
             <view class="skeleton-line skeleton-short"></view>
+          </block>
+          <block wx:else>
+            <view class="dim-card-bar">
+              <view class="dim-card-bar-inner" style="width: {{item.score}}%"></view>
+            </view>
+            <text class="dim-card-desc" wx:if="{{item.desc}}">{{item.desc}}</text>
           </block>
         </view>
       </view>

@@ -7,6 +7,7 @@ const { API_ENDPOINTS } = require('../../services/api');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
 const { isDev } = logger;
+const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 
 /**
  * 递归清理对象中所有字符串的 Markdown 标记（**、*、#等）
@@ -123,7 +124,9 @@ Page({
       { label: '1-50岁', start: 0, end: 50 },
       { label: '51-100岁', start: 50, end: 100 },
       { label: '全部', start: 0, end: 100 }
-    ]
+    ],
+
+    ...creditsModalData,
   },
 
   onLoad() {
@@ -641,19 +644,7 @@ Page({
               if (result && result.success) {
                 this.setData({ isUnlocked: true, expandedSections: allExpanded });
                 wx.showToast({ title: '已解锁', icon: 'success' });
-              } else if (result && result.error === 'Insufficient credits') {
-                wx.showModal({
-                  title: '积分不足',
-                  content: `当前积分: ${result.balance || 0}，需要: ${result.price || 500}`,
-                  confirmText: '去充值',
-                  cancelText: '取消',
-                  success: (r) => {
-                    if (r.confirm) {
-                      wx.navigateTo({ url: '/pages/me/me' });
-                    }
-                  },
-                });
-              } else {
+              } else if (!handleInsufficientCredits(this, result)) {
                 wx.showToast({ title: result?.error || '解锁失败', icon: 'none' });
               }
             } catch (err) {
@@ -676,6 +667,8 @@ Page({
   onBack() {
     wx.navigateBack();
   },
+
+  ...creditsModalMethods,
 
   /**
    * 阻止冒泡

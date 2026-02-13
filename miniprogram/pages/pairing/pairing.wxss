@@ -330,6 +330,36 @@
   line-height: 1.7;
 }
 
+/* 总分骨架屏 */
+.score-skeleton {
+  width: 160rpx;
+  height: 80rpx;
+  margin: 0 auto;
+  background: linear-gradient(90deg, var(--paper-200) 25%, var(--paper-100) 50%, var(--paper-200) 75%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* 维度分数骨架屏 */
+.skeleton-score {
+  width: 72rpx;
+  height: 28rpx;
+  background: linear-gradient(90deg, var(--paper-200) 25%, var(--paper-100) 50%, var(--paper-200) 75%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* 进度条加载动画 */
+.dim-card-bar-loading {
+  width: 60%;
+  animation: bar-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes bar-shimmer {
+  0%, 100% { width: 40%; opacity: 0.5; }
+  50% { width: 70%; opacity: 1; }
+}
+
 /* 骨架屏 */
 .skeleton-line {
   height: 24rpx;

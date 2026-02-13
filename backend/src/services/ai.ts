@@ -248,6 +248,8 @@ const RAW_TEXT_PROMPTS = new Set<string>([
   'monthly-lunar',
   'monthly-dates',
   'monthly-actions',
+  // CBT 聚合分析输出纯 Markdown 文本
+  'cbt-aggregate-analysis',
 ]);
 
 // 支持 SSE 流式输出的 promptId（仅文本型，非 JSON 结构化输出）

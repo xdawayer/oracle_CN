@@ -567,7 +567,7 @@
 
   <!-- 深度解读全屏 overlay -->
   <view class="deep-overlay" wx:if="{{showDeepOverlay}}">
-    <view class="deep-overlay-header">
+    <view class="deep-overlay-header" style="padding-top: {{statusBarHeight + 8}}px;">
       <view class="deep-back-btn" bindtap="closeDeepOverlay">
         <text class="deep-back-arrow">&lt;</text>
         <text>返回</text>

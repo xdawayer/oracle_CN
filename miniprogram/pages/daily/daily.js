@@ -174,10 +174,11 @@ const DIMENSION_ORDER = [
 ];
 
 const TIME_WINDOW_STYLE_MAP = {
-  '积极': { dotColor: 'var(--accent)', tagBg: 'var(--paper-200)', tagColor: 'var(--warm-brown)' },
+  '积极': { dotColor: 'var(--amber-glow)', tagBg: 'var(--paper-200)', tagColor: 'var(--amber-glow)' },
   '平稳': { dotColor: 'var(--success)', tagBg: 'var(--paper-200)', tagColor: 'var(--success)' },
-  '放松': { dotColor: 'var(--paper-400)', tagBg: 'var(--paper-200)', tagColor: 'var(--paper-400)' },
-  '挑战': { dotColor: 'var(--danger)', tagBg: 'var(--paper-200)', tagColor: 'var(--danger)' }
+  '放松': { dotColor: 'var(--info)', tagBg: 'var(--paper-200)', tagColor: 'var(--info)' },
+  '挑战': { dotColor: 'var(--danger)', tagBg: 'var(--paper-200)', tagColor: 'var(--danger)' },
+  '内省': { dotColor: 'var(--mountain-blue)', tagBg: 'var(--paper-200)', tagColor: 'var(--mountain-blue)' }
 };
 
 Page({

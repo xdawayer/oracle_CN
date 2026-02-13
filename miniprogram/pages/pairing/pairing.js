@@ -3,18 +3,33 @@ const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 
 const ZODIAC_SIGNS = [
-  { id: 'aries', name: '3.21 - 4.19', emoji: 'ARI', element: 'fire' },
-  { id: 'taurus', name: '4.20 - 5.20', emoji: 'TAU', element: 'earth' },
-  { id: 'gemini', name: '5.21 - 6.21', emoji: 'GEM', element: 'air' },
-  { id: 'cancer', name: '6.22 - 7.22', emoji: 'CAN', element: 'water' },
-  { id: 'leo', name: '7.23 - 8.22', emoji: 'LEO', element: 'fire' },
-  { id: 'virgo', name: '8.23 - 9.22', emoji: 'VIR', element: 'earth' },
-  { id: 'libra', name: '9.23 - 10.23', emoji: 'LIB', element: 'air' },
-  { id: 'scorpio', name: '10.24 - 11.22', emoji: 'SCO', element: 'water' },
-  { id: 'sagittarius', name: '11.23 - 12.21', emoji: 'SAG', element: 'fire' },
-  { id: 'capricorn', name: '12.22 - 1.19', emoji: 'CAP', element: 'earth' },
-  { id: 'aquarius', name: '1.20 - 2.18', emoji: 'AQU', element: 'air' },
-  { id: 'pisces', name: '2.19 - 3.20', emoji: 'PIS', element: 'water' },
+  { id: 'aries', name: '3月21日 - 4月19日', emoji: 'ARI', element: 'fire' },
+  { id: 'taurus', name: '4月20日 - 5月20日', emoji: 'TAU', element: 'earth' },
+  { id: 'gemini', name: '5月21日 - 6月21日', emoji: 'GEM', element: 'air' },
+  { id: 'cancer', name: '6月22日 - 7月22日', emoji: 'CAN', element: 'water' },
+  { id: 'leo', name: '7月23日 - 8月22日', emoji: 'LEO', element: 'fire' },
+  { id: 'virgo', name: '8月23日 - 9月22日', emoji: 'VIR', element: 'earth' },
+  { id: 'libra', name: '9月23日 - 10月23日', emoji: 'LIB', element: 'air' },
+  { id: 'scorpio', name: '10月24日 - 11月22日', emoji: 'SCO', element: 'water' },
+  { id: 'sagittarius', name: '11月23日 - 12月21日', emoji: 'SAG', element: 'fire' },
+  { id: 'capricorn', name: '12月22日 - 1月19日', emoji: 'CAP', element: 'earth' },
+  { id: 'aquarius', name: '1月20日 - 2月18日', emoji: 'AQU', element: 'air' },
+  { id: 'pisces', name: '2月19日 - 3月20日', emoji: 'PIS', element: 'water' },
+];
+
+const CHINESE_ANIMALS = [
+  { id: '鼠', name: '鼠' },
+  { id: '牛', name: '牛' },
+  { id: '虎', name: '虎' },
+  { id: '兔', name: '兔' },
+  { id: '龙', name: '龙' },
+  { id: '蛇', name: '蛇' },
+  { id: '马', name: '马' },
+  { id: '羊', name: '羊' },
+  { id: '猴', name: '猴' },
+  { id: '鸡', name: '鸡' },
+  { id: '狗', name: '狗' },
+  { id: '猪', name: '猪' },
 ];
 
 const ZODIAC_MATCH_DATA = {
@@ -35,9 +50,12 @@ const ZODIAC_MATCH_DATA = {
 Page({
   data: {
     zodiacSigns: ZODIAC_SIGNS,
+    chineseAnimals: CHINESE_ANIMALS,
 
     signAIndex: 0,
     signBIndex: 1,
+    animalAIndex: 0,
+    animalBIndex: 0,
 
     step: 1,
     loading: false,
@@ -57,6 +75,12 @@ Page({
   bindSignBChange(e) {
     this.setData({ signBIndex: parseInt(e.detail.value), iconErrorB: false });
   },
+  bindAnimalAChange(e) {
+    this.setData({ animalAIndex: parseInt(e.detail.value) });
+  },
+  bindAnimalBChange(e) {
+    this.setData({ animalBIndex: parseInt(e.detail.value) });
+  },
 
   onIconErrorA() {
     this.setData({ iconErrorA: true });
@@ -70,6 +94,8 @@ Page({
   calculateQuickResult() {
     const signA = ZODIAC_SIGNS[this.data.signAIndex];
     const signB = ZODIAC_SIGNS[this.data.signBIndex];
+    const animalA = CHINESE_ANIMALS[this.data.animalAIndex];
+    const animalB = CHINESE_ANIMALS[this.data.animalBIndex];
 
     let score = 65;
     const dims = {
@@ -115,7 +141,9 @@ Page({
       analysis: '',
       tips: [],
       signA,
-      signB
+      signB,
+      animalA,
+      animalB
     };
   },
 
@@ -148,7 +176,9 @@ Page({
         method: 'POST',
         data: {
           signA: quickResult.signA.id,
-          signB: quickResult.signB.id
+          signB: quickResult.signB.id,
+          animalA: quickResult.animalA.id,
+          animalB: quickResult.animalB.id
         }
       });
 

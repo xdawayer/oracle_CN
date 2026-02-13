@@ -106,6 +106,24 @@ export const SCENARIOS = {
     ],
   },
 
+  /** 大陆特有压力场景 */
+  mainland_pressure: {
+    work_culture: [
+      '996加班到崩溃，但不敢辞职因为还有房贷',
+      '35岁简历被筛掉，连面试机会都没有',
+      '互联网裁员潮，每天上班都怕被约谈',
+      '考公上岸后发现基层工作和想象的完全不同',
+      '研究生毕业发现学历在贬值，和本科生竞争同一个岗位',
+    ],
+    life_pressure: [
+      '房贷月供占了工资的一半，不敢生病不敢辞职',
+      '城市户口办不下来，孩子上学成了大问题',
+      '父母催着回老家发展，但老家没有对口工作',
+      '相亲被当简历筛选，收入房车缺一不可',
+      '小红书上人均年薪百万，打开工资条只想关掉手机',
+    ],
+  },
+
   /** 成长场景 */
   growth: {
     career: [
@@ -211,6 +229,16 @@ const SCENARIO_KEYWORDS: Record<string, { category: string; subcategory: string 
   '迷茫': [{ category: 'growth', subcategory: 'self' }],
   '不知道': [{ category: 'growth', subcategory: 'self' }],
   '拖延': [{ category: 'growth', subcategory: 'self' }],
+  // 大陆压力关键词
+  '996': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
+  '加班': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
+  '裁员': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
+  '考公': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
+  '房贷': [{ category: 'mainland_pressure', subcategory: 'life_pressure' }],
+  '户口': [{ category: 'mainland_pressure', subcategory: 'life_pressure' }],
+  '相亲': [{ category: 'mainland_pressure', subcategory: 'life_pressure' }],
+  '内卷': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
+  '35岁': [{ category: 'mainland_pressure', subcategory: 'work_culture' }],
 };
 
 /**

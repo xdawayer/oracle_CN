@@ -347,7 +347,7 @@
 
   <view class="premium-banner natal-report-banner {{natalReportStatus === 'processing' ? 'processing' : natalReportStatus === 'completed' ? 'completed' : ''}}" bindtap="onNatalReportTap">
     <view class="premium-info">
-      <text class="premium-title">人格深度解读</text>
+      <text class="premium-title">本我深度解读</text>
       <text class="premium-desc">
         {{natalReportStatus === 'none' ? '解锁你的全维度人格解析' :
           natalReportStatus === 'pending' ? '任务排队中，请稍候...' :
@@ -452,4 +452,6 @@
      </view>
   </view>
 
+  <!-- 积分不足弹窗 -->
+  <credits-modal show="{{showCreditsModal}}" price="{{creditsModalPrice}}" balance="{{creditsModalBalance}}" bind:cancel="onCreditsModalCancel" bind:recharge="onCreditsModalRecharge" />
 </view>

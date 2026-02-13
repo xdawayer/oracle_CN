@@ -72,6 +72,19 @@ export const SYNASTRY_SAFETY = `## 合盘分析安全边界
 - 建议分手或继续在一起
 - 涉及第三者或出轨话题的判断`;
 
+/** 合规红线（最高优先级） */
+export const COMPLIANCE_GUARD = `## 合规红线（最高优先级）
+- 禁止涉及政治人物、政治事件、领土争议
+- 禁止宗教传教、邪教相关内容
+- 健康建议必须注明"仅供参考，不构成医学建议"
+- 财务建议必须注明"仅供参考，不构成投资建议"
+- 禁止任何形式的算命断言、测字问卦`;
+
+/** 获取合规红线指令 */
+export function getComplianceGuard(): string {
+  return COMPLIANCE_GUARD;
+}
+
 /** 获取安全边界指令 */
 export function getSafetyBoundaries(): string {
   return SAFETY_BOUNDARIES;
