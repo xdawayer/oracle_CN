@@ -1,5 +1,6 @@
 const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const auth = require('../../utils/auth');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 
@@ -186,9 +187,18 @@ Page({
     }
   },
 
-  onSend() {
+  async onSend() {
     const text = this.data.inputValue.trim();
     if (!text) return;
+
+    // 登录态检查：确保配额绑定用户账号
+    if (!storage.get('access_token')) {
+      const ok = await auth.ensureLogin(1);
+      if (!ok) {
+        wx.showToast({ title: '请先登录', icon: 'none' });
+        return;
+      }
+    }
 
     const { askTotalLeft, credits, askCost, quotaLoaded } = this.data;
 

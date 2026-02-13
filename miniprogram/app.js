@@ -136,8 +136,8 @@ App({
   },
 
   async autoLogin() {
-    const refreshToken = storage.get('refresh_token');
-    if (refreshToken) {
+    const refreshTokenVal = storage.get('refresh_token');
+    if (refreshTokenVal) {
       try {
         await auth.refreshToken();
         this.checkOnboardingStatus();
@@ -150,19 +150,48 @@ App({
     try {
       const data = await auth.login();
       if (data && data.user) {
-        const previousProfile = storage.get('user_profile') || {};
-        const mergedProfile = {
-          ...previousProfile,
-          name: data.user.name || previousProfile.name || '',
-        };
-        storage.set('user_profile', mergedProfile);
-        if (data.user.avatar) {
-          storage.set('user_avatar', data.user.avatar);
-        }
+        this._mergeUserProfile(data.user);
         this.checkOnboardingStatus();
+        return;
       }
     } catch (error) {
-      logger.warn('[autoLogin] wechat login failed', formatRequestError(error));
+      logger.warn('[autoLogin] first attempt failed', formatRequestError(error));
+    }
+
+    // 首次登录失败，使用 ensureLogin 重试
+    const result = await auth.ensureLogin(2);
+    if (result) {
+      // ensureLogin 返回登录数据时合并 profile
+      if (result.user) {
+        this._mergeUserProfile(result.user);
+      }
+      this.checkOnboardingStatus();
+      return;
+    }
+
+    // 仍然失败，弹窗提示用户
+    // 注：showModal 回调是事件驱动的，递归调用不会累积调用栈
+    wx.showModal({
+      title: '登录失败',
+      content: '无法连接服务器，请检查网络后重试',
+      confirmText: '重试',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          this.autoLogin();
+        }
+      },
+    });
+  },
+  _mergeUserProfile(user) {
+    const previousProfile = storage.get('user_profile') || {};
+    const mergedProfile = {
+      ...previousProfile,
+      name: user.name || previousProfile.name || '',
+    };
+    storage.set('user_profile', mergedProfile);
+    if (user.avatar) {
+      storage.set('user_avatar', user.avatar);
     }
   },
   checkOnboardingStatus() {

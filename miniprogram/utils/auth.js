@@ -59,12 +59,28 @@ const refreshToken = async () => {
   return token;
 };
 
+// 确保已登录：已有 token 返回 true，否则重试 login 并返回登录数据，失败返回 false
+const ensureLogin = async (retries = 2) => {
+  if (storage.get('access_token')) return true;
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const data = await login();
+      return data || true;
+    } catch {
+      if (i < retries) await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+  return false;
+};
+
 const logout = () => {
   storage.clearTokens();
 };
 
 module.exports = {
   login,
+  ensureLogin,
   getToken,
   getRefreshToken,
   refreshToken,
