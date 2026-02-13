@@ -3,6 +3,7 @@ const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 const { isDev } = logger;
+const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 const { buildDailyFullCacheKey, buildProfileFingerprint } = require('../../utils/tab-preloader');
 
 // 星座英文→中文名映射
@@ -62,7 +63,9 @@ Page({
     // 年度报告任务状态
     annualTaskStatus: 'none', // none | pending | processing | completed | failed
     annualTaskProgress: 0,
-    annualTaskMessage: ''
+    annualTaskMessage: '',
+
+    ...creditsModalData,
   },
 
   onLoad() {
@@ -229,19 +232,23 @@ Page({
           annualTaskMessage: result.message || '',
         });
 
-        if (result.status === 'processing') {
+        if (result.status === 'processing' || result.status === 'pending') {
           this._startStatusPolling();
         }
       } else {
-        this.setData({
-          annualTaskStatus: 'none',
-          annualTaskProgress: 0,
-          annualTaskMessage: '',
-        });
+        // pending/processing 可能是刚创建任务的竞态，保留当前状态
+        const currentStatus = this.data.annualTaskStatus;
+        if (currentStatus !== 'pending' && currentStatus !== 'processing') {
+          this.setData({
+            annualTaskStatus: 'none',
+            annualTaskProgress: 0,
+            annualTaskMessage: '',
+          });
+        }
       }
     } catch (error) {
       logger.log('Check annual task status:', error?.statusCode || error);
-      this.setData({ annualTaskStatus: 'none' });
+      // 网络出错时保留当前状态，不重置为 'none'
     }
   },
 
@@ -259,10 +266,11 @@ Page({
 
     await this.checkAnnualReportAccess();
 
-    if (this.data.annualTaskStatus !== 'processing') {
+    const status = this.data.annualTaskStatus;
+    if (status !== 'processing' && status !== 'pending') {
       this._statusPolling = false;
       this._statusPollTimer = null;
-      if (this.data.annualTaskStatus === 'completed') {
+      if (status === 'completed') {
         wx.showToast({ title: '报告已生成完成', icon: 'success' });
       }
       return;
@@ -771,6 +779,8 @@ Page({
     this.setData({ showPayment: false });
   },
 
+  ...creditsModalMethods,
+
   async handlePay() {
     this.setData({ paymentLoading: true });
 
@@ -803,19 +813,7 @@ Page({
 
         if (!payResult || !payResult.success) {
           const errorMsg = payResult?.error || '支付失败';
-          if (payResult?.error === 'Insufficient credits') {
-            wx.showModal({
-              title: '积分不足',
-              content: `当前积分: ${payResult.balance || 0}，需要: ${payResult.price || 500}`,
-              confirmText: '去充值',
-              cancelText: '取消',
-              success: (res) => {
-                if (res.confirm) {
-                  wx.navigateTo({ url: '/pages/me/me' });
-                }
-              },
-            });
-          } else {
+          if (!handleInsufficientCredits(this, payResult)) {
             wx.showToast({ title: errorMsg, icon: 'none' });
           }
           return;

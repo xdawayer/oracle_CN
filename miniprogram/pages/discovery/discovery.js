@@ -171,8 +171,9 @@ Page({
       'wealth-topic': { status: 'wealthTopicStatus', progress: 'wealthTopicProgress' },
     };
 
-    let hasProcessing = false;
+    let hasActiveTask = false;
     const statusSnapshot = {};
+    let hasError = false;
 
     for (const reportType of types) {
       try {
@@ -188,26 +189,36 @@ Page({
             [stateKeys[reportType].progress]: result.progress || 0,
           });
           statusSnapshot[reportType] = { status: result.status, progress: result.progress || 0 };
-          if (result.status === 'processing') hasProcessing = true;
+          if (result.status === 'processing' || result.status === 'pending') hasActiveTask = true;
         } else {
-          this.setData({
-            [stateKeys[reportType].status]: 'none',
-            [stateKeys[reportType].progress]: 0,
-          });
-          statusSnapshot[reportType] = { status: 'none', progress: 0 };
+          const currentStatus = this.data[stateKeys[reportType].status];
+          // pending/processing 可能是刚创建任务的竞态，保留当前状态
+          if (currentStatus === 'pending' || currentStatus === 'processing') {
+            statusSnapshot[reportType] = { status: currentStatus, progress: this.data[stateKeys[reportType].progress] || 0 };
+          } else {
+            // none/completed/failed 均可安全重置
+            this.setData({
+              [stateKeys[reportType].status]: 'none',
+              [stateKeys[reportType].progress]: 0,
+            });
+            statusSnapshot[reportType] = { status: 'none', progress: 0 };
+          }
         }
       } catch (error) {
         logger.log(`Check ${reportType} status:`, error?.statusCode || error);
-        this.setData({ [stateKeys[reportType].status]: 'none' });
-        statusSnapshot[reportType] = { status: 'none', progress: 0 };
+        // 网络出错时保留当前状态，不重置为 'none'
+        hasError = true;
+        const currentStatus = this.data[stateKeys[reportType].status];
+        statusSnapshot[reportType] = { status: currentStatus, progress: this.data[stateKeys[reportType].progress] || 0 };
       }
     }
 
-    if (cacheKey) {
+    // 仅在没有请求错误时才更新缓存，避免错误状态污染缓存
+    if (cacheKey && !hasError) {
       storage.set(cacheKey, { ts: Date.now(), statuses: statusSnapshot });
     }
 
-    if (hasProcessing) {
+    if (hasActiveTask) {
       this._startTopicReportPolling();
     }
   },
@@ -380,10 +391,10 @@ Page({
 
     await this.checkTopicReportStatuses();
 
-    const anyProcessing = ['loveTopicStatus', 'careerTopicStatus', 'wealthTopicStatus']
-      .some(k => this.data[k] === 'processing');
+    const anyActive = ['loveTopicStatus', 'careerTopicStatus', 'wealthTopicStatus']
+      .some(k => this.data[k] === 'processing' || this.data[k] === 'pending');
 
-    if (!anyProcessing) {
+    if (!anyActive) {
       this._topicPolling = false;
       this._topicPollTimer = null;
       const anyCompleted = ['loveTopicStatus', 'careerTopicStatus', 'wealthTopicStatus']
