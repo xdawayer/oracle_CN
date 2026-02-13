@@ -59,6 +59,53 @@ page {
   font-size: 36rpx;
 }
 
+/* ========== 首页骨架屏 ========== */
+@keyframes homeSkeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+}
+
+.home-skeleton {
+  animation: homeSkeletonPulse 1.8s ease-in-out infinite;
+}
+
+.skeleton-block {
+  background: var(--ink-wash-2);
+  border-radius: 4rpx;
+}
+
+.home-skeleton-score {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 8rpx;
+  margin: 0 auto var(--spacing-sm);
+}
+
+.home-skeleton-quote {
+  width: 280rpx;
+  height: 36rpx;
+  margin: 0 auto;
+}
+
+.home-skeleton-line {
+  width: 100%;
+  height: 26rpx;
+  margin-bottom: 12rpx;
+}
+
+.home-skeleton-line-short {
+  width: 65%;
+}
+
+.home-skeleton-line-mid {
+  width: 80%;
+}
+
+.home-skeleton-chip {
+  width: 72rpx;
+  height: 28rpx;
+}
+
 /* Daily Card - Ink Wash Style */
 .daily-card {
   position: relative;

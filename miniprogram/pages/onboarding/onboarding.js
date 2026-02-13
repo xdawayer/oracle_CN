@@ -1,6 +1,7 @@
 const storage = require('../../utils/storage');
 const { request } = require('../../utils/request');
 const { searchCities, formatCityDisplay, getCityCoordinates } = require('../../utils/city-search');
+const logger = require('../../utils/logger');
 
 const CALENDAR_TYPES = [
   { value: 'solar', label: '阳历/公历' },
@@ -156,7 +157,7 @@ Page({
         this.setData({ solarBirthDate: '' });
       }
     } catch (err) {
-      console.error('Lunar conversion failed:', err);
+      logger.error('Lunar conversion failed:', err);
       wx.showToast({
         title: '日期转换失败，请稍后重试',
         icon: 'none'
@@ -352,7 +353,7 @@ Page({
       }, 1500);
 
     } catch (err) {
-      console.error('Save profile failed:', err);
+      logger.error('Save profile failed:', err);
       wx.showToast({
         title: '保存失败，请重试',
         icon: 'none'

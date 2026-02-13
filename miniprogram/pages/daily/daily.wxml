@@ -21,13 +21,14 @@
     </view>
   </view>
 
-  <view class="section" wx:if="{{status === LoadingState.SUCCESS && forecast}}">
+  <view class="section" wx:if="{{status === LoadingState.SUCCESS}}">
     
     <view class="overview-card ink-border">
       <view class="overview-header">
         <view class="overview-date">
           <text class="date-label font-body">今日指数</text>
           <text class="date-value font-ancient">{{currentDateStr}}</text>
+          <text class="pending-tip" wx:if="{{isForecastPending}}">解读生成中...</text>
         </view>
         
         <view class="score-display">
@@ -37,7 +38,7 @@
       </view>
       
       <view class="overview-summary">
-        <text class="summary-text">{{overviewSummary || '今日适合稳步推进计划。'}}</text>
+        <text class="summary-text">{{overviewSummary || (isForecastPending ? '正在生成今日洞察...' : '今日适合稳步推进计划。')}}</text>
       </view>
       
       <view class="lucky-row">
@@ -345,7 +346,8 @@
 
       <!-- 空状态提示 -->
       <view class="weekly-empty" wx:if="{{weeklyScores.length === 0 && weeklyDescriptions.length === 0}}">
-        <text class="weekly-empty-text">本周趋势数据生成中，请稍后刷新</text>
+        <text class="weekly-empty-text" wx:if="{{isForecastPending}}">本周趋势生成中，你可以在当前页面等待...</text>
+        <text class="weekly-empty-text" wx:else>本周趋势暂时不可用</text>
       </view>
     </view>
 
@@ -468,8 +470,92 @@
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.LOADING}}">
-    <view class="card">
-      <text class="loading-text">正在生成今日洞察...</text>
+    <!-- 骨架屏：概览卡片 -->
+    <view class="overview-card ink-border skeleton-card">
+      <view class="overview-header">
+        <view class="overview-date">
+          <text class="date-label font-body">今日指数</text>
+          <view class="skeleton-block skeleton-date"></view>
+        </view>
+        <view class="score-display">
+          <view class="skeleton-block skeleton-score"></view>
+        </view>
+      </view>
+      <view class="overview-summary">
+        <view class="skeleton-block skeleton-line"></view>
+        <view class="skeleton-block skeleton-line skeleton-line-short"></view>
+      </view>
+      <view class="lucky-row">
+        <view class="lucky-chip">
+          <text class="lucky-label">幸运色</text>
+          <view class="skeleton-block skeleton-chip"></view>
+        </view>
+        <view class="lucky-divider"></view>
+        <view class="lucky-chip">
+          <text class="lucky-label">幸运数</text>
+          <view class="skeleton-block skeleton-chip"></view>
+        </view>
+        <view class="lucky-divider"></view>
+        <view class="lucky-chip">
+          <text class="lucky-label">吉位</text>
+          <view class="skeleton-block skeleton-chip"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 骨架屏：四维指数 -->
+    <view class="dimensions-section">
+      <text class="section-title font-ancient">四维指数</text>
+      <view class="dimension-list">
+        <view class="dimension-item" wx:for="{{['事业','财运','爱情','健康']}}" wx:key="*this">
+          <view class="dimension-header">
+            <text class="dimension-name font-body">{{item}}</text>
+          </view>
+          <view class="dimension-bar-container">
+            <view class="skeleton-block skeleton-bar"></view>
+          </view>
+          <view class="skeleton-block skeleton-score-sm"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 骨架屏：宜忌 -->
+    <view class="advice-section">
+      <view class="advice-card advice-do ink-border skeleton-card">
+        <view class="advice-header">
+          <view class="advice-badge do-badge">宜</view>
+          <view class="skeleton-block skeleton-advice-title"></view>
+        </view>
+        <view class="skeleton-block skeleton-line"></view>
+      </view>
+      <view class="advice-card advice-dont ink-border skeleton-card">
+        <view class="advice-header">
+          <view class="advice-badge dont-badge">忌</view>
+          <view class="skeleton-block skeleton-advice-title"></view>
+        </view>
+        <view class="skeleton-block skeleton-line"></view>
+      </view>
+    </view>
+
+    <!-- 骨架屏：时间窗口 -->
+    <view class="time-section card">
+      <text class="card-title">时间窗口</text>
+      <view class="time-timeline">
+        <view class="time-slot" wx:for="{{['上午','午间','晚上']}}" wx:key="*this">
+          <view class="time-line">
+            <view class="time-dot" style="background: var(--ink-wash-2)"></view>
+            <view class="time-connector" wx:if="{{index < 2}}"></view>
+          </view>
+          <view class="time-content">
+            <view class="time-header">
+              <text class="time-period">{{item}}</text>
+              <view class="skeleton-block skeleton-time-range"></view>
+            </view>
+            <view class="skeleton-block skeleton-line"></view>
+            <view class="skeleton-block skeleton-line skeleton-line-short"></view>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 

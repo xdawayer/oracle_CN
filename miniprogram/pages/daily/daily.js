@@ -184,9 +184,10 @@ Page({
     auditMode: false,
     LoadingState,
     status: LoadingState.IDLE,
+    isForecastPending: false,
     dates: [],
     selectedDateIndex: 2,
-    forecast: null,
+    forecast: {},
     overviewSummary: '',
     currentDateStr: '',
     luckyColorToken: 'var(--accent)',
@@ -223,10 +224,59 @@ Page({
   },
 
   _monthlyPollTimer: null,
+  _activeGenerateSeq: 0,
+  _activeStreamTask: null,
+  _activeDetailSeq: 0,
+
+  _isLatestGenerate(seq) {
+    return seq === this._activeGenerateSeq;
+  },
+
+  _stopActiveStream() {
+    if (this._activeStreamTask && typeof this._activeStreamTask.abort === 'function') {
+      this._activeStreamTask.abort();
+    }
+    this._activeStreamTask = null;
+  },
+
+  _beginGenerateTask() {
+    this._activeGenerateSeq += 1;
+    this._stopActiveStream();
+    return this._activeGenerateSeq;
+  },
+
+  _invalidateGenerateTask() {
+    this._activeGenerateSeq += 1;
+    this._stopActiveStream();
+  },
+
+  _isLatestDetail(seq) {
+    return seq === this._activeDetailSeq;
+  },
+
+  // 从 /transit 响应中提取确定性数据（与首页共享同一数据源）
+  // 包含：幸运色/数字/方位 + 评分（基于个人本命盘 × 当日行运相位）
+  _transitLucky: null,
+  _extractTransitLucky(transitResult) {
+    if (!transitResult || !transitResult.interpreted) return null;
+    const { luckyColor, luckyNumber, luckyDirection, score } = transitResult.interpreted;
+    if (!luckyColor) return null;
+    return { color: luckyColor, number: luckyNumber, direction: luckyDirection, score: score || 0 };
+  },
+
+  // 用 transit lucky 值构建 luckyColorToken
+  _buildLuckyColorToken(lucky) {
+    if (!lucky || !lucky.color) return LUCKY_COLOR_TOKEN_MAP.default;
+    const normalized = COLOR_NAME_MAP[lucky.color] || lucky.color;
+    return LUCKY_COLOR_TOKEN_MAP[normalized] || LUCKY_COLOR_TOKEN_MAP.default;
+  },
 
   onLoad() {
     const app = getApp();
     this.setData({ auditMode: !!(app && app.globalData && app.globalData.auditMode) });
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('daily');
+    }
     this.initDates();
     this.initMonthlyEntry();
     this.loadProfile();
@@ -234,18 +284,67 @@ Page({
   },
 
   onShow() {
-    // 页面显示时重新检查月度报告状态
+    const app = getApp();
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('daily');
+    }
+
+    // 如果数据未成功加载（仍在 IDLE 或 ERROR 状态），重新加载
+    const { status, isForecastPending } = this.data;
+    if (status === LoadingState.IDLE || status === LoadingState.ERROR) {
+      this.loadProfile();
+      this.handleGenerate();
+    } else if (status === LoadingState.SUCCESS) {
+      // 如果用户在其他页面更新了出生信息，重新加载
+      const stored = storage.get('user_profile');
+      const currentBirth = this.userProfile ? this.userProfile.birthDate : null;
+      const storedBirth = stored ? stored.birthDate : null;
+      if (storedBirth && storedBirth !== currentBirth) {
+        this.loadProfile();
+        this.handleGenerate();
+      } else if (isForecastPending) {
+        // transit 已到但 AI 解读还没完成（可能被 onHide 中断），重新请求
+        this.handleGenerate();
+      }
+    }
+    // 重新检查月度报告状态
     if (this._monthlyYear) {
       this.checkMonthlyReportStatus();
     }
   },
 
+  onPullDownRefresh() {
+    // 清除当日缓存以强制刷新
+    const { dates, selectedDateIndex } = this.data;
+    const selected = dates[selectedDateIndex];
+    if (selected && this.userProfile) {
+      const dateStr = selected.fullDate.toISOString().slice(0, 10);
+      const fullCacheKey = this.getCacheKey(dateStr, true);
+      const legacyCacheKey = this.getCacheKey(dateStr, false);
+      const transitCacheKey = this.getTransitCacheKey(dateStr);
+      if (fullCacheKey) storage.remove(fullCacheKey);
+      if (legacyCacheKey) storage.remove(legacyCacheKey);
+      if (transitCacheKey) storage.remove(transitCacheKey);
+    }
+    this.setData({ transitReady: false, technical: null });
+    this.handleGenerate().then(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
   onHide() {
     this._stopMonthlyPolling();
+    // Tab 页切走时不取消数据请求——让 transit/full 继续完成并写缓存
+    // 只取消 detail 的 loading 提示
+    this._activeDetailSeq += 1;
+    wx.hideLoading();
   },
 
   onUnload() {
     this._stopMonthlyPolling();
+    this._invalidateGenerateTask();
+    this._activeDetailSeq += 1;
+    wx.hideLoading();
   },
 
   initMonthlyEntry() {
@@ -437,7 +536,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (err) {
-      console.error('[Monthly] Create task failed:', err);
+      logger.error('[Monthly] Create task failed:', err);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
       this.setData({ paymentLoading: false });
@@ -495,11 +594,61 @@ Page({
     this.userProfile = { ...DEFAULT_PROFILE, ...(stored || {}) };
   },
 
+  buildDefaultDimensionItems() {
+    return DIMENSION_ORDER.map((item) => ({
+      key: item.key,
+      label: item.label,
+      color: item.color,
+      score: 0,
+      iconUrl: DIMENSION_ICONS[item.key]
+    }));
+  },
+
+  markTransitReadyView(dateStr, requestSeq) {
+    if (requestSeq && !this._isLatestGenerate(requestSeq)) return;
+    const currentDateStr = this.formatDateLabel(dateStr);
+    const weekRange = this.data.weekRange || this.getWeekRange();
+    const forecast = (this.data.forecast && typeof this.data.forecast === 'object') ? this.data.forecast : {};
+
+    // 用 transit 确定性数据填充 forecast（与首页一致，不等 AI）
+    const lucky = this._transitLucky;
+    if (lucky) {
+      forecast.lucky_color = lucky.color;
+      forecast.lucky_number = lucky.number;
+      forecast.lucky_direction = lucky.direction;
+      forecast.overall_score = lucky.score;
+    }
+
+    const advice = this.data.advice && this.data.advice.do && this.data.advice.dont
+      ? this.data.advice
+      : this.buildAdvice(forecast);
+    const timeWindows = Array.isArray(this.data.timeWindows) && this.data.timeWindows.length > 0
+      ? this.data.timeWindows
+      : this.buildTimeWindows(forecast);
+    const dimensionItems = Array.isArray(this.data.dimensionItems) && this.data.dimensionItems.length > 0
+      ? this.data.dimensionItems
+      : this.buildDefaultDimensionItems();
+
+    this.setData({
+      status: LoadingState.SUCCESS,
+      isForecastPending: true,
+      forecast,
+      currentDateStr,
+      luckyColorToken: this._buildLuckyColorToken(lucky),
+      overviewSummary: this.data.overviewSummary || '正在生成今日个性化解读...',
+      advice,
+      timeWindows,
+      dimensionItems,
+      weekRange,
+      weekRangeTitle: this.formatWeekRangeTitle(weekRange)
+    });
+  },
+
   getCacheKey(dateStr, full) {
     if (!this.userProfile) return null;
     const { birthDate, birthTime, birthCity } = this.userProfile;
     const suffix = full ? '_full' : '';
-    return `daily_cache_${birthDate}_${birthTime}_${birthCity}_${dateStr}_zh${suffix}`;
+    return `daily_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}_zh${suffix}`;
   },
 
   buildDailyParams(dateStr) {
@@ -543,7 +692,7 @@ Page({
   getTransitCacheKey(dateStr) {
     if (!this.userProfile) return null;
     const { birthDate, birthTime, birthCity } = this.userProfile;
-    return `daily_transit_cache_${birthDate}_${birthTime}_${birthCity}_${dateStr}`;
+    return `daily_transit_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
   },
 
   async handleGenerate() {
@@ -552,18 +701,63 @@ Page({
       return;
     }
 
-    this.setData({ status: LoadingState.LOADING });
+    const generateSeq = this._beginGenerateTask();
 
     try {
       const { dates, selectedDateIndex } = this.data;
       const selected = dates[selectedDateIndex];
       const dateStr = selected ? selected.fullDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const currentDateStr = this.formatDateLabel(dateStr);
+      const weekRange = this.getWeekRange();
+
+      // 尝试从 transit 缓存中提取 lucky 值（首页可能已加载）
+      const transitCacheKeyEarly = this.getTransitCacheKey(dateStr);
+      const cachedTransitEarly = transitCacheKeyEarly ? storage.get(transitCacheKeyEarly) : null;
+      this._transitLucky = this._extractTransitLucky(cachedTransitEarly);
+
+      // 如果 transit 缓存有确定性数据，直接用；否则用默认值
+      const initLucky = this._transitLucky;
+      const initForecast = {};
+      if (initLucky) {
+        initForecast.lucky_color = initLucky.color;
+        initForecast.lucky_number = initLucky.number;
+        initForecast.lucky_direction = initLucky.direction;
+        initForecast.overall_score = initLucky.score;
+      }
+
+      this.setData({
+        status: LoadingState.LOADING,
+        isForecastPending: true,
+        forecast: initForecast,
+        overviewSummary: '',
+        currentDateStr,
+        luckyColorToken: this._buildLuckyColorToken(initLucky),
+        advice: this.buildAdvice({}),
+        timeWindows: this.buildTimeWindows({}),
+        weeklyScores: [],
+        dimensionItems: this.buildDefaultDimensionItems(),
+        weekRange,
+        weekRangeTitle: this.formatWeekRangeTitle(weekRange),
+        weeklyEvents: [],
+        weeklyDescriptions: [],
+        transitReady: false,
+        transits: [],
+        transitChartData: {
+          innerPositions: [],
+          outerPositions: [],
+          aspects: [],
+          houseCusps: []
+        },
+        technical: null
+      });
 
       // 1. 优先检查 /full 缓存（含 AI 内容）
       const fullCacheKey = this.getCacheKey(dateStr, true);
       const cachedFull = storage.get(fullCacheKey);
       if (cachedFull) {
-        this.processFullData(cachedFull, dateStr);
+        if (this._isLatestGenerate(generateSeq)) {
+          this.processFullData(cachedFull, dateStr, generateSeq);
+        }
         return;
       }
 
@@ -571,14 +765,18 @@ Page({
       const legacyCacheKey = this.getCacheKey(dateStr, false);
       const cachedLegacy = storage.get(legacyCacheKey);
       if (cachedLegacy) {
-        this.processDailyData(cachedLegacy, dateStr);
+        if (this._isLatestGenerate(generateSeq)) {
+          this.processDailyData(cachedLegacy, dateStr, generateSeq);
+        }
         return;
       }
 
       // 3. 构建请求参数
       const query = this.buildDailyParams(dateStr);
       if (!query) {
-        this.setData({ status: LoadingState.ERROR });
+        if (this._isLatestGenerate(generateSeq)) {
+          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+        }
         return;
       }
 
@@ -598,10 +796,11 @@ Page({
 
       const fullPromise = canChunked
         ? new Promise((resolve) => {
-            requestStream({
+            const streamTask = requestStream({
               url: `${API_ENDPOINTS.DAILY_FULL_STREAM}?${query}`,
               method: 'GET',
               onMeta: (meta) => {
+                if (!this._isLatestGenerate(generateSeq)) return;
                 if (meta && meta.chart && !this.data.transitReady) {
                   const transitChartData = this.prepareTransitChartData(meta.chart);
                   const technical = this.prepareTechnicalData(meta.chart.technical);
@@ -612,10 +811,15 @@ Page({
                     transitChartData,
                     technical
                   });
+                  if (this.data.isForecastPending) {
+                    this.markTransitReadyView(dateStr, generateSeq);
+                  }
                 }
                 streamState.chart = meta?.chart || streamState.chart;
+                streamState.lucky = meta?.lucky || streamState.lucky;
               },
               onModule: (evt) => {
+                if (!this._isLatestGenerate(generateSeq)) return;
                 if (!evt || !evt.moduleId) return;
                 if (evt.moduleId === 'forecast') {
                   streamState.forecast = evt.content || null;
@@ -623,15 +827,24 @@ Page({
                   streamState.detail = evt.content || null;
                 }
                 if (streamState.chart && streamState.forecast) {
-                  this.processFullData(streamState, dateStr);
+                  this.processFullData(streamState, dateStr, generateSeq);
                 }
               },
-              onDone: () => resolve(streamState.chart && streamState.forecast ? streamState : null),
+              onDone: () => {
+                if (this._isLatestGenerate(generateSeq)) {
+                  this._activeStreamTask = null;
+                }
+                resolve(streamState.chart && streamState.forecast ? streamState : null);
+              },
               onError: (err) => {
+                if (this._isLatestGenerate(generateSeq)) {
+                  this._activeStreamTask = null;
+                }
                 logger.warn('[Daily] /full/stream failed:', err);
                 resolve(null);
               },
             });
+            this._activeStreamTask = streamTask;
           })
         : request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET' }).catch(err => {
             logger.warn('[Daily] /full failed:', err);
@@ -640,11 +853,14 @@ Page({
 
       // 5. /transit 先到 → 立即渲染行运图表和技术数据（保持 LOADING，等 AI 内容）
       const transitResult = await transitPromise;
+      if (!this._isLatestGenerate(generateSeq)) return;
       if (transitResult) {
         // 缓存 transit 数据
         if (transitCacheKey && !cachedTransit) {
           storage.set(transitCacheKey, transitResult);
         }
+        // 提取并存储 transit lucky 值（权威来源，与首页一致）
+        this._transitLucky = this._extractTransitLucky(transitResult) || this._transitLucky;
         // 立即渲染行运图表（不含 AI 预测，状态保持 LOADING）
         const transitChartData = this.prepareTransitChartData(transitResult);
         const technical = this.prepareTechnicalData(transitResult.technical);
@@ -655,14 +871,18 @@ Page({
           transitChartData,
           technical
         });
+        if (this.data.isForecastPending) {
+          this.markTransitReadyView(dateStr, generateSeq);
+        }
       }
 
       // 6. /full 到达 → 填充 AI 预测内容
       const fullResult = await fullPromise;
+      if (!this._isLatestGenerate(generateSeq)) return;
 
       if (fullResult) {
         storage.set(fullCacheKey, fullResult);
-        this.processFullData(fullResult, dateStr);
+        this.processFullData(fullResult, dateStr, generateSeq);
         return;
       }
 
@@ -672,28 +892,43 @@ Page({
           url: `${API_ENDPOINTS.DAILY_FORECAST}?${query}`,
           method: 'GET'
         });
+        if (!this._isLatestGenerate(generateSeq)) return;
 
         if (result) {
           storage.set(legacyCacheKey, result);
-          this.processDailyData(result, dateStr);
+          this.processDailyData(result, dateStr, generateSeq);
         } else if (transitResult) {
           // AI 全部失败但 transit 已渲染，标记为 SUCCESS 展示图表
-          this.setData({ status: LoadingState.SUCCESS });
+          this.setData({
+            status: LoadingState.SUCCESS,
+            isForecastPending: false,
+            overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
+          });
         } else {
-          this.setData({ status: LoadingState.ERROR });
+          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
         }
       } catch (legacyErr) {
-        console.error('[Daily] Legacy fallback failed:', legacyErr);
+        if (!this._isLatestGenerate(generateSeq)) return;
+        logger.error('[Daily] Legacy fallback failed:', legacyErr);
         if (transitResult) {
-          this.setData({ status: LoadingState.SUCCESS });
+          this.setData({
+            status: LoadingState.SUCCESS,
+            isForecastPending: false,
+            overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
+          });
         } else {
-          this.setData({ status: LoadingState.ERROR });
+          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
         }
       }
 
     } catch (e) {
-      console.error(e);
-      this.setData({ status: LoadingState.ERROR });
+      if (!this._isLatestGenerate(generateSeq)) return;
+      logger.error(e);
+      this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+    } finally {
+      if (this._isLatestGenerate(generateSeq)) {
+        this._activeStreamTask = null;
+      }
     }
   },
 
@@ -701,7 +936,8 @@ Page({
    * 处理 /api/daily/full 响应
    * 从 full 响应中提取 forecast、detail、chart 数据
    */
-  processFullData(fullResult, dateStr) {
+  processFullData(fullResult, dateStr, requestSeq) {
+    if (requestSeq && !this._isLatestGenerate(requestSeq)) return;
     // 将 /full 响应转换为与旧版 /api/daily 兼容的格式传入 processDailyData
     const chart = fullResult.chart || {};
     const forecastData = fullResult.forecast || {};
@@ -712,7 +948,8 @@ Page({
       content: forecastData.content || forecastData || null,
       natal: chart.natal || null,
       transits: chart.transits || null,
-      technical: chart.technical || null
+      technical: chart.technical || null,
+      lucky: fullResult.lucky || null
     };
 
     // 预缓存 detail 内容，当用户打开 detail 时直接使用
@@ -724,11 +961,13 @@ Page({
       };
     }
 
-    this.processDailyData(compatResult, dateStr);
+    this.processDailyData(compatResult, dateStr, requestSeq);
   },
 
-  processDailyData(result, dateStr) {
-    const forecast = result && result.content ? result.content : null;
+  processDailyData(result, dateStr, requestSeq, options = {}) {
+    if (requestSeq && !this._isLatestGenerate(requestSeq)) return;
+    const keepPending = options && options.pending === true;
+    const forecast = result && result.content ? result.content : {};
     const currentDateStr = this.formatDateLabel(dateStr);
     const overviewSummary = forecast?.summary || forecast?.theme_explanation || forecast?.theme_title || forecast?.share_text || '';
 
@@ -767,15 +1006,30 @@ Page({
     const weekRangeTitle = this.formatWeekRangeTitle(weekRange);
     const weeklyDescriptions = this.buildWeeklyDescriptions(weeklyScores, weeklyEvents, weekRangeTitle);
 
-    const luckyColorName = forecast ? (forecast.lucky_color || '深蓝') : '深蓝';
+    // 确定性幸运值来源优先级：transit（与首页一致）> server（/full 响应）> AI 生成
+    const deterministic = this._transitLucky || (result && result.lucky);
+    const luckyColorName = (deterministic && deterministic.color) || (forecast ? (forecast.lucky_color || '深蓝') : '深蓝');
     const normalizedColor = COLOR_NAME_MAP[luckyColorName] || luckyColorName;
     const luckyColorToken = LUCKY_COLOR_TOKEN_MAP[normalizedColor] || LUCKY_COLOR_TOKEN_MAP.default;
+
+    // 用确定性值覆盖 forecast 中的字段（wxml 直接绑定 forecast.*）
+    if (deterministic) {
+      forecast.lucky_color = deterministic.color;
+      forecast.lucky_number = deterministic.number;
+      forecast.lucky_direction = deterministic.direction;
+    }
+    // 分数也用 transit 确定性值（与首页一致）
+    const transitLucky = this._transitLucky;
+    if (transitLucky && transitLucky.score) {
+      forecast.overall_score = transitLucky.score;
+    }
 
     const advice = this.buildAdvice(forecast);
     const timeWindows = this.buildTimeWindows(forecast);
 
     this.setData({
       status: LoadingState.SUCCESS,
+      isForecastPending: keepPending,
       forecast,
       overviewSummary,
       currentDateStr,
@@ -1075,6 +1329,8 @@ Page({
   },
 
   async openDetailCard(type) {
+    this._activeDetailSeq += 1;
+    const detailSeq = this._activeDetailSeq;
     const { dates, selectedDateIndex } = this.data;
     const selected = dates[selectedDateIndex];
     const dateStr = selected ? selected.fullDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
@@ -1084,7 +1340,13 @@ Page({
     if (needsDetail) {
       wx.showLoading({ title: '加载解读...' });
       detailContent = await this.ensureDetailContent(type, dateStr);
-      wx.hideLoading();
+      if (this._isLatestDetail(detailSeq)) {
+        wx.hideLoading();
+      }
+    }
+
+    if (!this._isLatestDetail(detailSeq)) {
+      return;
     }
 
     const reportData = this.buildReportData(type, detailContent);
@@ -1197,7 +1459,7 @@ Page({
       }
       return content;
     } catch (e) {
-      console.error('Fetch daily detail failed', e);
+      logger.error('Fetch daily detail failed', e);
       wx.showToast({ title: '解读加载失败', icon: 'none' });
       return null;
     }

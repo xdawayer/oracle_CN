@@ -1,4 +1,5 @@
 const { request } = require('../../utils/request');
+const logger = require('../../utils/logger');
 
 const STATUS_MAP = {
   pending: { text: '待支付', class: 'status-pending' },
@@ -53,7 +54,7 @@ Page({
         this.setData({ orders: [], loading: false });
       }
     } catch (err) {
-      console.error('Load orders error:', err);
+      logger.error('Load orders error:', err);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }

@@ -24,6 +24,9 @@ Page({
     if (app && app.globalData) {
       this.setData({ auditMode: !!app.globalData.auditMode });
     }
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('me');
+    }
     this.loadUserProfile();
   },
 

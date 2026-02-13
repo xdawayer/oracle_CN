@@ -2,6 +2,7 @@ const auth = require('./utils/auth');
 const storage = require('./utils/storage');
 const logger = require('./utils/logger');
 const { request } = require('./utils/request');
+const { createTabPreloader } = require('./utils/tab-preloader');
 
 const DEVICE_FINGERPRINT_KEY = 'device_fingerprint';
 
@@ -11,8 +12,27 @@ const generateDeviceFingerprint = () => {
   return `${timestamp}-${randomPart}`;
 };
 
+const formatRequestError = (error) => {
+  if (!error) return { message: 'unknown error' };
+  const data = error.data && typeof error.data === 'object' ? error.data : {};
+  return {
+    message: error.message || 'request failed',
+    statusCode: error.statusCode,
+    detail: data.detail || data.error || data.message || error.errMsg || '',
+    url: error.url || '',
+    method: error.method || '',
+  };
+};
+
 App({
   onLaunch() {
+    this._tabPreloader = createTabPreloader();
+
+    // 初始化云能力（用于 callContainer 调用云托管）
+    if (wx.cloud) {
+      wx.cloud.init({ env: 'prod-6gnh6drs7858f443' });
+    }
+
     // Load Noto Serif SC (思源宋体) for main body text
     // Using direct woff2 font file URL for wx.loadFontFace compatibility
     wx.loadFontFace({
@@ -96,6 +116,25 @@ App({
 
     this.autoLogin();
   },
+
+  notifyTabActivated(tabId) {
+    if (this._tabPreloader && typeof this._tabPreloader.notifyTabActivated === 'function') {
+      this._tabPreloader.notifyTabActivated(tabId);
+    }
+  },
+
+  markHomeVisibleReady() {
+    if (this._tabPreloader && typeof this._tabPreloader.markHomeReady === 'function') {
+      this._tabPreloader.markHomeReady();
+    }
+  },
+
+  resetTabPreload() {
+    if (this._tabPreloader && typeof this._tabPreloader.reset === 'function') {
+      this._tabPreloader.reset();
+    }
+  },
+
   async autoLogin() {
     const refreshToken = storage.get('refresh_token');
     if (refreshToken) {
@@ -122,12 +161,14 @@ App({
         }
         this.checkOnboardingStatus();
       }
-    } catch {
+    } catch (error) {
+      logger.warn('[autoLogin] wechat login failed', formatRequestError(error));
     }
   },
   checkOnboardingStatus() {
     const profile = storage.get('user_profile') || {};
     if (!profile.onboardingCompleted) {
+      this.resetTabPreload();
       // 新用户未完成引导，跳转到引导页
       wx.redirectTo({
         url: '/pages/onboarding/onboarding'

@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const logger = require('../../utils/logger');
 
 const PACKAGES = [
   { amount: 1, price: 100, priceText: '1.00' },
@@ -158,7 +159,7 @@ Page({
         },
       });
     } catch (err) {
-      console.error('Pay error:', err);
+      logger.error('Pay error:', err);
       wx.showToast({ title: '支付失败', icon: 'none' });
       this.setData({ paying: false });
     }

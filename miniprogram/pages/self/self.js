@@ -90,6 +90,94 @@ const DIMENSION_LIST = [
   { key: 'role', label: '社会角色' },
 ];
 
+// 12维心理维度评分配置：基于星盘行星、宫位、星座的占星学对应关系
+const DIMENSION_SCORING = {
+  emotion: {
+    keyPlanets: [{ name: 'Moon', weight: 1.5 }, { name: 'Neptune', weight: 1 }, { name: 'Pluto', weight: 0.7 }],
+    keyHouses: [4, 8, 12],
+    keySigns: ['Cancer', 'Scorpio', 'Pisces'],
+    elementAffinity: 'water',
+    modeAffinity: null,
+  },
+  boundary: {
+    keyPlanets: [{ name: 'Saturn', weight: 1.5 }, { name: 'Pluto', weight: 1 }, { name: 'Mars', weight: 0.7 }],
+    keyHouses: [1, 7, 10],
+    keySigns: ['Capricorn', 'Scorpio', 'Aquarius'],
+    elementAffinity: 'earth',
+    modeAffinity: 'cardinal',
+  },
+  security: {
+    keyPlanets: [{ name: 'Moon', weight: 1.5 }, { name: 'Saturn', weight: 1 }, { name: 'Venus', weight: 0.7 }],
+    keyHouses: [2, 4, 6],
+    keySigns: ['Cancer', 'Taurus', 'Virgo'],
+    elementAffinity: 'earth',
+    modeAffinity: 'fixed',
+  },
+  expression: {
+    keyPlanets: [{ name: 'Mercury', weight: 1.5 }, { name: 'Sun', weight: 1 }, { name: 'Jupiter', weight: 0.7 }],
+    keyHouses: [1, 3, 5],
+    keySigns: ['Gemini', 'Leo', 'Sagittarius'],
+    elementAffinity: 'air',
+    modeAffinity: 'mutable',
+  },
+  decision: {
+    keyPlanets: [{ name: 'Mars', weight: 1.5 }, { name: 'Saturn', weight: 1 }, { name: 'Mercury', weight: 0.7 }],
+    keyHouses: [1, 6, 10],
+    keySigns: ['Aries', 'Capricorn', 'Virgo'],
+    elementAffinity: 'fire',
+    modeAffinity: 'cardinal',
+  },
+  stress: {
+    keyPlanets: [{ name: 'Saturn', weight: 1.5 }, { name: 'Mars', weight: 1 }, { name: 'Pluto', weight: 0.7 }],
+    keyHouses: [6, 8, 12],
+    keySigns: ['Capricorn', 'Scorpio', 'Virgo'],
+    elementAffinity: 'earth',
+    modeAffinity: 'fixed',
+  },
+  love_language: {
+    keyPlanets: [{ name: 'Venus', weight: 1.5 }, { name: 'Moon', weight: 1 }, { name: 'Neptune', weight: 0.7 }],
+    keyHouses: [2, 5, 7],
+    keySigns: ['Taurus', 'Libra', 'Cancer'],
+    elementAffinity: 'water',
+    modeAffinity: null,
+  },
+  money: {
+    keyPlanets: [{ name: 'Venus', weight: 1.5 }, { name: 'Jupiter', weight: 1 }, { name: 'Saturn', weight: 0.7 }],
+    keyHouses: [2, 8, 10],
+    keySigns: ['Taurus', 'Capricorn', 'Scorpio'],
+    elementAffinity: 'earth',
+    modeAffinity: null,
+  },
+  growth: {
+    keyPlanets: [{ name: 'Jupiter', weight: 1.5 }, { name: 'North Node', weight: 1 }, { name: 'Chiron', weight: 0.7 }],
+    keyHouses: [9, 12, 1],
+    keySigns: ['Sagittarius', 'Pisces', 'Aquarius'],
+    elementAffinity: 'fire',
+    modeAffinity: 'mutable',
+  },
+  creativity: {
+    keyPlanets: [{ name: 'Neptune', weight: 1.5 }, { name: 'Uranus', weight: 1 }, { name: 'Venus', weight: 0.7 }],
+    keyHouses: [5, 11, 12],
+    keySigns: ['Pisces', 'Aquarius', 'Leo'],
+    elementAffinity: 'water',
+    modeAffinity: null,
+  },
+  intimacy: {
+    keyPlanets: [{ name: 'Venus', weight: 1.5 }, { name: 'Mars', weight: 1 }, { name: 'Pluto', weight: 0.7 }],
+    keyHouses: [5, 7, 8],
+    keySigns: ['Scorpio', 'Taurus', 'Cancer'],
+    elementAffinity: 'water',
+    modeAffinity: 'fixed',
+  },
+  role: {
+    keyPlanets: [{ name: 'Saturn', weight: 1.5 }, { name: 'Sun', weight: 1 }, { name: 'Jupiter', weight: 0.7 }],
+    keyHouses: [1, 6, 10],
+    keySigns: ['Capricorn', 'Leo', 'Aries'],
+    elementAffinity: 'fire',
+    modeAffinity: 'cardinal',
+  },
+};
+
 const DEEP_DOMAIN_LIST = [
   { id: 'career', title: '事业发展', desc: '职业DNA与赛道选择', icon: '/images/icons/career.svg', iconColor: 'var(--domain-career-fg)', iconBg: 'var(--domain-career-bg)' },
   { id: 'wealth', title: '财富金钱', desc: '财富体质与增长策略', icon: '/images/icons/career.svg', iconColor: 'var(--domain-wealth-fg)', iconBg: 'var(--domain-wealth-bg)' },
@@ -243,7 +331,7 @@ Page({
     detailContentCache: {},
     prefetchedContent: {}, // 从 /api/natal/full 预获取的 overview/coreThemes/dimension 内容
     statusBarHeight: 20,
-    navTitle: 'Self',
+    navTitle: '本我',
     // 年度报告任务状态
     annualTaskStatus: 'none', // none | pending | processing | completed | failed
     annualTaskProgress: 0,
@@ -261,6 +349,11 @@ Page({
     chartPositions: [],
     chartAspects: [],
     chartHouseCusps: [],
+
+    radarScores: [],
+    radarSummaryPrefix: '',
+    radarHighlight: '',
+    radarSummarySuffix: '',
 
     asteroids: [],
     houseRulers: [],
@@ -298,6 +391,9 @@ Page({
   onLoad() {
     const app = getApp();
     this.setData({ auditMode: !!(app && app.globalData && app.globalData.auditMode) });
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('self');
+    }
     const sysInfo = wx.getSystemInfoSync();
     const windowWidth = sysInfo.windowWidth;
     const padding = 128 * (windowWidth / 750);
@@ -316,6 +412,11 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('self');
+    }
+
     // 每次页面显示时检查报告权限（可能在其他页面购买了）
     this.checkAnnualReportAccess();
     this.checkNatalReportAccess();
@@ -414,6 +515,15 @@ Page({
   loadUserProfile() {
     const stored = storage.get('user_profile');
     this.userProfile = { ...DEFAULT_PROFILE, ...(stored || {}) };
+  },
+
+  getNatalChartCacheKey() {
+    const profile = this.userProfile || DEFAULT_PROFILE;
+    if (!profile || !profile.birthDate) return null;
+    const accuracy = profile.accuracyLevel || profile.accuracy || 'exact';
+    const lat = profile.lat === undefined ? '' : profile.lat;
+    const lon = profile.lon === undefined ? '' : profile.lon;
+    return `self_natal_chart_cache_${profile.birthDate}_${profile.birthTime || ''}_${profile.birthCity || ''}_${profile.timezone || ''}_${accuracy}_${lat}_${lon}`;
   },
 
   buildNatalParams() {
@@ -615,11 +725,26 @@ Page({
       .filter(Boolean);
   },
 
-  async fetchNatalChart() {
+  async fetchNatalChart(options = {}) {
     wx.showLoading({ title: 'Loading...' });
     try {
       const query = this.buildNatalParams();
-      const res = await request({ url: `${API_ENDPOINTS.NATAL_CHART}?${query}` });
+      const cacheKey = this.getNatalChartCacheKey();
+      let res = null;
+
+      if (!options.skipCache && cacheKey) {
+        const cached = storage.get(cacheKey);
+        if (cached && cached.chart) {
+          res = cached;
+        }
+      }
+
+      if (!res) {
+        res = await request({ url: `${API_ENDPOINTS.NATAL_CHART}?${query}` });
+        if (cacheKey && res && res.chart) {
+          storage.set(cacheKey, res);
+        }
+      }
       const chart = res?.chart;
       const positions = chart?.positions || [];
       const aspects = chart?.aspects || [];
@@ -637,6 +762,10 @@ Page({
       const asteroids = this.buildAsteroidList(positions);
       const houseRulers = this.buildHouseRulers(positions, houseCusps);
 
+      // 基于星盘数据计算12维心理评分和摘要
+      const radarScores = this.calculateDimensionScores(positions, aspects);
+      const summary = this.generateRadarSummary(radarScores);
+
       this.setData({
         planets,
         aspects,
@@ -647,14 +776,18 @@ Page({
         houseRulers,
         chartPositions: positions,
         chartAspects: aspects,
-        chartHouseCusps: houseCusps
+        chartHouseCusps: houseCusps,
+        radarScores,
+        radarSummaryPrefix: summary.prefix,
+        radarHighlight: summary.highlight,
+        radarSummarySuffix: summary.suffix,
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
         // 图谱渲染完成后，后台预取 AI 内容（不阻塞界面）
         this.fetchNatalFull();
       });
     } catch (err) {
-      console.error('Fetch natal chart failed', err);
+      logger.error('Fetch natal chart failed', err);
       wx.showToast({ title: '数据获取失败', icon: 'none' });
       this.setData({
         planets: [],
@@ -671,7 +804,11 @@ Page({
         houseRulers: [],
         chartPositions: [],
         chartAspects: [],
-        chartHouseCusps: []
+        chartHouseCusps: [],
+        radarScores: [],
+        radarSummaryPrefix: '',
+        radarHighlight: '',
+        radarSummarySuffix: '',
       });
     } finally {
       wx.hideLoading();
@@ -757,6 +894,137 @@ Page({
     storage.set(cacheKey, { content });
   },
 
+  /**
+   * 根据星盘数据计算12维心理维度评分
+   * 每个维度基于关键行星的星座落位、宫位落位、相位关系、
+   * 元素亲和力和模态亲和力综合计算
+   */
+  calculateDimensionScores(positions, aspects) {
+    if (!positions || positions.length === 0) return [];
+
+    // Fix #2: 预建相位索引，避免每个维度×每个行星都遍历整个 aspects 数组
+    const aspectIndex = {};
+    (aspects || []).forEach(a => {
+      if (!aspectIndex[a.planet1]) aspectIndex[a.planet1] = [];
+      if (!aspectIndex[a.planet2]) aspectIndex[a.planet2] = [];
+      aspectIndex[a.planet1].push(a);
+      aspectIndex[a.planet2].push(a);
+    });
+
+    // Fix #1: 预计算主要行星的元素/模态分布，供亲和力加分使用
+    const majorPositions = positions.filter(p => MAJOR_PLANETS.includes(p.name));
+    const elementCounts = { fire: 0, earth: 0, air: 0, water: 0 };
+    const modeCounts = { cardinal: 0, fixed: 0, mutable: 0 };
+    majorPositions.forEach(p => {
+      const el = ELEMENT_MAP[p.sign];
+      const mo = MODE_MAP[p.sign];
+      if (el) elementCounts[el]++;
+      if (mo) modeCounts[mo]++;
+    });
+
+    const rawScores = DIMENSION_LIST.map(dim => {
+      const config = DIMENSION_SCORING[dim.key];
+      if (!config) return 50;
+
+      let score = 50;
+
+      config.keyPlanets.forEach(({ name: planetName, weight }) => {
+        const pos = positions.find(p => p.name === planetName);
+        if (!pos) return;
+
+        // 行星落在关键星座：强化该维度
+        if (config.keySigns.includes(pos.sign)) {
+          score += 6 * weight;
+        }
+
+        // 行星落在关键宫位：强化该维度
+        if (config.keyHouses.includes(pos.house)) {
+          score += 4 * weight;
+        }
+
+        // 相位影响：仅计前3个最强相位，避免相位数量膨胀
+        const planetAspects = aspectIndex[planetName] || [];
+        const sorted = planetAspects.slice().sort((a, b) => {
+          const order = { conjunction: 0, trine: 1, sextile: 2, square: 3, opposition: 4 };
+          return (order[a.type] ?? 5) - (order[b.type] ?? 5);
+        });
+        const capped = sorted.slice(0, 3);
+        capped.forEach(a => {
+          if (a.type === 'trine' || a.type === 'sextile') {
+            score += 1.5 * weight;
+          } else if (a.type === 'conjunction') {
+            score += 2 * weight;
+          } else if (a.type === 'square' || a.type === 'opposition') {
+            score += 0.5 * weight;
+          }
+        });
+      });
+
+      // 元素亲和力 — 盘中该元素行星越多，对应维度越强
+      if (config.elementAffinity && elementCounts[config.elementAffinity]) {
+        score += elementCounts[config.elementAffinity] * 1.5;
+      }
+
+      // 模态亲和力 — 盘中该模态行星越多，对应维度越强
+      if (config.modeAffinity && modeCounts[config.modeAffinity]) {
+        score += modeCounts[config.modeAffinity] * 1;
+      }
+
+      return score;
+    });
+
+    // Fix #3: 保存原始浮点分数供 generateRadarSummary 做精确比较
+    this._rawRadarScores = rawScores;
+
+    // 截断到 30-95 用于雷达图展示
+    return rawScores.map(s => Math.max(30, Math.min(95, Math.round(s))));
+  },
+
+  /**
+   * 根据12维评分生成动态摘要文字
+   * 返回 { prefix, highlight, suffix } 用于模板拼接
+   */
+  generateRadarSummary(scores) {
+    if (!scores || scores.length !== 12) {
+      return { prefix: '', highlight: '', suffix: '' };
+    }
+
+    // Fix #3: 使用未截断的原始浮点分数寻找 max/min，精度更高避免平局
+    const raw = this._rawRadarScores || scores;
+    const labels = DIMENSION_LIST.map(d => d.label);
+    let maxIdx = 0, minIdx = 0;
+    for (let i = 1; i < raw.length; i++) {
+      if (raw[i] > raw[maxIdx]) maxIdx = i;
+      if (raw[i] < raw[minIdx]) minIdx = i;
+    }
+
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + (s - avg) ** 2, 0) / scores.length;
+    const stdDev = Math.sqrt(variance);
+
+    const highlight = labels[maxIdx];
+    const lowLabel = labels[minIdx];
+
+    // 所有维度同分时的保护
+    if (maxIdx === minIdx) {
+      return { prefix: '整体能量分布均衡，各维度发展较为', highlight: '平衡', suffix: '，是难得的稳定状态。' };
+    }
+
+    let prefix, suffix;
+    if (stdDev < 8) {
+      prefix = '整体能量分布均衡，其中';
+      suffix = `维度表现突出，${lowLabel}维度有进一步提升空间。`;
+    } else if (stdDev > 15) {
+      prefix = '能量分布有明显侧重，';
+      suffix = `是你的核心优势，可以多关注${lowLabel}的发展与平衡。`;
+    } else {
+      prefix = '整体能量较为均衡，其中';
+      suffix = `最为突出，建议多关注${lowLabel}维度的成长。`;
+    }
+
+    return { prefix, highlight, suffix };
+  },
+
   drawRadarChart(canvasId, size, retryCount = 0) {
     const query = wx.createSelectorQuery();
     query.select('#' + canvasId)
@@ -789,7 +1057,9 @@ Page({
         const cy = height / 2;
         const r = Math.min(width, height) / 2 - 45;
         ctx.clearRect(0, 0, width, height);
-        const data = [85, 78, 90, 72, 60, 88, 65, 75, 95, 70, 80, 85];
+        const data = this.data.radarScores && this.data.radarScores.length === 12
+          ? this.data.radarScores
+          : [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50];
         const labels = (this.data.dimensionList || DIMENSION_LIST).map(item => item.label);
         const total = 12;
         ctx.strokeStyle = CANVAS_COLORS.grid;
@@ -942,7 +1212,7 @@ Page({
         await this._createNatalTask(birthData);
       }
     } catch (error) {
-      console.error('Create task error:', error);
+      logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
       this.setData({ paymentLoading: false });
@@ -1265,7 +1535,7 @@ Page({
   },
 
   closeDetailReport() {
-    this.setData({ showDetailReport: false, detailReportData: null, navTitle: 'Self' }, () => {
+    this.setData({ showDetailReport: false, detailReportData: null, navTitle: '本我' }, () => {
       // 弹窗关闭后重新绘制雷达图
       setTimeout(() => this.drawRadarChart('radarChart', this.data.radarSize), 50);
     });
@@ -1953,7 +2223,7 @@ Page({
         navTitle: reportData.title || '太阳解读'
       });
     } catch (err) {
-      console.error('Fetch self detail failed', err);
+      logger.error('Fetch self detail failed', err);
       wx.showToast({ title: '内容加载失败，请稍后重试', icon: 'none' });
     } finally {
       wx.hideLoading();

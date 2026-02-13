@@ -1,6 +1,7 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 // ===== AI 响应解析工具 =====
 function stripMarkdown(obj) {
@@ -31,7 +32,7 @@ function parseAIResponse(text) {
     const parsed = JSON.parse(cleaned);
     return stripMarkdown(parsed);
   } catch {
-    console.error('Failed to parse AI response as JSON:', cleaned.substring(0, 200));
+    logger.error('Failed to parse AI response as JSON:', cleaned.substring(0, 200));
     return null;
   }
 }
@@ -326,7 +327,7 @@ Page({
         this.setData({ calendarDays: updatedDays });
       }
     } catch (err) {
-      console.error('Failed to fetch history', err);
+      logger.error('Failed to fetch history', err);
     }
   },
 
@@ -558,7 +559,7 @@ Page({
       // 保存记录
       this.saveRecord(moodsPayload, sceneConfig, sleepConfig, bodyPayload);
     } catch (error) {
-      console.error('Analysis Error:', error);
+      logger.error('Analysis Error:', error);
       this.setData({
         reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，请稍后重试。' }] },
       });
@@ -601,7 +602,7 @@ Page({
         }
       });
     } catch (err) {
-      console.error('Failed to save record', err);
+      logger.error('Failed to save record', err);
     }
   },
 

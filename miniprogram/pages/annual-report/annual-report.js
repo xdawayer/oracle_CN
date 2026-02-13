@@ -7,6 +7,7 @@
 
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const logger = require('../../utils/logger');
 
 /**
  * HTML 转义函数，防止 XSS 攻击
@@ -331,7 +332,7 @@ Page({
         this._startPolling();
       }
     } catch (error) {
-      console.error('Check task status failed:', error);
+      logger.error('Check task status failed:', error);
       this.setData({
         loading: false,
         error: '检查任务状态失败: ' + (error.message || '网络错误'),
@@ -392,7 +393,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('Load report content failed:', error);
+      logger.error('Load report content failed:', error);
       // 不设置 error，允许继续轮询
       this.setData({
         loading: this.data.taskStatus === 'processing',
@@ -443,7 +444,7 @@ Page({
           }
         }
       } catch (error) {
-        console.error('Poll status failed:', error);
+        logger.error('Poll status failed:', error);
         // 继续轮询，不停止
       }
     }, this.POLL_INTERVAL);

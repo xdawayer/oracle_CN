@@ -117,6 +117,13 @@
   color: var(--ink-deep);
 }
 
+.pending-tip {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--ink-light);
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
 .score-display {
   display: flex;
   align-items: baseline;
@@ -1320,6 +1327,72 @@
 .monthly-banner.month-10 { background: #4a4e57; } /* 铅灰 */
 .monthly-banner.month-11 { background: #3a3d44; } /* 石墨灰 */
 .monthly-banner.month-12 { background: #2e3038; } /* 墨灰 */
+
+/* ========== 骨架屏 ========== */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+}
+
+.skeleton-card {
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+}
+
+.skeleton-block {
+  background: var(--ink-wash-2);
+  border-radius: 4rpx;
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+}
+
+.skeleton-date {
+  width: 180rpx;
+  height: 40rpx;
+  margin-top: 8rpx;
+}
+
+.skeleton-score {
+  width: 100rpx;
+  height: 80rpx;
+  border-radius: 8rpx;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 28rpx;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-line-short {
+  width: 65%;
+}
+
+.skeleton-chip {
+  width: 72rpx;
+  height: 28rpx;
+}
+
+.skeleton-bar {
+  width: 60%;
+  height: 4rpx;
+  border-radius: 2rpx;
+}
+
+.skeleton-score-sm {
+  width: 60rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.skeleton-advice-title {
+  width: 200rpx;
+  height: 24rpx;
+}
+
+.skeleton-time-range {
+  width: 140rpx;
+  height: 22rpx;
+}
 
 /* Loading / Error */
 .loading-text {

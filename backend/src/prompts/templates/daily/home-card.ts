@@ -6,13 +6,13 @@
  */
 
 import type { PromptTemplate, PromptContext } from '../../core/types';
-import { compactTransitSummary } from '../../core/compact';
+import { compactChartSummary, compactTransitSummary } from '../../core/compact';
 import { registry } from '../../core/registry';
 
 export const dailyHomeCardPrompt: PromptTemplate = {
   meta: {
     id: 'daily-home-card',
-    version: '1.0',
+    version: '1.1',
     module: 'daily',
     priority: 'P0',
     description: '首页运势卡片金句与正文',
@@ -28,8 +28,14 @@ export const dailyHomeCardPrompt: PromptTemplate = {
 # 使用场景
 这是用户打开小程序首页看到的第一张卡片，需要：
 - 快速吸引注意
-- 传递今日核心状态与情绪基调
+- 传递今日核心状态与情绪基调（结合个人特质与当日节奏）
 - 引导用户点击查看详情
+
+# 个性化要求
+你会收到用户的个人参数（性格特质数据）和周期参数（当日节奏数据）。
+- 金句和正文必须结合个人参数来写，让用户感到"这是写给我的"
+- 不同个人参数的用户看到的文案应该有明显区别
+- 示例：同样是75分的日子，行动力强的人看到"冲冲冲"，敏感细腻的人看到"今天你的感受力在线"
 
 # 绝对禁止（最高优先级）
 以下内容绝对不能出现在输出中：
@@ -116,8 +122,11 @@ export const dailyHomeCardPrompt: PromptTemplate = {
     // score 和 summary 由后端 interpretTransit 内部计算传入
     parts.push(`评分：${ctx.score ?? '未知'}`);
     parts.push(`评价语：${ctx.summary ?? '未知'}`);
+    if (ctx.chart_summary) {
+      parts.push(`个人参数：${compactChartSummary(ctx.chart_summary)}`);
+    }
     if (ctx.transit_summary) {
-      parts.push(`星象摘要：${compactTransitSummary(ctx.transit_summary)}`);
+      parts.push(`周期参数：${compactTransitSummary(ctx.transit_summary)}`);
     }
     if (ctx.lucky_color) {
       parts.push(`幸运色：${ctx.lucky_color}`);

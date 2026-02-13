@@ -8,6 +8,7 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 /**
  * HTML 转义函数，防止 XSS 攻击
@@ -313,7 +314,7 @@ Page({
         this.setData({ moduleList, moduleStatus });
       }
     } catch (error) {
-      console.error('Load module meta failed:', error);
+      logger.error('Load module meta failed:', error);
       // 使用硬编码 fallback 模块列表
       const FALLBACK_MODULES = {
         'natal-report': [
@@ -428,7 +429,7 @@ Page({
         this._startPolling();
       }
     } catch (error) {
-      console.error('Check task status failed:', error);
+      logger.error('Check task status failed:', error);
       this.setData({
         loading: false,
         error: '检查任务状态失败: ' + (error.message || '网络错误'),
@@ -492,7 +493,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('Load report content failed:', error);
+      logger.error('Load report content failed:', error);
       this.setData({
         loading: this.data.taskStatus === 'processing',
         progressText: '加载内容失败，继续等待...',
@@ -549,7 +550,7 @@ Page({
         }
       }
     } catch (error) {
-      console.error('Poll status failed:', error);
+      logger.error('Poll status failed:', error);
     }
 
     // 继续下一轮轮询

@@ -5,7 +5,8 @@
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
 const storage = require('../../utils/storage');
-const { isDev } = require('../../utils/logger');
+const logger = require('../../utils/logger');
+const { isDev } = logger;
 
 /**
  * 递归清理对象中所有字符串的 Markdown 标记（**、*、#等）
@@ -339,7 +340,7 @@ Page({
         this.fetchLifeScrollReport();
       }
     } catch (err) {
-      console.error('获取K线数据失败:', err);
+      logger.error('获取K线数据失败:', err);
       this.setData({ loading: false });
       // 显示错误提示，但不影响本地数据预览
       wx.showToast({ title: '数据同步失败，显示本地预览', icon: 'none', duration: 2000 });
@@ -481,7 +482,7 @@ Page({
         this.setData({ yearReportLoading: false, yearReportError: true });
       }
     } catch (err) {
-      console.error('年度报告获取失败:', err);
+      logger.error('年度报告获取失败:', err);
       this.setData({ yearReportLoading: false, yearReportError: true });
     }
   },
@@ -518,7 +519,7 @@ Page({
         this.setData({ lifeScrollLoading: false, lifeScrollError: true });
       }
     } catch (err) {
-      console.error('人生长卷获取失败:', err);
+      logger.error('人生长卷获取失败:', err);
       this.setData({ lifeScrollLoading: false, lifeScrollError: true });
     }
   },

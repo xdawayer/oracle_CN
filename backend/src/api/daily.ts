@@ -89,14 +89,14 @@ const stripAspectPrefix = (n: string) => n.replace(/^[TN]-/, '');
 
 /** 基于行运数据计算首页评分和摘要（与前端保持一致） */
 function interpretTransit(transits: { positions: PlanetPosition[]; aspects: any[] }): {
-  summary: string; description: string; score: number; luckyColor: string;
+  summary: string; description: string; score: number;
 } {
   const positions = transits.positions || [];
   const aspects = transits.aspects || [];
 
   const moonPos = positions.find((p: any) => p.name === 'Moon');
-  const moonSign = moonPos?.sign;
-  const theme = (moonSign && MOON_THEME[moonSign]) || MOON_THEME.Aries;
+  const moonSign = moonPos?.sign || 'Aries';
+  const theme = MOON_THEME[moonSign] || MOON_THEME.Aries;
 
   const hints: { text: string; score: number }[] = [];
   for (const a of aspects) {
@@ -117,7 +117,62 @@ function interpretTransit(transits: { positions: PlanetPosition[]; aspects: any[
   const summary = theme.title;
   const description = bestHint ? bestHint.text : theme.desc;
 
-  return { summary, description, score, luckyColor: theme.color };
+  return { summary, description, score };
+}
+
+// === 幸运数字：行星数理学（Planetary Numerology） ===
+// Sun=1, Moon=2, Jupiter=3, Uranus=4, Mercury=5, Venus=6, Neptune=7, Saturn=8, Mars=9
+const PLANET_NUMBER: Record<string, number> = {
+  Sun: 1, Moon: 2, Jupiter: 3, Uranus: 4, Mercury: 5,
+  Venus: 6, Neptune: 7, Saturn: 8, Mars: 9, Pluto: 9,
+};
+
+// === 吉位：元素方位体系（四元素 × 八方位） ===
+// 火→南 土→西 风→东 水→北；细分方位由太阳星座元素交叉决定
+const SIGN_ELEMENT: Record<string, string> = {
+  Aries: 'fire', Taurus: 'earth', Gemini: 'air', Cancer: 'water',
+  Leo: 'fire', Virgo: 'earth', Libra: 'air', Scorpio: 'water',
+  Sagittarius: 'fire', Capricorn: 'earth', Aquarius: 'air', Pisces: 'water',
+};
+
+// 主方位（月亮星座元素决定）
+const ELEMENT_DIRECTION: Record<string, string> = {
+  fire: '南方', earth: '西方', air: '东方', water: '北方',
+};
+
+// 细分方位：月亮元素主导主方位，太阳元素交叉细分出八方位
+const CROSS_DIRECTION: Record<string, Record<string, string>> = {
+  fire:  { fire: '南方', earth: '西南', air: '东南', water: '南方' },
+  earth: { fire: '西南', earth: '西方', air: '西方', water: '西北' },
+  air:   { fire: '东南', earth: '东方', air: '东方', water: '东北' },
+  water: { fire: '北方', earth: '西北', air: '东北', water: '北方' },
+};
+
+/** 基于日月星座计算确定性幸运值（轻量版，不遍历 aspects） */
+function computeLuckyFromSigns(moonSign: string, sunSign: string) {
+  const moonRuler = MODERN_RULERS[moonSign] || 'Mars';
+  const luckyNumber = (PLANET_NUMBER[moonRuler] || 1).toString();
+  const moonElement = SIGN_ELEMENT[moonSign] || 'fire';
+  const sunElement = SIGN_ELEMENT[sunSign] || 'fire';
+  const luckyDirection = CROSS_DIRECTION[moonElement]?.[sunElement]
+    || ELEMENT_DIRECTION[moonElement]
+    || '南方';
+  const luckyColor = (MOON_THEME[moonSign] || MOON_THEME.Aries).color;
+  return { color: luckyColor, number: luckyNumber, direction: luckyDirection };
+}
+
+/** 基于行运数据计算确定性幸运值 + 评分摘要（完整版，/transit 端点用） */
+function computeLucky(transits: { positions: PlanetPosition[]; aspects: any[] }) {
+  const interpreted = interpretTransit(transits);
+  const lucky = computeLuckyFromPositions(transits.positions);
+  return { ...lucky, interpreted };
+}
+
+/** 从行运位置中提取日月星座并计算幸运值（/full、/full/stream 端点用） */
+function computeLuckyFromPositions(positions: PlanetPosition[]) {
+  const moonPos = positions.find((p: any) => p.name === 'Moon');
+  const sunPos = positions.find((p: any) => p.name === 'Sun');
+  return computeLuckyFromSigns(moonPos?.sign || 'Aries', sunPos?.sign || 'Aries');
 }
 
 function buildHouseRulers(positions: PlanetPosition[]) {
@@ -244,7 +299,7 @@ dailyRouter.get('/', async (req, res) => {
   }
 });
 
-// GET /api/daily/transit - 行运计算数据 + 可选 AI 首页卡片内容
+// GET /api/daily/transit - 纯确定性行运计算数据（无 AI 调用）
 dailyRouter.get('/transit', async (req, res) => {
   try {
     const requestStart = performance.now();
@@ -260,7 +315,6 @@ dailyRouter.get('/transit', async (req, res) => {
     if (isNaN(date.getTime())) {
       date = new Date();
     }
-    const dateStr = date.toISOString().split('T')[0];
 
     const coreStart = performance.now();
     const [chart, transits] = await Promise.all([
@@ -277,62 +331,7 @@ dailyRouter.get('/transit', async (req, res) => {
     };
 
     // 后端内部计算评分和摘要（与前端保持一致的算法）
-    const interpreted = interpretTransit(transits);
-
-    // 基于日期的稳定伪随机（用于幸运数字和方位）
-    let dayHash = 0;
-    for (let i = 0; i < dateStr.length; i++) {
-      dayHash = ((dayHash << 5) - dayHash + dateStr.charCodeAt(i)) | 0;
-    }
-    dayHash = Math.abs(dayHash);
-    const directions = ['北方', '南方', '东方', '西方', '东北', '东南', '西北', '西南'];
-    const luckyNumber = ((dayHash % 9) + 1).toString();
-    const luckyDirection = directions[(dayHash + 3) % 8];
-
-    // 并行尝试 AI 生成首页卡片内容（5秒超时，失败静默）
-    let homeCard: { quote: string; body: string } | null = null;
-    const abortController = new AbortController();
-    try {
-      const chartSummary = buildCompactChartSummary(chart);
-      const transitSummary = buildCompactTransitSummary(transits);
-
-      const timeoutId = setTimeout(() => abortController.abort(), 5000);
-
-      const userAge = calculateAge(birth.date);
-      const userAgeGroup = getAgeGroup(userAge);
-      const aiResult = await Promise.race([
-        generateAIContent({
-          promptId: 'daily-home-card',
-          context: {
-            transit_summary: transitSummary,
-            chart_summary: chartSummary,
-            date: dateStr,
-            score: interpreted.score,
-            summary: interpreted.summary,
-            lucky_color: interpreted.luckyColor,
-            lucky_number: luckyNumber,
-            lucky_direction: luckyDirection,
-            userAge,
-            userAgeGroup,
-            userBirthDate: birth.date,
-          },
-          lang: 'zh',
-          maxTokens: 400,
-        }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-      ]);
-
-      clearTimeout(timeoutId);
-
-      if (aiResult && aiResult.content) {
-        const content = aiResult.content as any;
-        if (content.quote && content.body) {
-          homeCard = { quote: content.quote, body: content.body };
-        }
-      }
-    } catch {
-      // AI 失败静默，homeCard 保持 null
-    }
+    const { color: luckyColor, number: luckyNumber, direction: luckyDirection, interpreted } = computeLucky(transits);
 
     const totalMs = performance.now() - requestStart;
     res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
@@ -341,13 +340,13 @@ dailyRouter.get('/transit', async (req, res) => {
       natal: chart,
       transits,
       technical,
-      homeCard,
+      homeCard: null, // TODO: 前端不再读取此字段，待旧版本淘汰后移除
       // 后端计算的评分数据，前端可直接使用
       interpreted: {
         score: interpreted.score,
         summary: interpreted.summary,
         description: interpreted.description,
-        luckyColor: interpreted.luckyColor,
+        luckyColor: luckyColor,
         luckyNumber: luckyNumber,
         luckyDirection: luckyDirection,
       },
@@ -480,10 +479,14 @@ dailyRouter.get('/full', async (req, res) => {
       cross_aspects: transits.aspects,
     };
 
+    // 8. 确定性幸运值（与 /transit 端点一致，轻量版不遍历 aspects）
+    const lucky = computeLuckyFromPositions(transits.positions);
+
     res.json({
       chart: { natal: chart, transits, technical },
       forecast: contents['daily-forecast'] ?? null,
       detail: contents['daily-detail'] ?? null,
+      lucky,
       timing: {
         coreMs: Math.round(coreMs),
         aiMs: Math.round(aiMs),
@@ -563,10 +566,14 @@ dailyRouter.get('/full/stream', async (req, res) => {
       cross_aspects: transits.aspects,
     };
 
+    // 确定性幸运值（与 /transit 端点一致，轻量版不遍历 aspects）
+    const luckyStream = computeLuckyFromPositions(transits.positions);
+
     if (!disconnected) {
       writeSSE(res, {
         type: 'meta',
         chart: { natal: chart, transits, technical },
+        lucky: luckyStream,
         timing: { coreMs: Math.round(coreMs) },
       });
     }

@@ -39,11 +39,11 @@
 
     <!-- 统计卡片 -->
     <view class="stats-card ink-border">
-      <view class="stat-item" bindtap="goToPoints" wx:if="{{!auditMode}}">
+      <view class="stat-item" bindtap="goToPoints">
         <text class="stat-value font-ancient">{{userProfile.points || 0}}</text>
         <text class="stat-label">积分</text>
       </view>
-      <view class="stat-divider" wx:if="{{!auditMode}}"></view>
+      <view class="stat-divider"></view>
       <view class="stat-item" bindtap="goToReports">
         <text class="stat-value font-ancient">{{userProfile.reportCount || 0}}</text>
         <text class="stat-label">收藏</text>

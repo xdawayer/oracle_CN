@@ -194,8 +194,12 @@ router.post('/wechat', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('WeChat login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('WeChat login error:', message, error);
+    const isWechatNetworkError = message.includes('WeChat API network error');
+    const isWechatApiError = message.includes('WeChat API');
+    const statusCode = isWechatNetworkError ? 502 : isWechatApiError ? 400 : 500;
+    res.status(statusCode).json({ error: 'Login failed', detail: message });
   }
 });
 

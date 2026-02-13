@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 const AREA_NAMES = {
   career: '事业',
@@ -70,7 +71,7 @@ Page({
         }
       });
     } catch (error) {
-      console.error('Failed to fetch wiki items:', error);
+      logger.error('Failed to fetch wiki items:', error);
       wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       this.setData({ isLoading: false });
@@ -146,7 +147,7 @@ Page({
         this.setData({ selectedItem: summary, detailSections });
       }
     } catch (error) {
-      console.error('Failed to fetch wiki detail:', error);
+      logger.error('Failed to fetch wiki detail:', error);
       wx.showToast({ title: '加载失败', icon: 'none' });
       if (summary) {
         const detailSections = this.buildDetailSections(summary);

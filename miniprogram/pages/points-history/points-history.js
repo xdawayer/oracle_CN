@@ -1,4 +1,5 @@
 const { request } = require('../../utils/request');
+const logger = require('../../utils/logger');
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -49,7 +50,7 @@ Page({
         this.setData({ loading: false, hasMore: false });
       }
     } catch (err) {
-      console.error('Fetch points history error:', err);
+      logger.error('Fetch points history error:', err);
       this.setData({ loading: false });
     }
   },

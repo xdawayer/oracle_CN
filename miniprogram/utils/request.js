@@ -1,8 +1,31 @@
 const storage = require('./storage');
+const logger = require('./logger');
 
 const DEFAULT_BASE_URL = 'https://express-wb6g-225568-8-1404386472.sh.run.tcloudbase.com';
+// 本地开发时使用本地后端，扫码真机预览需使用云托管地址
 const DEFAULT_DEV_BASE_URL = 'http://127.0.0.1:3001';
 const DEFAULT_TIMEOUT_MS = 120000;
+
+// ---- 微信云托管 callContainer 配置（绕过域名白名单限制）----
+const CLOUD_HOSTING_ENV = 'prod-6gnh6drs7858f443';
+const CLOUD_HOSTING_SERVICE = 'express-wb6g';
+
+let _cloudReady = false;
+let _cloudFailedUntil = 0; // 云托管失败后冷却到此时间戳，期间跳过 cloud
+const CLOUD_COOLDOWN_MS = 60000; // 失败后冷却 60 秒再重试 cloud
+const _useCloud = () => {
+  // 本地开发时跳过云托管，直接走 wx.request 打 localhost
+  if (getEnvVersion() === 'develop') return false;
+  if (_cloudFailedUntil > Date.now()) return false;
+  if (_cloudReady) return true;
+  try {
+    if (!wx.cloud || !wx.cloud.callContainer) return false;
+    _cloudReady = true;
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const getEnvVersion = () => {
   try {
@@ -49,12 +72,60 @@ const normalizeTokens = (data) => {
   return null;
 };
 
-const wxRequest = (options) => new Promise((resolve, reject) => {
+const _directRequest = (options, resolve, reject) => {
   wx.request({
     ...options,
     success: resolve,
     fail: reject,
   });
+};
+
+const CLOUD_TIMEOUT_MS = 8000; // 云托管最多等 8 秒（留够冷启动时间），超时即降级
+
+const wxRequest = (options) => new Promise((resolve, reject) => {
+  if (_useCloud()) {
+    let path = options.url || '';
+    const base = getBaseUrl();
+    if (path.startsWith(base)) {
+      path = path.slice(base.length);
+    }
+
+    let settled = false;
+    const fallback = (reason) => {
+      if (settled) return;
+      settled = true;
+      // 进入冷却期，期间跳过 cloud；冷却结束后自动重试
+      _cloudFailedUntil = Date.now() + CLOUD_COOLDOWN_MS;
+      logger.warn('[request] callContainer ' + reason + ', fallback to wx.request (cooldown 60s)');
+      _directRequest(options, resolve, reject);
+    };
+
+    // 云调用超时保护
+    const timer = setTimeout(() => fallback('timeout'), CLOUD_TIMEOUT_MS);
+
+    wx.cloud.callContainer({
+      config: { env: CLOUD_HOSTING_ENV },
+      path,
+      method: options.method || 'GET',
+      data: options.data,
+      header: {
+        'X-WX-SERVICE': CLOUD_HOSTING_SERVICE,
+        ...(options.header || {}),
+      },
+      success: (res) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(res);
+      },
+      fail: (err) => {
+        clearTimeout(timer);
+        fallback('failed: ' + (err.errMsg || err));
+      },
+    });
+    return;
+  }
+  _directRequest(options, resolve, reject);
 });
 
 const refreshAccessToken = async () => {
@@ -114,6 +185,37 @@ const _requestFingerprint = (url, method, data) => {
   }
 };
 
+const _extractServerErrorMessage = (data) => {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  if (typeof data !== 'object') return '';
+  return data.detail || data.error || data.message || '';
+};
+
+const _normalizeRequestError = (error, requestOptions) => {
+  if (error instanceof Error && error.name === 'RequestError') {
+    return error;
+  }
+
+  const statusCode = error && typeof error.statusCode === 'number' ? error.statusCode : undefined;
+  const data = error && typeof error === 'object' && Object.prototype.hasOwnProperty.call(error, 'data')
+    ? error.data
+    : undefined;
+  const serverMessage = _extractServerErrorMessage(data);
+  const fallback = error && typeof error.errMsg === 'string' ? error.errMsg : '';
+  const message = serverMessage || fallback || (statusCode ? `Request failed (${statusCode})` : 'Request failed');
+
+  const normalized = new Error(message);
+  normalized.name = 'RequestError';
+  normalized.statusCode = statusCode;
+  normalized.data = data;
+  normalized.url = requestOptions.url;
+  normalized.method = requestOptions.method;
+  normalized.errMsg = fallback;
+  normalized.response = error;
+  return normalized;
+};
+
 const _requestInternal = async (options) => {
   const {
     url,
@@ -147,19 +249,19 @@ const _requestInternal = async (options) => {
       if (retryResponse.statusCode >= 200 && retryResponse.statusCode < 300) {
         return retryResponse.data;
       }
-      throw retryResponse;
+      throw _normalizeRequestError(retryResponse, requestOptions);
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response.data;
     }
 
-    throw response;
+    throw _normalizeRequestError(response, requestOptions);
   } catch (error) {
     if (retry > 0) {
       return _requestInternal({ ...options, retry: retry - 1 });
     }
-    throw error;
+    throw _normalizeRequestError(error, requestOptions);
   }
 };
 
@@ -254,6 +356,100 @@ const _checkUTF8Tail = (bytes) => {
   return available < expected ? available : 0;
 };
 
+const _downgradeStreamUrl = (url) => {
+  if (typeof url !== 'string') return url;
+  return url.replace(/\/stream(?=\?|$)/, '');
+};
+
+const _emitParsedSsePayload = (payload, handlers) => {
+  const { onMeta, onChunk, onModule, onError } = handlers;
+  if (!payload || payload === '[DONE]') return payload === '[DONE]';
+
+  try {
+    const parsed = JSON.parse(payload);
+    if (parsed.type === 'meta' && onMeta) {
+      onMeta(parsed);
+    } else if (parsed.type === 'chunk' && onChunk) {
+      onChunk(parsed.text || '');
+    } else if (parsed.type === 'module' && onModule) {
+      onModule(parsed);
+    } else if (parsed.type === 'error' && onError) {
+      onError(new Error(parsed.message || 'stream error'));
+    } else if (parsed.type === 'done') {
+      return true;
+    }
+  } catch {
+    if (onChunk) onChunk(payload);
+  }
+
+  return false;
+};
+
+const _emitFromSseText = (text, handlers) => {
+  if (typeof text !== 'string' || !text) return false;
+  let sawSseData = false;
+  let done = false;
+
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith('data:')) continue;
+    sawSseData = true;
+    const payload = trimmed.slice(5).trim();
+    if (_emitParsedSsePayload(payload, handlers)) {
+      done = true;
+      break;
+    }
+  }
+
+  return sawSseData || done;
+};
+
+const _emitFromFullJson = (res, handlers) => {
+  const { onMeta, onChunk, onModule } = handlers;
+  if (!res || typeof res !== 'object') return false;
+
+  if (Object.prototype.hasOwnProperty.call(res, 'content')) {
+    if (onMeta) onMeta({ type: 'meta', chart: res.chart, transits: res.transits, chartType: res.chartType, lang: res.lang });
+    if (onChunk && res.content !== undefined && res.content !== null) {
+      onChunk(typeof res.content === 'string' ? res.content : JSON.stringify(res.content));
+    }
+    return true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(res, 'forecast')
+      || Object.prototype.hasOwnProperty.call(res, 'detail')
+      || Object.prototype.hasOwnProperty.call(res, 'chart')) {
+    if (onMeta && res.chart) onMeta({ type: 'meta', chart: res.chart, lucky: res.lucky, lang: res.lang });
+    if (onModule && res.forecast) onModule({ type: 'module', moduleId: 'forecast', content: res.forecast });
+    if (onModule && res.detail) onModule({ type: 'module', moduleId: 'detail', content: res.detail });
+    return true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(res, 'coreThemes')
+      || Object.prototype.hasOwnProperty.call(res, 'dimension')
+      || (res.overview && typeof res.overview === 'object' && Object.prototype.hasOwnProperty.call(res.overview, 'content'))) {
+    if (onModule && res.overview) onModule({ type: 'module', moduleId: 'overview', content: res.overview.content || res.overview });
+    if (onModule && res.coreThemes) onModule({ type: 'module', moduleId: 'coreThemes', content: res.coreThemes.content || res.coreThemes });
+    if (onModule && res.dimension) onModule({ type: 'module', moduleId: 'dimension', content: res.dimension.content || res.dimension });
+    return true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(res, 'coreDynamics')
+      || Object.prototype.hasOwnProperty.call(res, 'highlights')
+      || Object.prototype.hasOwnProperty.call(res, 'chartA')
+      || Object.prototype.hasOwnProperty.call(res, 'chartB')
+      || Object.prototype.hasOwnProperty.call(res, 'synastryCore')) {
+    if (onMeta) onMeta({ type: 'meta', chartA: res.chartA, chartB: res.chartB, synastryCore: res.synastryCore || {}, lang: res.lang });
+    if (onModule && res.overview) onModule({ type: 'module', moduleId: 'overview', content: res.overview });
+    if (onModule && res.coreDynamics) onModule({ type: 'module', moduleId: 'coreDynamics', content: res.coreDynamics });
+    if (onModule && res.highlights) onModule({ type: 'module', moduleId: 'highlights', content: res.highlights });
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * SSE 流式请求
  * @param {Object} options
@@ -289,23 +485,32 @@ const requestStream = (options) => {
   let aborted = false;
   let byteRemainder = null; // UTF-8 多字节字符跨 chunk 时的残留字节
 
-  // 检查是否支持 enableChunked（基础库 2.20.1+）
+  // 只要客户端支持 chunked，就优先走原生 wx.request 流式。
+  // callContainer 不支持 chunked，会导致流式退化为“长时间等待整包返回”。
   const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
 
   if (!canChunked) {
-    // 降级：普通非流式请求（跳过去重，避免与流式请求冲突）
-    request({ url, method, data, headers, skipAuth, dedupe: false })
+    // 降级：改打非 stream 端点，并确保最终一定触发 onDone，避免页面长期卡在“生成中”
+    const fallbackUrl = _downgradeStreamUrl(url);
+    request({ url: fallbackUrl, method, data, headers, skipAuth, dedupe: false, timeout: timeoutMs })
       .then((res) => {
-        if (res && res.content) {
-          if (onMeta) onMeta({ type: 'meta', chart: res.chart, transits: res.transits, chartType: res.chartType, lang: res.lang });
-          if (onChunk) onChunk(typeof res.content === 'string' ? res.content : JSON.stringify(res.content));
-          if (onDone) onDone();
+        if (aborted) return;
+        const handlers = { onMeta, onChunk, onModule, onError };
+        const emitted = _emitFromFullJson(res, handlers);
+        if (!emitted) {
+          const text = typeof res === 'string' ? res : '';
+          _emitFromSseText(text, handlers);
         }
+        if (!aborted && onDone) onDone();
       })
       .catch((err) => {
-        if (onError) onError(err);
+        if (!aborted && onError) onError(err);
       });
-    return { abort: () => {} };
+    return {
+      abort: () => {
+        aborted = true;
+      },
+    };
   }
 
   const requestTask = wx.request({

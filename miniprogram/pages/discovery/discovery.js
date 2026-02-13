@@ -2,6 +2,7 @@ const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
+const DISCOVERY_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 // 专题报告元数据（用于支付弹窗展示）
 const TOPIC_REPORT_META = {
@@ -80,11 +81,15 @@ Page({
     if (app && app.globalData) {
       this.setData({ auditMode: !!app.globalData.auditMode });
     }
+    if (app && typeof app.notifyTabActivated === 'function') {
+      app.notifyTabActivated('discovery');
+    }
     const entry = storage.get('discovery_entry');
     if (entry === 'synastry') {
       storage.remove('discovery_entry');
       wx.navigateTo({ url: '/pages/synastry/synastry' });
     }
+    this.applyTopicStatusesFromCache();
     this.checkTopicReportStatuses();
   },
 
@@ -121,9 +126,43 @@ Page({
     };
   },
 
+  _getTopicStatusCacheKey(birthData) {
+    if (!birthData || !birthData.date) return null;
+    const fingerprint = [
+      birthData.date || '',
+      birthData.time || '',
+      birthData.city || '',
+      birthData.timezone || '',
+      birthData.accuracy || '',
+      birthData.lat === undefined ? '' : String(birthData.lat),
+      birthData.lon === undefined ? '' : String(birthData.lon),
+    ].join('|');
+    return `discovery_topic_status_cache_${fingerprint}`;
+  },
+
+  applyTopicStatusesFromCache() {
+    const birthData = this._getBirthData();
+    const cacheKey = this._getTopicStatusCacheKey(birthData);
+    if (!cacheKey) return;
+    const cached = storage.get(cacheKey);
+    if (!cached || !cached.statuses) return;
+    if (cached.ts && (Date.now() - cached.ts) > DISCOVERY_STATUS_CACHE_TTL_MS) return;
+
+    const statuses = cached.statuses || {};
+    this.setData({
+      loveTopicStatus: (statuses['love-topic'] && statuses['love-topic'].status) || this.data.loveTopicStatus,
+      loveTopicProgress: (statuses['love-topic'] && statuses['love-topic'].progress) || 0,
+      careerTopicStatus: (statuses['career-topic'] && statuses['career-topic'].status) || this.data.careerTopicStatus,
+      careerTopicProgress: (statuses['career-topic'] && statuses['career-topic'].progress) || 0,
+      wealthTopicStatus: (statuses['wealth-topic'] && statuses['wealth-topic'].status) || this.data.wealthTopicStatus,
+      wealthTopicProgress: (statuses['wealth-topic'] && statuses['wealth-topic'].progress) || 0,
+    });
+  },
+
   async checkTopicReportStatuses() {
     const birthData = this._getBirthData();
     if (!birthData) return;
+    const cacheKey = this._getTopicStatusCacheKey(birthData);
 
     const types = ['love-topic', 'career-topic', 'wealth-topic'];
     const stateKeys = {
@@ -133,6 +172,7 @@ Page({
     };
 
     let hasProcessing = false;
+    const statusSnapshot = {};
 
     for (const reportType of types) {
       try {
@@ -147,17 +187,24 @@ Page({
             [stateKeys[reportType].status]: result.status,
             [stateKeys[reportType].progress]: result.progress || 0,
           });
+          statusSnapshot[reportType] = { status: result.status, progress: result.progress || 0 };
           if (result.status === 'processing') hasProcessing = true;
         } else {
           this.setData({
             [stateKeys[reportType].status]: 'none',
             [stateKeys[reportType].progress]: 0,
           });
+          statusSnapshot[reportType] = { status: 'none', progress: 0 };
         }
       } catch (error) {
         logger.log(`Check ${reportType} status:`, error?.statusCode || error);
         this.setData({ [stateKeys[reportType].status]: 'none' });
+        statusSnapshot[reportType] = { status: 'none', progress: 0 };
       }
+    }
+
+    if (cacheKey) {
+      storage.set(cacheKey, { ts: Date.now(), statuses: statusSnapshot });
     }
 
     if (hasProcessing) {
@@ -275,7 +322,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
-      console.error(`Create ${reportType} task error:`, error);
+      logger.error(`Create ${reportType} task error:`, error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
       this.setData({ paymentLoading: false });

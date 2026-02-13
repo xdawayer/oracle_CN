@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 const PLANETS = [
   { id: 'sun', name: '太阳', tier: 1 },
@@ -236,7 +237,7 @@ Page({
       }
 
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       this.setData({ error: '解析失败，请稍后重试。', viewState: 'error' });
       wx.showToast({ title: '连接中断', icon: 'none' });
     }

@@ -1320,7 +1320,7 @@ Page({
 
           fullSuccess = true;
         } catch (parseErr) {
-          console.error('[Synastry] Failed to parse /full response:', parseErr);
+          logger.error('[Synastry] Failed to parse /full response:', parseErr);
         }
       } else if (fullRes && canChunked) {
         fullSuccess = true;
@@ -1334,7 +1334,7 @@ Page({
       // 启动后台预加载其他 tab
       this.startPreloading();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       wx.showToast({ title: '分析失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
@@ -1369,7 +1369,7 @@ Page({
         'tabLoadStatus.overview': 'loaded'
       });
     } catch (aiErr) {
-      console.error('[Synastry] AI fallback failed:', aiErr);
+      logger.error('[Synastry] AI fallback failed:', aiErr);
       this.setData({ 'tabLoadStatus.overview': 'error' });
       wx.showToast({ title: '综述加载失败', icon: 'none' });
     }
@@ -1420,7 +1420,7 @@ Page({
       // 继续预加载下一个
       this.preloadNextTab();
     } catch (err) {
-      console.error(`[Synastry] Preload ${nextTab} failed:`, err);
+      logger.error(`[Synastry] Preload ${nextTab} failed:`, err);
       this.setData({
         [`tabLoadStatus.${nextTab}`]: 'error',
         preloadingTab: null
@@ -1493,7 +1493,7 @@ Page({
         currentSectionCards: cards
       });
     } catch (err) {
-      console.error('[Synastry] switchTab error:', err);
+      logger.error('[Synastry] switchTab error:', err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
       wx.showToast({ title: '加载失败，请重试', icon: 'none' });
     } finally {
@@ -1588,7 +1588,7 @@ Page({
       this.deepContentCache[cacheKey] = reportData;
       this.setData({ deepOverlayData: reportData, deepOverlayLoading: false });
     } catch (err) {
-      console.error('[Synastry] Deep overlay failed:', err);
+      logger.error('[Synastry] Deep overlay failed:', err);
       this.setData({ deepOverlayLoading: false });
       wx.showToast({ title: '加载失败，请重试', icon: 'none' });
     }

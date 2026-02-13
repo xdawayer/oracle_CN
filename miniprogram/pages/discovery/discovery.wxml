@@ -8,7 +8,7 @@
     <view class="hero-content">
       <view class="hero-header">
         <view class="hero-icon-box">
-          <view class="icon-mask" style="color: #8B5E6B; -webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
+          <image class="icon-mask" src="/images/icons/relations.svg" mode="aspectFit"></image>
         </view>
         <text class="hero-title font-ancient">关系分析</text>
       </view>
@@ -22,7 +22,7 @@
   <view class="action-card ink-border" bindtap="navToSynthetica" wx:if="{{!auditMode}}">
     <view class="action-left">
       <view class="action-icon-box">
-        <view class="icon-mask" style="color: var(--ink-deep); -webkit-mask-image: url('/images/icons/study.svg'); mask-image: url('/images/icons/study.svg');"></view>
+        <image class="icon-mask" src="/images/icons/study.svg" mode="aspectFit"></image>
       </view>
       <view class="action-text">
         <text class="action-title font-ancient">探索实验室</text>
@@ -38,7 +38,7 @@
     <block wx:for="{{features}}" wx:key="id">
       <view class="grid-item" bindtap="navToFeature" data-route="{{item.route}}" wx:if="{{(item.id !== 'kline' && item.id !== 'chart' && item.id !== 'wiki') || !auditMode}}">
         <view class="grid-icon-box">
-          <view class="grid-icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
+          <image class="grid-icon" src="{{item.icon}}" mode="aspectFit"></image>
         </view>
         <text class="grid-title">{{item.title}}</text>
         <text class="grid-desc font-body">{{item.desc}}</text>

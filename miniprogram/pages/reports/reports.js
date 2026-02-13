@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const logger = require('../../utils/logger');
 
 /** 检查是否已登录 */
 const isLoggedIn = () => {
@@ -80,7 +81,7 @@ Page({
         loading: false
       });
     } catch (err) {
-      console.error('Failed to fetch reports', err);
+      logger.error('Failed to fetch reports', err);
       // 如果是认证错误，显示登录提示
       if (err.message && err.message.includes('refresh token')) {
         this.setData({
@@ -119,7 +120,7 @@ Page({
         try {
           detailData = JSON.parse(detailData);
         } catch (e) {
-          console.error('Parse content error', e);
+          logger.error('Parse content error', e);
         }
       }
 
@@ -144,7 +145,7 @@ Page({
 
       this.setData({ selectedReport });
     } catch (err) {
-      console.error('Failed to load report detail', err);
+      logger.error('Failed to load report detail', err);
       wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       wx.hideLoading();

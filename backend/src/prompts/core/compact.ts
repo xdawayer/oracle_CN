@@ -66,27 +66,56 @@ export function compactChartSummary(summary: any): string {
 
   const parts: string[] = [];
 
+  // 兼容 big3 嵌套结构（buildCompactChartSummary 输出）和扁平结构
+  const sun = summary.sun || summary.big3?.sun;
+  const moon = summary.moon || summary.big3?.moon;
+  const rising = summary.rising || summary.ascendant || summary.big3?.rising;
+
   // 日月升
-  if (summary.sun) {
-    const sign = getSignShort(summary.sun.sign || summary.sun.星座 || '');
-    const house = summary.sun.house || summary.sun.宫位 || '';
+  if (sun) {
+    const sign = getSignShort(sun.sign || sun.星座 || '');
+    const house = sun.house || sun.宫位 || '';
     parts.push(`日${sign}${house ? house + '宫' : ''}`);
   }
 
-  if (summary.moon) {
-    const sign = getSignShort(summary.moon.sign || summary.moon.星座 || '');
-    const house = summary.moon.house || summary.moon.宫位 || '';
+  if (moon) {
+    const sign = getSignShort(moon.sign || moon.星座 || '');
+    const house = moon.house || moon.宫位 || '';
     parts.push(`月${sign}${house ? house + '宫' : ''}`);
   }
 
-  if (summary.rising || summary.ascendant) {
-    const rising = summary.rising || summary.ascendant;
+  if (rising) {
     const sign = getSignShort(rising.sign || rising.星座 || rising || '');
     parts.push(`升${sign}`);
   }
 
-  // 主要相位（最多5个）
-  const aspects = summary.aspects || summary.相位 || [];
+  // 个人行星（buildCompactChartSummary 的 personal_planets）
+  const personalPlanets = summary.personal_planets || [];
+  for (const p of personalPlanets) {
+    if (!p) continue;
+    const name = getPlanetShort(p.name || '');
+    const sign = getSignShort(p.sign || '');
+    const house = p.house || '';
+    if (name && sign) {
+      parts.push(`${name}${sign}${house ? house + '宫' : ''}`);
+    }
+  }
+
+  // 元素/模式优势（dominance）
+  const dom = summary.dominance;
+  if (dom) {
+    const elemLabels: Record<string, string> = { fire: '火', earth: '土', air: '风', water: '水' };
+    const entries = Object.entries(dom)
+      .filter(([k]) => elemLabels[k])
+      .sort(([, a], [, b]) => (b as number) - (a as number));
+    if (entries.length > 0) {
+      const top = entries.slice(0, 2).map(([k, v]) => `${elemLabels[k]}${v}`).join('');
+      parts.push(`元素:${top}`);
+    }
+  }
+
+  // 主要相位（最多5个），兼容 aspects / top_aspects
+  const aspects = summary.aspects || summary.top_aspects || summary.相位 || [];
   if (aspects.length > 0) {
     const aspectStrs = aspects.slice(0, 5).map((a: any) => {
       const p1 = getPlanetShort(a.planet1 || a.行星1 || a.from || '');

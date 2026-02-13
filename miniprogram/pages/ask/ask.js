@@ -1,6 +1,7 @@
 const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 const GOALS = [
   { id: 'career', label: '事业发展与财富' },
@@ -254,7 +255,7 @@ Page({
         this._streamTask = null;
       },
       onError: (err) => {
-        console.error('Ask Stream Error:', err);
+        logger.error('Ask Stream Error:', err);
         // 如果流式未获得任何内容，降级为非流式请求
         if (!streamText) {
           this._fallbackNonStream(requestData);
@@ -291,7 +292,7 @@ Page({
         throw new Error('No content received');
       }
     } catch (error) {
-      console.error('Ask AI Fallback Error:', error);
+      logger.error('Ask AI Fallback Error:', error);
       wx.showToast({
         title: '分析服务中断，请稍后再试',
         icon: 'none'

@@ -15,7 +15,41 @@
     </view>
   </view>
 
-  <view class="daily-card">
+  <!-- 加载中：骨架屏 -->
+  <view class="daily-card" wx:if="{{isLoadingForecast}}">
+    <view class="card-content home-skeleton">
+      <view class="card-hero">
+        <view class="skeleton-block home-skeleton-score"></view>
+        <view class="skeleton-block home-skeleton-quote"></view>
+      </view>
+      <view class="ink-divider"></view>
+      <view class="desc-box">
+        <view class="skeleton-block home-skeleton-line"></view>
+        <view class="skeleton-block home-skeleton-line home-skeleton-line-short"></view>
+        <view class="skeleton-block home-skeleton-line home-skeleton-line-mid"></view>
+      </view>
+      <view class="ink-divider"></view>
+      <view class="lucky-section">
+        <view class="lucky-item">
+          <text class="lucky-label font-body">今日色彩</text>
+          <view class="skeleton-block home-skeleton-chip"></view>
+        </view>
+        <view class="lucky-divider-line"></view>
+        <view class="lucky-item">
+          <text class="lucky-label font-body">今日数字</text>
+          <view class="skeleton-block home-skeleton-chip"></view>
+        </view>
+        <view class="lucky-divider-line"></view>
+        <view class="lucky-item">
+          <text class="lucky-label font-body">今日方位</text>
+          <view class="skeleton-block home-skeleton-chip"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载完成：正式内容 -->
+  <view class="daily-card" wx:else>
     <view class="card-content">
       <!-- 大数字评分 + 金句 -->
       <view class="card-hero">
@@ -63,21 +97,21 @@
     <view class="quick-grid">
       <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="synastry">
         <view class="quick-grid-icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/love.svg'); mask-image: url('/images/icons/love.svg');"></view>
+          <image class="icon" src="/images/icons/love.svg" mode="aspectFit"></image>
         </view>
         <text class="quick-grid-title">关系分析</text>
         <text class="quick-grid-desc font-body">双人匹配解析</text>
       </view>
       <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="cbt">
         <view class="quick-grid-icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/health.svg'); mask-image: url('/images/icons/health.svg');"></view>
+          <image class="icon" src="/images/icons/health.svg" mode="aspectFit"></image>
         </view>
         <text class="quick-grid-title">心情日记</text>
         <text class="quick-grid-desc font-body">情绪觉察记录</text>
       </view>
       <view class="quick-grid-item" bindtap="onNavigateToQuickAccess" data-type="ask">
         <view class="quick-grid-icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/relations.svg'); mask-image: url('/images/icons/relations.svg');"></view>
+          <image class="icon" src="/images/icons/relations.svg" mode="aspectFit"></image>
         </view>
         <text class="quick-grid-title">AI问答</text>
         <text class="quick-grid-desc font-body">AI 深度咨询</text>
@@ -85,7 +119,7 @@
       <!-- 人生K线入口（审核期由 auditMode 控制） -->
       <view class="quick-grid-item" wx:if="{{!auditMode}}" bindtap="onNavigateToChart" data-type="kline">
         <view class="quick-grid-icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+          <image class="icon" src="/images/icons/career.svg" mode="aspectFit"></image>
         </view>
         <text class="quick-grid-title">人生K线</text>
         <text class="quick-grid-desc font-body">成长起伏趋势</text>
@@ -128,7 +162,7 @@
     <view class="chart-grid">
       <view class="chart-card" bindtap="onNavigateToChart" data-type="natal">
         <view class="icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
+          <image class="icon" src="/images/astro-symbols/sun.svg" mode="aspectFit"></image>
         </view>
         <view class="text-box">
           <text class="item-title">核心人格解读</text>
@@ -138,7 +172,7 @@
       <!-- 成长轨迹入口（审核期由 auditMode 控制） -->
       <view class="chart-card" wx:if="{{!auditMode}}" bindtap="onNavigateToChart" data-type="kline">
         <view class="icon-box">
-          <view class="icon colored-icon" style="-webkit-mask-image: url('/images/icons/career.svg'); mask-image: url('/images/icons/career.svg');"></view>
+          <image class="icon" src="/images/icons/career.svg" mode="aspectFit"></image>
         </view>
         <view class="text-box">
           <text class="item-title">成长轨迹</text>
@@ -161,7 +195,7 @@
       <block wx:for="{{recommendations}}" wx:key="id">
         <view class="recommendation-card" bindtap="onNavigateToRecommendation" data-route="{{item.route}}">
           <view class="recommendation-icon-box">
-            <view class="icon colored-icon" style="-webkit-mask-image: url('{{item.icon}}'); mask-image: url('{{item.icon}}');"></view>
+            <image class="icon" src="{{item.icon}}" mode="aspectFit"></image>
           </view>
           <view class="recommendation-text">
             <text class="recommendation-title">{{item.title}}</text>

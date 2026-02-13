@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
+const logger = require('../../utils/logger');
 
 const PLANS = {
   monthly: { price: '9.9', totalFee: 990, label: '连续包月' },
@@ -164,7 +165,7 @@ Page({
         },
       });
     } catch (err) {
-      console.error('Pay error:', err);
+      logger.error('Pay error:', err);
       wx.showToast({ title: '支付失败', icon: 'none' });
       this.setData({ paying: false });
     }

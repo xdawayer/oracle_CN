@@ -546,7 +546,7 @@ Page({
         expandedSection: null,
       });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       const message = err && err.message === 'EMPTY_CHART' ? '数据为空，请检查出生信息' : '生成失败';
       wx.showToast({ title: message, icon: 'none' });
     } finally {

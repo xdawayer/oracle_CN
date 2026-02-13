@@ -1,5 +1,6 @@
 const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
+const logger = require('../../utils/logger');
 
 const ZODIAC_SIGNS = [
   { id: 'aries', name: '3.21 - 4.19', emoji: 'ARI', element: 'fire' },
@@ -178,7 +179,7 @@ Page({
         this.setData({ aiLoading: false });
       }
     } catch (error) {
-      console.error('Pairing AI Error:', error);
+      logger.error('Pairing AI Error:', error);
       this.setData({ aiLoading: false });
     }
   },

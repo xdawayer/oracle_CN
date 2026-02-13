@@ -46,9 +46,9 @@
           <view class="triad-row">
             <view class="triad-icon-wrapper">
               <view class="triad-icon-placeholder">
-                <view wx:if="{{item.id === 'sun'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/sun.svg'); mask-image: url('/images/astro-symbols/sun.svg');"></view>
-                <view wx:if="{{item.id === 'moon'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/astro-symbols/moon.svg'); mask-image: url('/images/astro-symbols/moon.svg');"></view>
-                <view wx:if="{{item.id === 'ascendant'}}" class="triad-icon-image colored-icon" style="-webkit-mask-image: url('/images/asc.svg'); mask-image: url('/images/asc.svg');"></view>
+                <image wx:if="{{item.id === 'sun'}}" class="triad-icon-image" src="/images/astro-symbols/sun.svg" mode="aspectFit"></image>
+                <image wx:if="{{item.id === 'moon'}}" class="triad-icon-image" src="/images/astro-symbols/moon.svg" mode="aspectFit"></image>
+                <image wx:if="{{item.id === 'ascendant'}}" class="triad-icon-image" src="/images/asc.svg" mode="aspectFit"></image>
               </view>
             </view>
             <text class="triad-name">{{item.name}}</text>
@@ -67,8 +67,8 @@
     <view class="chart-box" style="height: 500rpx;">
       <canvas wx:if="{{!showDetailReport && !showPayment && !isZoomed && !selectedPlanet}}" type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
     </view>
-    <view class="radar-summary">
-      <text class="summary-text">整体能量较为均衡，其中<text class="summary-highlight">直觉灵性</text>最为突出，建议多关注内在成长。</text>
+    <view class="radar-summary" wx:if="{{radarHighlight}}">
+      <text class="summary-text">{{radarSummaryPrefix}}<text class="summary-highlight">{{radarHighlight}}</text>{{radarSummarySuffix}}</text>
     </view>
   </view>
 
@@ -80,7 +80,7 @@
       <block wx:for="{{lifeDomains}}" wx:key="id">
         <view class="domain-item" bindtap="onDomainClick" data-id="{{item.id}}">
            <view class="domain-icon-box">
-             <view class="domain-icon colored-icon" style="-webkit-mask-image: url({{item.icon}}); mask-image: url({{item.icon}});"></view>
+             <image class="domain-icon" src="{{item.icon}}" mode="aspectFit"></image>
            </view>
            <text class="domain-name">{{item.title}}</text>
            <text class="domain-text">{{item.desc}}</text>
