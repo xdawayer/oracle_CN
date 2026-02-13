@@ -34,6 +34,7 @@ export type AnnualReportTask = ReportTask;
 
 const ANNUAL_REPORT_CONFIG: ReportConfig = {
   reportType: 'annual',
+  reportTitle: { zh: `${new Date().getFullYear()}年度成长报告`, en: `${new Date().getFullYear()} Annual Report` },
   moduleIds: ANNUAL_MODULE_IDS,
   moduleMeta: ANNUAL_MODULE_META,
   batches: [

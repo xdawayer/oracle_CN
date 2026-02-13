@@ -47,6 +47,7 @@ function extractModuleSummary(content: unknown): string {
 
 const NATAL_REPORT_CONFIG: ReportConfig = {
   reportType: 'natal-report',
+  reportTitle: { zh: '本我深度解读', en: 'Natal Deep Report' },
   moduleIds: NATAL_REPORT_MODULE_IDS,
   moduleMeta: NATAL_REPORT_MODULE_META,
   batches: [

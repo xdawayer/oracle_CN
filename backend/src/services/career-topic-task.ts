@@ -41,6 +41,7 @@ function extractModuleSummary(content: unknown): string {
 
 const CAREER_TOPIC_CONFIG: ReportConfig = {
   reportType: 'career-topic',
+  reportTitle: { zh: '事业专题深度报告', en: 'Career Topic Report' },
   moduleIds: CAREER_TOPIC_MODULE_IDS,
   moduleMeta: CAREER_TOPIC_MODULE_META,
   batches: [

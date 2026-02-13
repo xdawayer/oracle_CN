@@ -41,6 +41,7 @@ function extractModuleSummary(content: unknown): string {
 
 const WEALTH_TOPIC_CONFIG: ReportConfig = {
   reportType: 'wealth-topic',
+  reportTitle: { zh: '财富专题深度报告', en: 'Wealth Topic Report' },
   moduleIds: WEALTH_TOPIC_MODULE_IDS,
   moduleMeta: WEALTH_TOPIC_MODULE_META,
   batches: [

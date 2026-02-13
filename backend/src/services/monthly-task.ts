@@ -143,6 +143,7 @@ function extractModuleSummary(content: unknown): string {
 
 export const MONTHLY_REPORT_CONFIG: ReportConfig = {
   reportType: 'monthly',
+  reportTitle: { zh: '月度运势报告', en: 'Monthly Report' },
   moduleIds: MONTHLY_MODULE_IDS,
   moduleMeta: MONTHLY_MODULE_META,
   batches: [

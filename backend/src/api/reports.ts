@@ -65,7 +65,7 @@ router.get('/:reportId', authMiddleware, requireAuth, async (req: Request, res: 
 router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
     const reportType = req.params.reportType as ReportType;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep'];
+    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report', 'love-topic', 'career-topic', 'wealth-topic'];
 
     if (!validTypes.includes(reportType)) {
       return res.status(400).json({ error: 'Invalid report type' });
@@ -101,7 +101,7 @@ router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Reque
 router.post('/generate', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
     const { reportType, language = 'en' } = req.body;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep'];
+    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report', 'love-topic', 'career-topic', 'wealth-topic'];
 
     if (!reportType || !validTypes.includes(reportType)) {
       return res.status(400).json({ error: 'Invalid report type' });
@@ -156,7 +156,7 @@ router.post('/generate', authMiddleware, requireAuth, async (req: Request, res: 
 router.post('/purchase', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
     const { reportType } = req.body;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report'];
+    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report', 'love-topic', 'career-topic', 'wealth-topic'];
 
     if (!reportType || !validTypes.includes(reportType)) {
       return res.status(400).json({ error: 'Invalid report type' });

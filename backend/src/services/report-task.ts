@@ -3,6 +3,7 @@
 // POS: 通用报告任务服务；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { cacheService } from '../cache/redis.js';
+import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import { generateAIContent } from './ai.js';
 import { buildCompactChartSummary, ephemerisService } from './ephemeris.js';
 import { resolveLocation } from './geocoding.js';
@@ -67,6 +68,8 @@ export interface BatchConfig {
 export interface ReportConfig {
   /** 报告类型标识（如 'annual', 'natal-report'） */
   reportType: string;
+  /** 报告标题（多语言），用于写入 reports 表 */
+  reportTitle: Record<string, string>;
   /** 所有模块 ID（有序） */
   moduleIds: readonly string[];
   /** 模块元数据 */
@@ -475,6 +478,13 @@ async function executeReportTask(
   });
 
   console.log(`[ReportTask:${config.reportType}] Task ${finalStatus}: ${completedModules.length} success, ${failedModules.length} failed`);
+
+  // 报告完成后写入 Supabase reports 表（fire-and-forget，不阻塞任务结束）
+  if (finalStatus === 'completed') {
+    saveReportToDatabase(config, userId, chartHash, completedModules, lang).catch((err) => {
+      console.error(`[ReportTask:${config.reportType}] saveReportToDatabase error:`, err);
+    });
+  }
 }
 
 /** 手动重试失败的任务 */
@@ -588,6 +598,89 @@ async function retryFailedModules(
   });
 
   console.log(`[ReportTask:${config.reportType}] Retry completed: ${completedModules.length} total success, ${failedModules.length} still failed`);
+
+  // 重试完成后写入 Supabase reports 表（fire-and-forget）
+  if (finalStatus === 'completed') {
+    saveReportToDatabase(config, userId, chartHash, completedModules, lang).catch((err) => {
+      console.error(`[ReportTask:${config.reportType}] saveReportToDatabase error:`, err);
+    });
+  }
+}
+
+// ============================================================
+// 报告持久化（写入 Supabase）
+// ============================================================
+
+/** 报告完成后写入 reports 表（供收藏列表读取） */
+async function saveReportToDatabase(
+  config: ReportConfig,
+  userId: string,
+  chartHash: string,
+  completedModuleIds: string[],
+  lang: Language,
+): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    console.log(`[ReportTask:${config.reportType}] Supabase not configured, skipping DB save`);
+    return;
+  }
+
+  try {
+    // 查重：同一用户 + 同一报告类型 + 同一 chartHash（数据库层 JSONB 过滤）
+    const { data: existing } = await supabase
+      .from('reports')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('report_type', config.reportType)
+      .filter('content->>chartHash', 'eq', chartHash)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log(`[ReportTask:${config.reportType}] Report already in DB for chartHash ${chartHash.slice(0, 8)}, skipping`);
+      return;
+    }
+
+    // 从缓存读取所有已完成模块的内容
+    const modules: Record<string, unknown> = {};
+    for (const moduleId of completedModuleIds) {
+      const contentKey = buildContentKey(config, userId, moduleId, chartHash);
+      const content = await cacheService.get<unknown>(contentKey);
+      if (content) modules[moduleId] = content;
+    }
+
+    // 获取 birthData
+    const taskKey = buildTaskKey(config, userId, chartHash);
+    const task = await cacheService.get<ReportTask>(taskKey);
+    const birthData = task?.birthData || {};
+
+    // 组装 content JSONB
+    const title = config.reportTitle[lang] || config.reportTitle.zh || config.reportType;
+    const content = {
+      title,
+      chartHash,
+      generatedAt: new Date().toISOString(),
+      modules,
+      meta: config.moduleMeta,
+    };
+
+    const { error } = await supabase
+      .from('reports')
+      .insert({
+        user_id: userId,
+        report_type: config.reportType,
+        title,
+        content,
+        birth_profile: birthData,
+        generated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error(`[ReportTask:${config.reportType}] Failed to save to DB:`, error.message);
+    } else {
+      console.log(`[ReportTask:${config.reportType}] Report saved to database successfully`);
+    }
+  } catch (err) {
+    console.error(`[ReportTask:${config.reportType}] Error saving to database:`, err);
+  }
 }
 
 /** 获取报告内容 */

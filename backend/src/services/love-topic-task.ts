@@ -41,6 +41,7 @@ function extractModuleSummary(content: unknown): string {
 
 const LOVE_TOPIC_CONFIG: ReportConfig = {
   reportType: 'love-topic',
+  reportTitle: { zh: '爱情专题深度报告', en: 'Love Topic Report' },
   moduleIds: LOVE_TOPIC_MODULE_IDS,
   moduleMeta: LOVE_TOPIC_MODULE_META,
   batches: [
