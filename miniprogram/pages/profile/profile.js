@@ -6,9 +6,9 @@ Page({
   data: {
     name: '',
     avatarUrl: '',
-    birthDate: '',
-    birthTime: '',
-    birthCity: '',
+    birthDate: '2000-01-01',
+    birthTime: '12:00',
+    birthCity: '北京, 中国',
     hasChanges: false,
     originalData: {},
     showDatePicker: false,
@@ -28,15 +28,15 @@ Page({
     this.setData({
       name: cached.name || '',
       avatarUrl: avatarUrl,
-      birthDate: birthInfo.birthDate || '',
-      birthTime: birthInfo.birthTime || '',
-      birthCity: birthInfo.birthCity || '',
+      birthDate: birthInfo.birthDate || '2000-01-01',
+      birthTime: birthInfo.birthTime || '12:00',
+      birthCity: birthInfo.birthCity || '北京, 中国',
       originalData: {
         name: cached.name || '',
         avatarUrl: avatarUrl,
-        birthDate: birthInfo.birthDate || '',
-        birthTime: birthInfo.birthTime || '',
-        birthCity: birthInfo.birthCity || '',
+        birthDate: birthInfo.birthDate || '2000-01-01',
+        birthTime: birthInfo.birthTime || '12:00',
+        birthCity: birthInfo.birthCity || '北京, 中国',
       },
     });
 

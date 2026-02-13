@@ -7,6 +7,7 @@ import { authMiddleware, requireAuth } from './auth.js';
 import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import subscriptionService from '../services/subscriptionService.js';
+import reportService from '../services/reportService.js';
 
 const router = Router();
 
@@ -27,13 +28,14 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // 获取订阅状态
-      const subscription = await subscriptionService.getSubscription(req.userId!);
+      // 并行获取订阅状态、积分、报告数量
+      const [subscription, entitlements, reportCount] = await Promise.all([
+        subscriptionService.getSubscription(req.userId!),
+        entitlementServiceV2.getEntitlements(req.userId!),
+        reportService.getReportCount(req.userId!),
+      ]);
       const isVip = !!(subscription && (subscription.status === 'active' || subscription.status === 'trialing'));
       const vipExpireDate = subscription?.current_period_end || '';
-
-      // 获取积分
-      const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
 
       const birthProfile = data.birth_profile || {};
 
@@ -46,11 +48,15 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         isVip,
         vipExpireDate,
         points: entitlements.credits || 0,
+        reportCount,
       });
     } else {
       // 开发模式
       const profile = devProfiles.get(req.userId!) || {};
-      const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
+      const [entitlements, reportCount] = await Promise.all([
+        entitlementServiceV2.getEntitlements(req.userId!),
+        reportService.getReportCount(req.userId!),
+      ]);
       res.json({
         name: profile.name || '星智用户',
         avatarUrl: profile.avatarUrl || '',
@@ -60,6 +66,7 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         isVip: profile.isVip || false,
         vipExpireDate: profile.vipExpireDate || '',
         points: entitlements.credits || 0,
+        reportCount,
       });
     }
   } catch (error) {

@@ -190,7 +190,7 @@ class ReportService {
     return !!purchase;
   }
 
-  // Get user's purchased reports
+  // Get user's purchased reports (deduplicated by report_type, keeping latest)
   async getUserReports(userId: string): Promise<DbReport[]> {
     if (!isSupabaseConfigured()) return [];
 
@@ -201,7 +201,32 @@ class ReportService {
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data as DbReport[];
+
+    // 按 report_type 去重，保留最新的一份
+    const seen = new Set<string>();
+    const deduped: DbReport[] = [];
+    for (const row of data as DbReport[]) {
+      if (!seen.has(row.report_type)) {
+        seen.add(row.report_type);
+        deduped.push(row);
+      }
+    }
+    return deduped;
+  }
+
+  // Get report count for a user (deduplicated by report_type)
+  async getReportCount(userId: string): Promise<number> {
+    if (!isSupabaseConfigured()) return 0;
+
+    const { data, error } = await supabase
+      .from('reports')
+      .select('report_type')
+      .eq('user_id', userId);
+
+    if (error || !data) return 0;
+
+    const uniqueTypes = new Set(data.map((r: { report_type: string }) => r.report_type));
+    return uniqueTypes.size;
   }
 
   // Get a specific report

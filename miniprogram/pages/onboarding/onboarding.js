@@ -17,19 +17,19 @@ Page({
     // 步骤一数据
     calendarTypes: CALENDAR_TYPES,
     calendarTypeIndex: 0,
-    birthDate: '',
-    birthTime: '',
+    birthDate: '2000-01-01',
+    birthTime: '12:00',
     timeUncertain: false,
     maxDate: '',
 
-    // 农历转换后的公历日期
-    solarBirthDate: '',
+    // 农历转换后的公历日期（阳历模式下与 birthDate 同步）
+    solarBirthDate: '2000-01-01',
 
     // 步骤二数据
-    cityInput: '',
+    cityInput: '北京, 中国',
     cityPlaceholder: CITY_PLACEHOLDER,
     cityResults: [],
-    selectedCity: null,
+    selectedCity: { id: 'beijing', name: '北京', province: '北京', country: '中国', lat: 39.9042, lon: 116.4074, displayText: '北京, 中国', timezone: '8' },
     showCityDropdown: false,
 
     // 状态
@@ -53,6 +53,8 @@ Page({
       this.setData({ isEditMode: true });
       this.loadExistingProfile();
     }
+
+    this.checkCanProceed();
   },
 
   loadExistingProfile() {
@@ -87,7 +89,8 @@ Page({
           name: profile.birthCity,
           lat: profile.lat,
           lon: profile.lon,
-          displayText: profile.birthCity
+          displayText: profile.birthCity,
+          timezone: profile.timezone || '8'
         }
       });
     }
@@ -100,8 +103,8 @@ Page({
     const index = parseInt(e.detail.value, 10);
     this.setData({
       calendarTypeIndex: index,
-      birthDate: '',
-      solarBirthDate: ''
+      birthDate: '2000-01-01',
+      solarBirthDate: index === 0 ? '2000-01-01' : ''
     });
     this.checkCanProceed();
   },

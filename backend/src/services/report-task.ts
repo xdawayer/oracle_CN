@@ -224,7 +224,16 @@ export async function getReportTaskStatus(
     const chartHash = hashInput(chartSummary);
 
     const taskKey = buildTaskKey(config, userId, chartHash);
-    return await cacheService.get<ReportTask>(taskKey);
+    const cached = await cacheService.get<ReportTask>(taskKey);
+    if (cached) return cached;
+
+    // Redis 缓存未命中 → 从 Supabase 查找已完成的报告
+    const dbTask = await findCompletedReportInDB(config, userId, chartHash);
+    if (dbTask) {
+      // 回写 Redis 缓存，避免后续重复查 DB
+      await cacheService.set(taskKey, dbTask, config.taskTTL);
+    }
+    return dbTask;
   } catch (error) {
     console.error(`[ReportTask:${config.reportType}] Failed to get task status:`, error);
     return null;
@@ -608,6 +617,97 @@ async function retryFailedModules(
 }
 
 // ============================================================
+// Supabase 兜底查询（缓存丢失时从 DB 恢复）
+// ============================================================
+
+/** 从 Supabase 查找已完成的报告，构造一个合成的 ReportTask */
+async function findCompletedReportInDB(
+  config: ReportConfig,
+  userId: string,
+  chartHash: string,
+): Promise<ReportTask | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const { data } = await supabase
+      .from('reports')
+      .select('id, created_at, content')
+      .eq('user_id', userId)
+      .eq('report_type', config.reportType)
+      .filter('content->>chartHash', 'eq', chartHash)
+      .limit(1);
+
+    if (!data || data.length === 0) return null;
+
+    const row = data[0];
+    const content = row.content as Record<string, unknown> | null;
+    const modules = (content?.modules || {}) as Record<string, unknown>;
+    const completedModuleIds = Object.keys(modules);
+
+    return {
+      taskId: `db_${row.id}`,
+      userId,
+      reportType: config.reportType,
+      status: 'completed',
+      progress: 100,
+      completedModules: completedModuleIds,
+      failedModules: [],
+      birthData: {},
+      chartHash,
+      lang: 'zh',
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.created_at).getTime(),
+      completedAt: new Date(row.created_at).getTime(),
+      error: null,
+      estimatedMinutes: config.estimatedMinutes,
+    };
+  } catch (err) {
+    console.error(`[ReportTask:${config.reportType}] findCompletedReportInDB error:`, err);
+    return null;
+  }
+}
+
+/** 从 Supabase 加载已完成报告的模块内容 */
+async function loadReportContentFromDB(
+  config: ReportConfig,
+  userId: string,
+  chartHash: string,
+): Promise<{
+  modules: Record<string, unknown>;
+  meta: Record<string, ModuleMeta>;
+  completedModules: string[];
+} | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const { data } = await supabase
+      .from('reports')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('report_type', config.reportType)
+      .filter('content->>chartHash', 'eq', chartHash)
+      .limit(1);
+
+    if (!data || data.length === 0) return null;
+
+    const content = data[0].content as Record<string, unknown> | null;
+    const modules = (content?.modules || {}) as Record<string, unknown>;
+    const completedModules = Object.keys(modules);
+
+    if (completedModules.length === 0) return null;
+
+    return {
+      modules,
+      meta: config.moduleMeta,
+      completedModules,
+    };
+  } catch (err) {
+    console.error(`[ReportTask:${config.reportType}] loadReportContentFromDB error:`, err);
+    return null;
+  }
+}
+
+// ============================================================
 // 报告持久化（写入 Supabase）
 // ============================================================
 
@@ -703,6 +803,16 @@ export async function getReportContent(
     const task = await cacheService.get<ReportTask>(taskKey);
 
     if (!task || (task.status !== 'completed' && task.status !== 'processing')) {
+      // Redis 中无任务或未完成 → 尝试从 Supabase 加载已完成报告内容
+      const dbResult = await loadReportContentFromDB(config, userId, chartHash);
+      if (dbResult) {
+        // 回写 Redis 缓存
+        for (const [moduleId, content] of Object.entries(dbResult.modules)) {
+          const contentKey = buildContentKey(config, userId, moduleId, chartHash);
+          await cacheService.set(contentKey, content, config.contentTTL);
+        }
+        return dbResult;
+      }
       return null;
     }
 
@@ -715,6 +825,18 @@ export async function getReportContent(
       if (content) {
         modules[moduleId] = content;
         completedModules.push(moduleId);
+      }
+    }
+
+    // Redis 中有任务但内容缺失（部分或全部模块被驱逐）→ 从 Supabase 补全
+    if (completedModules.length === 0 && task.status === 'completed') {
+      const dbResult = await loadReportContentFromDB(config, userId, chartHash);
+      if (dbResult) {
+        for (const [moduleId, content] of Object.entries(dbResult.modules)) {
+          const contentKey = buildContentKey(config, userId, moduleId, chartHash);
+          await cacheService.set(contentKey, content, config.contentTTL);
+        }
+        return dbResult;
       }
     }
 

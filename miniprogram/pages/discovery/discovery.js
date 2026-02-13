@@ -71,9 +71,19 @@ Page({
 
   _topicPolling: false,
   _topicPollTimer: null,
+  _navigating: false,
+
+  _safeNavigateTo(url) {
+    if (this._navigating) return;
+    this._navigating = true;
+    wx.navigateTo({
+      url,
+      complete: () => { this._navigating = false; },
+    });
+  },
 
   navToSynastry() {
-    wx.navigateTo({ url: '/pages/synastry/synastry' });
+    this._safeNavigateTo('/pages/synastry/synastry');
   },
 
   onShow() {
@@ -87,7 +97,7 @@ Page({
     const entry = storage.get('discovery_entry');
     if (entry === 'synastry') {
       storage.remove('discovery_entry');
-      wx.navigateTo({ url: '/pages/synastry/synastry' });
+      this._safeNavigateTo('/pages/synastry/synastry');
     }
     this.applyTopicStatusesFromCache();
     this.checkTopicReportStatuses();
@@ -102,12 +112,12 @@ Page({
   },
 
   navToSynthetica() {
-    wx.navigateTo({ url: '/pages/synthetica/synthetica' });
+    this._safeNavigateTo('/pages/synthetica/synthetica');
   },
 
   navToFeature(e) {
     const route = e.currentTarget.dataset.route;
-    wx.navigateTo({ url: `/pages/${route}/${route}` });
+    this._safeNavigateTo(`/pages/${route}/${route}`);
   },
 
   // ========== 专题报告逻辑 ==========
@@ -241,7 +251,7 @@ Page({
       case 'pending':
       case 'processing':
       case 'completed':
-        wx.navigateTo({ url: `/pages/report/report?reportType=${reportType}` });
+        this._safeNavigateTo(`/pages/report/report?reportType=${reportType}`);
         break;
       case 'failed':
         wx.showModal({
@@ -324,7 +334,7 @@ Page({
           });
           this._startTopicReportPolling();
         } else if (result.status === 'completed') {
-          wx.navigateTo({ url: `/pages/report/report?reportType=${reportType}` });
+          this._safeNavigateTo(`/pages/report/report?reportType=${reportType}`);
         } else if (result.status === 'processing') {
           wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
           this._startTopicReportPolling();

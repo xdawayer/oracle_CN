@@ -73,32 +73,73 @@ export const NATAL_REPORT_OUTPUT_INSTRUCTION = `
 - 不要输出大标题，直接从内容开始
 - 不要输出 JSON，直接输出文本`;
 
+// ============================================================
+// 英文 → 中文 映射表
+// ============================================================
+
+const PLANET_NAME_MAP: Record<string, string> = {
+  Sun: '太阳', Moon: '月亮', Mercury: '水星', Venus: '金星', Mars: '火星',
+  Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星',
+  Chiron: '凯龙星', Ceres: '谷神星', Pallas: '智神星', Juno: '婚神星', Vesta: '灶神星',
+  'North Node': '北交点', Ascendant: '上升',
+};
+const PLANET_NAME_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(PLANET_NAME_MAP).map(([en, cn]) => [cn, en])
+);
+
+const SIGN_NAME_MAP: Record<string, string> = {
+  Aries: '白羊座', Taurus: '金牛座', Gemini: '双子座', Cancer: '巨蟹座',
+  Leo: '狮子座', Virgo: '处女座', Libra: '天秤座', Scorpio: '天蝎座',
+  Sagittarius: '射手座', Capricorn: '摩羯座', Aquarius: '水瓶座', Pisces: '双鱼座',
+};
+
+const ASPECT_TYPE_MAP: Record<string, string> = {
+  conjunction: '合', opposition: '冲', square: '刑', trine: '拱', sextile: '六合',
+};
+
+function cnPlanet(name: string): string { return PLANET_NAME_MAP[name] || name; }
+function cnSign(sign: string): string { return SIGN_NAME_MAP[sign] || sign; }
+function cnAspect(type: string): string { return ASPECT_TYPE_MAP[type] || type; }
+
+/** 获取所有行星数据（big3 + personal_planets 合并为统一列表） */
+function getAllPlanets(chart: Record<string, any>): Array<{ name: string; sign: string; house: number | null; retrograde?: boolean }> {
+  const list: Array<{ name: string; sign: string; house: number | null; retrograde?: boolean }> = [];
+  const big3 = chart.big3 || {};
+  if (big3.sun) list.push(big3.sun);
+  if (big3.moon) list.push(big3.moon);
+  if (big3.rising) list.push(big3.rising);
+  const planets = chart.personal_planets || chart.planets || [];
+  for (const p of planets) { if (p) list.push(p); }
+  return list;
+}
+
+/** 获取相位数据 */
+function getAspects(chart: Record<string, any>): Array<{ planet1: string; planet2: string; type: string; orb: number }> {
+  return chart.top_aspects || chart.aspects || [];
+}
+
 /** 从星盘数据中提取指定行星信息 */
 export function extractPlanetData(ctx: PromptContext, planetName: string): string {
-  const chart = ctx.chart_summary;
+  const chart = ctx.chart_summary as Record<string, any> | undefined;
   if (!chart) return `${planetName}：数据未提供`;
 
-  // 太阳
-  if (planetName === '太阳' && chart.sun) {
-    return `太阳星座：${chart.sun.sign}，宫位：第${chart.sun.house}宫`;
-  }
-  // 月亮
-  if (planetName === '月亮' && chart.moon) {
-    return `月亮星座：${chart.moon.sign}，宫位：第${chart.moon.house}宫`;
-  }
-  // 上升
+  const enName = PLANET_NAME_REVERSE[planetName] || planetName;
+  const allPlanets = getAllPlanets(chart);
+
+  // 上升特殊处理
   if (planetName === '上升') {
-    return `上升星座：${chart.rising || '未知'}`;
+    const rising = allPlanets.find(p => p.name === 'Ascendant' || p.name === 'Rising');
+    if (rising) return `上升星座：${cnSign(rising.sign)}`;
+    return `上升星座：未知`;
   }
 
-  // 其他行星从 planets 数组中查找
-  if (chart.planets) {
-    const planet = chart.planets.find((p: { name: string }) =>
-      p.name === planetName || p.name.includes(planetName)
-    );
-    if (planet) {
-      return `${planetName}星座：${planet.sign}，宫位：第${planet.house}宫`;
+  const planet = allPlanets.find(p => p.name === enName || p.name === planetName);
+  if (planet) {
+    const retro = planet.retrograde ? '（逆行）' : '';
+    if (planet.house != null) {
+      return `${planetName}星座：${cnSign(planet.sign)}，宫位：第${planet.house}宫${retro}`;
     }
+    return `${planetName}星座：${cnSign(planet.sign)}${retro}`;
   }
 
   return `${planetName}：数据未找到`;
@@ -106,40 +147,34 @@ export function extractPlanetData(ctx: PromptContext, planetName: string): strin
 
 /** 提取指定行星的所有相位 */
 export function extractPlanetAspects(ctx: PromptContext, planetName: string): string {
-  const chart = ctx.chart_summary;
-  if (!chart?.aspects) return '无相位数据';
+  const chart = ctx.chart_summary as Record<string, any> | undefined;
+  if (!chart) return '无相位数据';
 
-  const aspects = chart.aspects.filter(
-    (a: { planet1: string; planet2: string }) =>
-      a.planet1.includes(planetName) || a.planet2.includes(planetName)
+  const enName = PLANET_NAME_REVERSE[planetName] || planetName;
+  const aspects = getAspects(chart);
+  if (aspects.length === 0) return '无相位数据';
+
+  const matched = aspects.filter(
+    (a) => a.planet1 === enName || a.planet2 === enName ||
+           a.planet1 === planetName || a.planet2 === planetName
   );
 
-  if (aspects.length === 0) return `${planetName}没有主要相位`;
+  if (matched.length === 0) return `${planetName}没有主要相位`;
 
-  return aspects.map(
-    (a: { planet1: string; aspect: string; planet2: string; orb: number }) =>
-      `${a.planet1} ${a.aspect} ${a.planet2}（容许度 ${a.orb.toFixed(1)}°）`
+  return matched.map(
+    (a) => `${cnPlanet(a.planet1)}${cnAspect(a.type)}${cnPlanet(a.planet2)}（容许度 ${a.orb.toFixed(1)}°）`
   ).join('\n');
 }
 
 /** 提取指定宫位信息 */
 export function extractHouseData(ctx: PromptContext, houseNum: number): string {
-  const chart = ctx.chart_summary;
+  const chart = ctx.chart_summary as Record<string, any> | undefined;
   if (!chart) return `第${houseNum}宫：数据未提供`;
 
-  // 查找落入该宫位的行星
-  const planetsInHouse: string[] = [];
-
-  if (chart.sun?.house === houseNum) planetsInHouse.push('太阳');
-  if (chart.moon?.house === houseNum) planetsInHouse.push('月亮');
-
-  if (chart.planets) {
-    for (const p of chart.planets) {
-      if (p.house === houseNum) {
-        planetsInHouse.push(p.name);
-      }
-    }
-  }
+  const allPlanets = getAllPlanets(chart);
+  const planetsInHouse = allPlanets
+    .filter(p => p.house === houseNum && p.name !== 'Ascendant' && p.name !== 'Rising')
+    .map(p => cnPlanet(p.name));
 
   if (planetsInHouse.length > 0) {
     return `第${houseNum}宫落入行星：${planetsInHouse.join('、')}`;
@@ -149,37 +184,47 @@ export function extractHouseData(ctx: PromptContext, houseNum: number): string {
 
 /** 构建完整星盘摘要文本 */
 export function buildChartSummaryText(ctx: PromptContext): string {
-  const chart = ctx.chart_summary;
+  const chart = ctx.chart_summary as Record<string, any> | undefined;
   if (!chart) return '星盘数据未提供';
 
   const lines: string[] = [];
+  const big3 = chart.big3 || {};
 
   // 核心三要素
   lines.push(`## 核心三要素`);
-  lines.push(`- 太阳：${chart.sun?.sign || '未知'}（第${chart.sun?.house || '未知'}宫）`);
-  lines.push(`- 月亮：${chart.moon?.sign || '未知'}（第${chart.moon?.house || '未知'}宫）`);
-  lines.push(`- 上升：${chart.rising || '未知'}`);
+  lines.push(`- 太阳：${cnSign(big3.sun?.sign || '')}（第${big3.sun?.house ?? '未知'}宫）`);
+  lines.push(`- 月亮：${cnSign(big3.moon?.sign || '')}（第${big3.moon?.house ?? '未知'}宫）`);
+  lines.push(`- 上升：${cnSign(big3.rising?.sign || '未知')}`);
 
   // 元素分布
-  if (chart.elements) {
+  const dominance = chart.dominance || chart.elements;
+  if (dominance) {
     lines.push(`\n## 元素分布`);
-    lines.push(`- 火：${chart.elements.fire}，土：${chart.elements.earth}，风：${chart.elements.air}，水：${chart.elements.water}`);
+    if (dominance.fire != null) {
+      lines.push(`- 火：${dominance.fire}，土：${dominance.earth}，风：${dominance.air}，水：${dominance.water}`);
+    } else if (dominance.element) {
+      lines.push(`- 主导元素：${dominance.element}`);
+    }
   }
 
   // 行星位置
-  if (chart.planets && chart.planets.length > 0) {
+  const planets = chart.personal_planets || chart.planets || [];
+  if (planets.length > 0) {
     lines.push(`\n## 行星位置`);
-    for (const p of chart.planets) {
-      lines.push(`- ${p.name}：${p.sign}（第${p.house}宫）`);
+    for (const p of planets) {
+      if (!p) continue;
+      const retro = p.retrograde ? '（逆行）' : '';
+      lines.push(`- ${cnPlanet(p.name)}：${cnSign(p.sign)}（第${p.house}宫）${retro}`);
     }
   }
 
   // 相位
-  if (chart.aspects && chart.aspects.length > 0) {
+  const aspects = getAspects(chart);
+  if (aspects.length > 0) {
     lines.push(`\n## 主要相位`);
-    for (const a of chart.aspects) {
+    for (const a of aspects) {
       const tightness = a.orb < 2 ? '【紧密】' : a.orb > 5 ? '【松散】' : '';
-      lines.push(`- ${a.planet1} ${a.aspect} ${a.planet2}（${a.orb.toFixed(1)}°）${tightness}`);
+      lines.push(`- ${cnPlanet(a.planet1)}${cnAspect(a.type)}${cnPlanet(a.planet2)}（${a.orb.toFixed(1)}°）${tightness}`);
     }
   }
 

@@ -177,6 +177,22 @@ const TEMPERATURE_MAP: Record<string, number> = {
   'monthly-actions': 0.6,
   // 月度报告 - 事实性内容（日期表）
   'monthly-dates': 0.5,
+
+  // 爱情专题深度报告（核心模块 0.7，分析模块 0.5，预测 0.6）
+  'love-topic-personality': 0.7,
+  'love-topic-partner': 0.5,
+  'love-topic-growth': 0.5,
+  'love-topic-forecast': 0.6,
+  // 事业专题深度报告
+  'career-topic-talent': 0.7,
+  'career-topic-workplace': 0.5,
+  'career-topic-mission': 0.5,
+  'career-topic-forecast': 0.6,
+  // 财富专题深度报告
+  'wealth-topic-money-relation': 0.7,
+  'wealth-topic-potential': 0.5,
+  'wealth-topic-blindspot': 0.5,
+  'wealth-topic-forecast': 0.6,
 };
 
 function getTemperatureForPrompt(promptId: string): number {
@@ -214,6 +230,21 @@ const REASONING_PROMPTS = [
   'monthly-lunar',
   'monthly-dates',
   'monthly-actions',
+  // 爱情专题深度报告使用 reasoning 模型
+  'love-topic-personality',
+  'love-topic-partner',
+  'love-topic-growth',
+  'love-topic-forecast',
+  // 事业专题深度报告使用 reasoning 模型
+  'career-topic-talent',
+  'career-topic-workplace',
+  'career-topic-mission',
+  'career-topic-forecast',
+  // 财富专题深度报告使用 reasoning 模型
+  'wealth-topic-money-relation',
+  'wealth-topic-potential',
+  'wealth-topic-blindspot',
+  'wealth-topic-forecast',
 ];
 
 // 输出原始文本（非 JSON）的 promptId
@@ -250,6 +281,21 @@ const RAW_TEXT_PROMPTS = new Set<string>([
   'monthly-actions',
   // CBT 聚合分析输出纯 Markdown 文本
   'cbt-aggregate-analysis',
+  // 爱情专题深度报告输出纯 Markdown 文本
+  'love-topic-personality',
+  'love-topic-partner',
+  'love-topic-growth',
+  'love-topic-forecast',
+  // 事业专题深度报告输出纯 Markdown 文本
+  'career-topic-talent',
+  'career-topic-workplace',
+  'career-topic-mission',
+  'career-topic-forecast',
+  // 财富专题深度报告输出纯 Markdown 文本
+  'wealth-topic-money-relation',
+  'wealth-topic-potential',
+  'wealth-topic-blindspot',
+  'wealth-topic-forecast',
 ]);
 
 // 支持 SSE 流式输出的 promptId（仅文本型，非 JSON 结构化输出）

@@ -148,12 +148,12 @@
 .city-input {
   background: var(--paper-50);
   border: 1rpx solid var(--border-color);
-  padding: 24rpx var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
   font-size: 28rpx;
   color: var(--ink-deep);
   width: 100%;
   height: 88rpx;
-  line-height: 40rpx;
+  line-height: 88rpx;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
 }
