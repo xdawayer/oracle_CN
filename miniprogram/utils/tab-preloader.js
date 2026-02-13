@@ -76,7 +76,11 @@ const buildDailyTransitCacheKey = (profile, dateStr) => {
 
 const buildDailyFullCacheKey = (profile, dateStr) => {
   if (!profile || !profile.birthDate) return null;
-  return `daily_cache_${profile.birthDate}_${profile.birthTime || ''}_${profile.birthCity || ''}_${dateStr}_zh_full`;
+  const lat = profile.lat === undefined ? '' : profile.lat;
+  const lon = profile.lon === undefined ? '' : profile.lon;
+  const tz = profile.timezone || '';
+  const accuracy = profile.accuracyLevel || profile.accuracy || 'exact';
+  return `daily_full_${profile.birthDate}_${profile.birthTime || ''}_${profile.birthCity || ''}_${lat}_${lon}_${tz}_${accuracy}_${dateStr}`;
 };
 
 const buildDiscoveryCacheKey = (profile) => {

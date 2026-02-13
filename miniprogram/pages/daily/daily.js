@@ -2,6 +2,7 @@ const { request, requestStream } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
+const { buildDailyFullCacheKey } = require('../../utils/tab-preloader');
 
 const LoadingState = {
   IDLE: 'IDLE',
@@ -646,9 +647,11 @@ Page({
 
   getCacheKey(dateStr, full) {
     if (!this.userProfile) return null;
+    if (full) {
+      return buildDailyFullCacheKey(this.userProfile, dateStr);
+    }
     const { birthDate, birthTime, birthCity } = this.userProfile;
-    const suffix = full ? '_full' : '';
-    return `daily_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}_zh${suffix}`;
+    return `daily_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}_zh`;
   },
 
   buildDailyParams(dateStr) {

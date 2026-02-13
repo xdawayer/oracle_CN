@@ -1,8 +1,9 @@
-const { request, getBaseUrl } = require('../../utils/request');
+const { request, requestStream, getBaseUrl } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 const { isDev } = logger;
+const { buildDailyFullCacheKey, buildProfileFingerprint } = require('../../utils/tab-preloader');
 
 // 星座英文→中文名映射
 const SIGN_CN = {
@@ -82,25 +83,41 @@ Page({
       app.notifyTabActivated('home');
     }
 
+    // 初始加载尚未完成，不重复触发
     if (this._homeVisibleLoadPromise) {
       return;
     }
 
+    // streaming 正在进行中，不重复请求
+    if (this._activeStreamTask) {
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
     const jobs = [];
-    // 如果每日洞察数据仍是初始加载状态（未成功加载），重新尝试
-    if (this.data.isLoadingForecast || this.data.shareData.quote === '加载中...') {
-      this.loadUserProfile();
+
+    // 先从 storage 刷新 profile，再检测变化
+    this.loadUserProfile();
+
+    // 跨天 → 刷新
+    if (this._lastForecastDate && this._lastForecastDate !== today) {
       jobs.push(this.fetchDailyForecast());
-    } else {
-      // 检查用户是否在其他页面更新了出生信息
-      const stored = storage.get('user_profile');
-      const currentBirth = this.userProfile ? this.userProfile.birthDate : null;
-      const storedBirth = stored ? stored.birthDate : null;
-      if (storedBirth && storedBirth !== currentBirth) {
-        this.loadUserProfile();
+    }
+    // profile 变化 → skipCache 重新生成
+    else if (this.userProfile) {
+      const currentFp = this._lastProfileFingerprint || '';
+      const newFp = buildProfileFingerprint(this.userProfile);
+      if (currentFp && newFp !== currentFp) {
         jobs.push(this.fetchDailyForecast(true));
       }
+      // 仍处于初始加载状态 → 重试
+      else if (this.data.isLoadingForecast || this.data.shareData.quote === '加载中...') {
+        jobs.push(this.fetchDailyForecast());
+      }
+    } else if (!this.userProfile) {
+      // 无 profile，不请求
     }
+
     jobs.push(this.checkAnnualReportAccess());
 
     Promise.allSettled(jobs).finally(() => {
@@ -117,10 +134,14 @@ Page({
       clearTimeout(this._statusPollTimer);
       this._statusPollTimer = null;
     }
+    if (this._activeStreamTask) {
+      this._activeStreamTask.abort();
+      this._activeStreamTask = null;
+    }
   },
 
   onPullDownRefresh() {
-    // 下拉刷新时跳过缓存
+    // 下拉刷新：skipCache（_beginForecastTask 内部会 abort 旧 stream）
     Promise.all([
       this.fetchDailyForecast(true),
       this.initRecommendations()
@@ -252,27 +273,6 @@ Page({
     }
   },
 
-  /** 生成与 daily.js 相同格式的 transit 缓存 key，实现互相缓存 */
-  getTransitCacheKey(dateStr) {
-    if (!this.userProfile) return null;
-    const { birthDate, birthTime, birthCity } = this.userProfile;
-    return `daily_transit_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
-  },
-
-  /** 首页 homeCard 缓存 key */
-  getHomeCardCacheKey(dateStr) {
-    if (!this.userProfile) return null;
-    const { birthDate, birthTime, birthCity } = this.userProfile;
-    return `home_card_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
-  },
-
-  /** 生成与 daily.js getCacheKey(dateStr, true) 相同格式的 full 缓存 key */
-  getDailyFullCacheKey(dateStr) {
-    if (!this.userProfile) return null;
-    const { birthDate, birthTime, birthCity } = this.userProfile;
-    return `daily_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}_zh_full`;
-  },
-
   buildDailyParams(date) {
     if (!this.userProfile) return '';
 
@@ -297,192 +297,186 @@ Page({
     return params.join('&');
   },
 
-  async fetchDailyForecast(skipCache) {
-    try {
-      this.setData({ isLoadingForecast: true });
-
-      if (!this.userProfile) {
-        this.setData({
-          isLoadingForecast: false,
-          shareData: {
-            ...this.data.shareData,
-            score: '--',
-            quote: '请先设置出生信息',
-            body: '前往"我的"页面设置您的出生日期、时间和地点，即可获取个性化洞察解读。',
-            lucky: { color: '--', number: '--', direction: '--' }
-          }
-        });
-        return;
-      }
-
+  /** 序列号自增 + abort 旧 streaming 任务 + 清理残留 pending */
+  _beginForecastTask() {
+    this._forecastSeq = (this._forecastSeq || 0) + 1;
+    if (this._activeStreamTask) {
+      this._activeStreamTask.abort();
+      this._activeStreamTask = null;
+    }
+    // abort 后旧 stream 的 onDone/onError 不会触发，主动清理 pending 标记
+    if (this.userProfile) {
       const today = new Date().toISOString().slice(0, 10);
+      const key = buildDailyFullCacheKey(this.userProfile, today);
+      if (key) storage.remove(key + '_pending');
+    }
+    return this._forecastSeq;
+  },
 
-      // 检查 homeCard 缓存（非强制刷新时）
-      if (!skipCache) {
-        const homeCardCacheKey = this.getHomeCardCacheKey(today);
-        const cachedCard = homeCardCacheKey ? storage.get(homeCardCacheKey) : null;
-        if (cachedCard && cachedCard.shareData) {
-          this.setData({
-            isLoadingForecast: false,
-            shareData: { ...cachedCard.shareData, date: this.data.shareData.date }
-          });
-          return;
-        }
+  /** 检查是否为最新请求 */
+  _isLatestForecast(seq) {
+    return this._alive && seq === this._forecastSeq;
+  },
+
+  /** 从 /full 响应中提取 shareData 并渲染卡片 */
+  _renderCardFromFullResult(fullResult, today) {
+    if (!this._alive) return;
+
+    const forecastData = fullResult.forecast || {};
+    const forecast = forecastData.content || forecastData;
+    const chart = fullResult.chart || {};
+    const lucky = fullResult.lucky || {};
+
+    // 提取太阳星座
+    const sunPos = chart.natal && chart.natal.positions
+      ? chart.natal.positions.find(p => p.name === 'Sun')
+      : null;
+    const sunSign = sunPos ? (SIGN_CN[sunPos.sign] || sunPos.sign) : '';
+
+    const quote = forecast.share_text || forecast.theme_title || '';
+    const body = forecast.summary || forecast.theme_explanation || '';
+    const score = forecast.overall_score || forecast.score || '--';
+
+    const shareData = {
+      score: String(score),
+      quote: quote || '今日洞察已就绪',
+      body: body || '',
+      sunSign,
+      lucky: {
+        color: lucky.color || forecast.lucky_color || '--',
+        number: lucky.number !== undefined ? String(lucky.number) : (forecast.lucky_number || '--'),
+        direction: lucky.direction || forecast.lucky_direction || '--',
+      },
+      date: this.data.shareData.date
+    };
+
+    this.setData({
+      isLoadingForecast: false,
+      shareData
+    });
+
+    this._lastForecastDate = today;
+    this._lastProfileFingerprint = buildProfileFingerprint(this.userProfile);
+  },
+
+  /** 统一错误处理 */
+  _handleForecastError(err) {
+    if (!this._alive) return;
+    const errMsg = err ? (err.message || err.errMsg || String(err)) : 'unknown';
+    logger.error('Fetch daily failed', errMsg, err);
+    this.setData({
+      isLoadingForecast: false,
+      shareData: {
+        ...this.data.shareData,
+        score: '--',
+        quote: '暂时无法获取',
+        body: '请下拉刷新重试',
+        lucky: { color: '--', number: '--', direction: '--' }
       }
+    });
+  },
 
-      const query = this.buildDailyParams(today);
-      if (!query) {
-        this.setData({ isLoadingForecast: false });
-        return;
-      }
+  /**
+   * 获取每日洞察：缓存优先 → streaming AI 生成
+   * 注意：streaming 路径为 fire-and-forget，函数在设置 stream 后即返回（resolved promise），
+   * 不会等待 stream 完成。这是有意为之，以提前解锁 markHomeVisibleReady 和 tab-preloader。
+   */
+  async fetchDailyForecast(skipCache) {
+    this.setData({ isLoadingForecast: true });
 
-      // === 第一步：快速加载 /transit 确定性数据（~50ms） ===
-      const res = await request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}` });
-
-      if (res && res.transits) {
-        const interpreted = res.interpreted || {};
-        const score = interpreted.score || '--';
-        const summary = interpreted.summary || '';
-        const description = interpreted.description || '';
-
-        const sunPos = res.natal && res.natal.positions
-          ? res.natal.positions.find(p => p.name === 'Sun')
-          : null;
-        const sunSign = sunPos ? (SIGN_CN[sunPos.sign] || sunPos.sign) : '';
-
-        // 先用确定性兜底文案渲染
-        const shareData = {
-          score: String(score),
-          quote: summary,
-          body: description,
-          sunSign,
-          lucky: {
-            color: interpreted.luckyColor || '--',
-            number: interpreted.luckyNumber || '--',
-            direction: interpreted.luckyDirection || '--'
-          },
-          date: this.data.shareData.date
-        };
-
-        this.setData({
-          isLoadingForecast: false,
-          shareData
-        });
-
-        // 缓存 transit 数据（与 daily.js 共享 key 格式）
-        const transitCacheKey = this.getTransitCacheKey(today);
-        if (transitCacheKey) {
-          storage.set(transitCacheKey, res);
-        }
-
-        // === 第二步：后台获取 AI 内容更新卡片（fire-and-forget） ===
-        this._fetchForecastForCard(today, query, skipCache, { interpreted, sunSign });
-      } else {
-        this.setData({ isLoadingForecast: false });
-      }
-    } catch (error) {
-      const errMsg = error ? (error.message || error.errMsg || JSON.stringify(error)) : 'unknown';
-      const errCode = error ? (error.statusCode || error.errno || '') : '';
-      logger.error('Fetch daily failed', errMsg, error);
+    if (!this.userProfile) {
       this.setData({
         isLoadingForecast: false,
         shareData: {
           ...this.data.shareData,
           score: '--',
-          quote: '获取失败',
-          body: `请稍后重试 [${errCode || 'ERR'}] ${errMsg.slice(0, 80)}`,
+          quote: '请先设置出生信息',
+          body: '前往"我的"页面设置您的出生日期、时间和地点，即可获取个性化洞察解读。',
           lucky: { color: '--', number: '--', direction: '--' }
         }
       });
+      return;
     }
-  },
 
-  /**
-   * 后台从 daily-forecast AI 结果中提取首页卡片文案
-   * 优先检查 daily_cache_*_full 缓存，未命中则调用 /daily/full
-   */
-  async _fetchForecastForCard(today, query, skipCache, ctx) {
-    try {
-      const { interpreted, sunSign } = ctx;
+    const seq = this._beginForecastTask();
+    const today = new Date().toISOString().slice(0, 10);
 
-      // 1. 检查 daily full 缓存
-      if (!skipCache) {
-        const fullCacheKey = this.getDailyFullCacheKey(today);
-        const cachedFull = fullCacheKey ? storage.get(fullCacheKey) : null;
-        if (cachedFull) {
-          this._applyForecastToCard(cachedFull, today, interpreted, sunSign);
-          return;
+    // 缓存优先
+    if (!skipCache) {
+      const fullCacheKey = buildDailyFullCacheKey(this.userProfile, today);
+      const cached = fullCacheKey ? storage.get(fullCacheKey) : null;
+      if (cached && (cached.chart || cached.forecast)) {
+        this._renderCardFromFullResult(cached, today);
+        return;
+      }
+    }
+
+    // 缓存未命中 → streaming 请求
+    const query = this.buildDailyParams(today);
+    if (!query) {
+      this.setData({ isLoadingForecast: false });
+      return;
+    }
+
+    const fullCacheKey = buildDailyFullCacheKey(this.userProfile, today);
+    if (fullCacheKey) {
+      storage.set(fullCacheKey + '_pending', true);
+    }
+
+    const streamState = { chart: null, forecast: null, detail: null, lucky: null };
+
+    const streamTask = requestStream({
+      url: `${API_ENDPOINTS.DAILY_FULL_STREAM}?${query}`,
+      method: 'GET',
+      timeout: 120000,
+      onMeta: (meta) => {
+        if (!this._isLatestForecast(seq)) return;
+        streamState.chart = meta?.chart || streamState.chart;
+        streamState.lucky = meta?.lucky || streamState.lucky;
+      },
+      onModule: (evt) => {
+        if (!this._isLatestForecast(seq)) return;
+        if (!evt || !evt.moduleId) return;
+        if (evt.moduleId === 'forecast') {
+          streamState.forecast = evt.content || null;
+          // forecast 到达后即可更新卡片（不等 detail）
+          if (streamState.forecast) {
+            this._renderCardFromFullResult(streamState, today);
+          }
+        } else if (evt.moduleId === 'detail') {
+          streamState.detail = evt.content || null;
         }
-      }
+      },
+      onDone: () => {
+        if (!this._isLatestForecast(seq)) return;
+        this._activeStreamTask = null;
 
-      // 2. 未命中 → 调用 /daily/full
-      const fullCacheKey = this.getDailyFullCacheKey(today);
-      // 设置 pending 标记，防止 tab-preloader 同时发起相同请求
-      if (fullCacheKey) {
-        storage.set(fullCacheKey + '_pending', true);
-      }
-
-      let fullResult;
-      try {
-        fullResult = await request({
-          url: `${API_ENDPOINTS.DAILY_FULL}?${query}`,
-          method: 'GET',
-          timeout: 30000,
-        });
-      } finally {
+        // 写缓存：chart + forecast 都存在才算完整
+        if (fullCacheKey && streamState.chart && streamState.forecast) {
+          storage.set(fullCacheKey, streamState);
+        }
         if (fullCacheKey) {
           storage.remove(fullCacheKey + '_pending');
         }
-      }
 
-      if (!fullResult) return;
-
-      // 3. 缓存完整 /full 响应（daily 页复用）
-      if (fullCacheKey) {
-        storage.set(fullCacheKey, fullResult);
-      }
-
-      // 4. 提取 AI 文案更新首页卡片
-      this._applyForecastToCard(fullResult, today, interpreted, sunSign);
-    } catch (err) {
-      // AI 内容获取失败静默，首页保持兜底文案
-      logger.warn('Fetch forecast for card failed:', err?.message || err);
-    }
-  },
-
-  /** 从 /daily/full 响应中提取 quote/body 并更新首页卡片 */
-  _applyForecastToCard(fullResult, today, interpreted, sunSign) {
-    if (!this._alive) return;
-
-    const forecastData = fullResult.forecast || {};
-    const forecast = forecastData.content || forecastData;
-
-    const quote = forecast.share_text || forecast.theme_title || interpreted.summary || '';
-    const body = forecast.summary || forecast.theme_explanation || interpreted.description || '';
-
-    // 仅在 AI 内容有效时更新
-    if (!quote && !body) return;
-
-    const shareData = {
-      score: String(interpreted.score || this.data.shareData.score),
-      quote,
-      body,
-      sunSign: sunSign || this.data.shareData.sunSign,
-      lucky: {
-        color: interpreted.luckyColor || this.data.shareData.lucky.color,
-        number: interpreted.luckyNumber || this.data.shareData.lucky.number,
-        direction: interpreted.luckyDirection || this.data.shareData.lucky.direction,
+        // 确保最终渲染
+        if (streamState.forecast) {
+          this._renderCardFromFullResult(streamState, today);
+        } else {
+          this._handleForecastError(new Error('AI 未返回有效内容'));
+        }
       },
-      date: this.data.shareData.date
-    };
+      onError: (err) => {
+        if (!this._isLatestForecast(seq)) return;
+        this._activeStreamTask = null;
+        if (fullCacheKey) {
+          storage.remove(fullCacheKey + '_pending');
+        }
+        this._handleForecastError(err);
+      },
+    });
 
-    this.setData({ shareData });
-
-    // 更新 homeCard 缓存
-    const homeCardCacheKey = this.getHomeCardCacheKey(today);
-    if (homeCardCacheKey) {
-      storage.set(homeCardCacheKey, { shareData });
-    }
+    this._activeStreamTask = streamTask;
   },
 
   async initRecommendations() {
