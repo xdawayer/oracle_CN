@@ -479,8 +479,9 @@ dailyRouter.get('/full', async (req, res) => {
       cross_aspects: transits.aspects,
     };
 
-    // 8. 确定性幸运值（与 /transit 端点一致，轻量版不遍历 aspects）
-    const lucky = computeLuckyFromPositions(transits.positions);
+    // 8. 确定性幸运值 + 评分（与 /transit 端点一致，完整版含 score）
+    const { interpreted: luckyInterp, ...luckyBase } = computeLucky(transits);
+    const lucky = { ...luckyBase, score: luckyInterp.score };
 
     res.json({
       chart: { natal: chart, transits, technical },
@@ -566,8 +567,9 @@ dailyRouter.get('/full/stream', async (req, res) => {
       cross_aspects: transits.aspects,
     };
 
-    // 确定性幸运值（与 /transit 端点一致，轻量版不遍历 aspects）
-    const luckyStream = computeLuckyFromPositions(transits.positions);
+    // 确定性幸运值 + 评分（与 /transit 端点一致，完整版含 score）
+    const { interpreted: luckyStreamInterp, ...luckyStreamBase } = computeLucky(transits);
+    const luckyStream = { ...luckyStreamBase, score: luckyStreamInterp.score };
 
     if (!disconnected) {
       writeSSE(res, {

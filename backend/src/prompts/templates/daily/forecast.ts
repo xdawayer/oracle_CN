@@ -59,7 +59,7 @@ export const dailyForecastPrompt: PromptTemplate = {
       { "date": "YYYY-MM-DD", "label": "str:关键事件", "description": "str:20-30字说明" }
     ]
   },
-  "share_text": "str:20-30字,适合发圈"
+  "share_text": "str:13字以内,一句话金句"
 }
 
 ## 节气融入
@@ -84,7 +84,7 @@ details 必须是具体可执行的生活场景（赶地铁时听播客、午饭
 2. time_windows_enhanced 必须3个时段（上午/午间/晚上）
 3. advice.details 必须具体可执行（"约朋友吃饭"✓ "社交"✗）
 4. weekly_trend.daily_scores 必须包含本周7天数据，从周一到周日
-5. share_text 格式：引子+幽默+行动号召
+5. share_text 必须≤13个字（含标点），一句精炼金句，如"今天适合躺平充电"、"行动力全开的一天"
 6. summary、theme_explanation、description 等所有文本字段中不得出现任何行星、星座、宫位、相位名称`,
 
   user: (ctx: PromptContext) => `日期：${ctx.date || '今日'}

@@ -335,7 +335,8 @@ Page({
 
     const quote = forecast.share_text || forecast.theme_title || '';
     const body = forecast.summary || forecast.theme_explanation || '';
-    const score = forecast.overall_score || forecast.score || '--';
+    // 优先用 transit 确定性分数（与 daily 页一致），fallback 到 AI 生成的分数
+    const score = lucky.score || forecast.overall_score || forecast.score || '--';
 
     const shareData = {
       score: String(score),
