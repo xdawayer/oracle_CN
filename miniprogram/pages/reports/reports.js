@@ -14,17 +14,25 @@ const TYPE_TEXT_MAP = {
   'love-topic': '爱情专题',
   'career-topic': '事业专题',
   'wealth-topic': '财富专题',
+  annual: '年度报告',
+  monthly: '月度报告',
 };
 
 const getTypeText = (type) => TYPE_TEXT_MAP[type] || '分析报告';
 
-const getTypeClass = (type) => {
-  if (type === 'synastry') return 'tag-synastry';
-  if (type === 'daily') return 'tag-daily';
-  if (type === 'natal' || type === 'natal-report') return 'tag-natal';
-  if (type && type.endsWith('-topic')) return 'tag-topic';
-  return 'tag-default';
+const TYPE_CLASS_MAP = {
+  synastry: 'tag-synastry',
+  daily: 'tag-daily',
+  natal: 'tag-natal',
+  'natal-report': 'tag-natal',
+  'love-topic': 'tag-love-topic',
+  'career-topic': 'tag-career-topic',
+  'wealth-topic': 'tag-wealth-topic',
+  annual: 'tag-annual',
+  monthly: 'tag-monthly',
 };
+
+const getTypeClass = (type) => TYPE_CLASS_MAP[type] || 'tag-default';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';

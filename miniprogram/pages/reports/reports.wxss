@@ -8,7 +8,7 @@
 /* ========== 列表视图 ========== */
 
 .list-container {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-sm);
 }
 
 .empty-state {
@@ -71,20 +71,36 @@
   color: var(--paper-50);
 }
 
-.tag-topic {
-  background: linear-gradient(135deg, #5b6abf, #8b6daf);
-}
-
 .tag-natal {
-  background: var(--ink-dark);
+  background: var(--ink-deep);
 }
 
 .tag-synastry {
-  background: linear-gradient(135deg, #d4707a, #e8939b);
+  background: #C9889A;
 }
 
 .tag-daily {
   background: var(--mountain-blue);
+}
+
+.tag-love-topic {
+  background: linear-gradient(135deg, #D4789C, #E8A0BF);
+}
+
+.tag-career-topic {
+  background: linear-gradient(135deg, #5B6CC9, #7B8CDE);
+}
+
+.tag-wealth-topic {
+  background: linear-gradient(135deg, #B8923A, #D4A853);
+}
+
+.tag-annual {
+  background: var(--seal-red);
+}
+
+.tag-monthly {
+  background: linear-gradient(135deg, #4a4e57, #5a5e67);
 }
 
 .date-label {
@@ -129,7 +145,7 @@
 }
 
 .detail-hero-inner {
-  padding: var(--breath-lg) var(--spacing-lg) var(--breath-md);
+  padding: var(--breath-lg) var(--spacing-sm) var(--breath-md);
 }
 
 .detail-tag-row {
@@ -169,7 +185,7 @@
 /* ========== 目录区 ========== */
 
 .toc-section {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-sm);
 }
 
 .toc-inner {
@@ -203,7 +219,7 @@
 /* ========== 模块卡片 ========== */
 
 .modules-container {
-  padding: 0 var(--spacing-lg);
+  padding: 0 var(--spacing-sm);
 }
 
 .module-card {
@@ -319,7 +335,7 @@
 /* ========== 底部 ========== */
 
 .detail-footer {
-  padding: var(--breath-lg) var(--spacing-lg) var(--spacing-lg);
+  padding: var(--breath-lg) var(--spacing-sm) var(--spacing-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
