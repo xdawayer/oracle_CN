@@ -6,7 +6,7 @@ import userService from '../services/userService.js';
 import entitlementServiceV2, { FeatureType } from '../services/entitlementServiceV2.js';
 import { stripe, STRIPE_WEBHOOK_SECRET, isStripeConfigured, PRODUCTS, SUBSCRIBER_DISCOUNT } from '../config/stripe.js';
 import { PRICING } from '../config/auth.js';
-import { PurchaseScope } from '../db/supabase.js';
+import { PurchaseScope } from '../db/mysql.js';
 
 const router = Router();
 

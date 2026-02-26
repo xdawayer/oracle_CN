@@ -124,7 +124,7 @@ app.get('/health', (_, res) => res.json({ status: 'ok' }));
 const checkEnvVars = () => {
   const required = ['JWT_SECRET', 'WECHAT_APPID', 'WECHAT_APPSECRET'];
   const wxpayVars = ['WECHAT_MCH_ID', 'WECHAT_API_KEY_V3', 'WECHAT_PRIVATE_KEY', 'WECHAT_NOTIFY_URL'];
-  const dbVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+  const dbVars = ['MYSQL_HOST', 'MYSQL_DATABASE'];
 
   for (const v of required) {
     if (!process.env[v]) console.warn(`[WARN] 缺少必需环境变量: ${v}`);
@@ -137,7 +137,7 @@ const checkEnvVars = () => {
 
   const missingDb = dbVars.filter(v => !process.env[v]);
   if (missingDb.length > 0) {
-    console.warn(`[WARN] Supabase 未配置 (${missingDb.join(', ')})，使用内存存储`);
+    console.warn(`[WARN] MySQL 未配置 (${missingDb.join(', ')})，使用内存存储`);
   }
 };
 checkEnvVars();

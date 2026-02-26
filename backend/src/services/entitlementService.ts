@@ -1,5 +1,6 @@
 // Entitlement Service - checks user permissions and manages free usage
-import { supabase, DbFreeUsage, isSupabaseConfigured } from '../db/supabase.js';
+import { v4 as uuidv4 } from 'uuid';
+import { isDatabaseConfigured, DbFreeUsage, getOne, insert, update } from '../db/mysql.js';
 import { FREE_TIER_LIMITS, SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 import subscriptionService from './subscriptionService.js';
 
@@ -161,7 +162,7 @@ class EntitlementService {
       purchasedReports: [],
     };
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       if (userId) {
         const devState = getDevEntitlementState(userId);
         if (devState) {
@@ -329,7 +330,7 @@ class EntitlementService {
     feature: Feature,
     deviceFingerprint?: string
   ): Promise<boolean> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       if (userId) {
         const devState = getDevEntitlementState(userId);
         if (devState && feature === 'ask' && devState.askTokens > 0) {
@@ -376,37 +377,28 @@ class EntitlementService {
 
   // Get free usage record
   async getFreeUsage(deviceFingerprint: string): Promise<DbFreeUsage | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data } = await supabase
-      .from('free_usage')
-      .select('*')
-      .eq('device_fingerprint', deviceFingerprint)
-      .single();
-
-    return data as DbFreeUsage | null;
+    return getOne<DbFreeUsage>(
+      'SELECT * FROM free_usage WHERE device_fingerprint = ?',
+      [deviceFingerprint]
+    );
   }
 
   // Create or get free usage record
   async getOrCreateFreeUsage(deviceFingerprint: string, ipAddress?: string): Promise<DbFreeUsage> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
     let freeUsage = await this.getFreeUsage(deviceFingerprint);
 
     if (!freeUsage) {
-      const { data, error } = await supabase
-        .from('free_usage')
-        .insert({
-          device_fingerprint: deviceFingerprint,
-          ip_address: ipAddress || null,
-        })
-        .select()
-        .single();
-
-      if (error) throw new Error(`Failed to create free usage record: ${error.message}`);
-      freeUsage = data as DbFreeUsage;
+      freeUsage = await insert<DbFreeUsage>('free_usage', {
+        id: uuidv4(),
+        device_fingerprint: deviceFingerprint,
+        ip_address: ipAddress || null,
+      });
     }
 
     return freeUsage;
@@ -414,7 +406,7 @@ class EntitlementService {
 
   // Consume free usage
   private async consumeFreeUsage(deviceFingerprint: string, feature: Feature): Promise<boolean> {
-    if (!isSupabaseConfigured()) return true;
+    if (!isDatabaseConfigured()) return true;
 
     const freeUsage = await this.getOrCreateFreeUsage(deviceFingerprint);
 
@@ -446,12 +438,14 @@ class EntitlementService {
       return false;
     }
 
-    const { error } = await supabase
-      .from('free_usage')
-      .update({ [updateField]: currentUsage + 1 })
-      .eq('id', freeUsage.id);
+    const affected = await update(
+      'free_usage',
+      { [updateField]: currentUsage + 1 },
+      'id = ?',
+      [freeUsage.id]
+    );
 
-    return !error;
+    return affected > 0;
   }
 }
 

@@ -1,5 +1,6 @@
 // Subscription Service - handles subscriptions and purchases
-import { supabase, DbSubscription, DbPurchase, isSupabaseConfigured } from '../db/supabase.js';
+import { v4 as uuidv4 } from 'uuid';
+import { isDatabaseConfigured, DbSubscription, DbPurchase, query, getOne, insert, update } from '../db/mysql.js';
 import { stripe, PRODUCTS, STRIPE_PRICES, isStripeConfigured, SUBSCRIBER_DISCOUNT } from '../config/stripe.js';
 import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 
@@ -152,19 +153,12 @@ class SubscriptionService {
 
   // Get user's subscription
   async getSubscription(userId: string): Promise<DbSubscription | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .in('status', ['active', 'trialing', 'past_due'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbSubscription;
+    return getOne<DbSubscription>(
+      'SELECT * FROM subscriptions WHERE user_id = ? AND status IN (?, ?, ?) ORDER BY created_at DESC LIMIT 1',
+      [userId, 'active', 'trialing', 'past_due']
+    );
   }
 
   // Create or update subscription from Stripe webhook
@@ -180,7 +174,7 @@ class SubscriptionService {
       items: { data: Array<{ price: { id: string } }> };
     }
   ): Promise<DbSubscription> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
@@ -220,31 +214,20 @@ class SubscriptionService {
     };
 
     // Check if subscription exists
-    const { data: existing } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('stripe_subscription_id', stripeSubscription.id)
-      .single();
+    const existing = await getOne<{ id: string }>(
+      'SELECT id FROM subscriptions WHERE stripe_subscription_id = ?',
+      [stripeSubscription.id]
+    );
 
     if (existing) {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update(subscriptionData)
-        .eq('stripe_subscription_id', stripeSubscription.id)
-        .select()
-        .single();
-
-      if (error) throw new Error(`Failed to update subscription: ${error.message}`);
-      return data as DbSubscription;
+      await update('subscriptions', subscriptionData, 'stripe_subscription_id = ?', [stripeSubscription.id]);
+      return (await getOne<DbSubscription>(
+        'SELECT * FROM subscriptions WHERE stripe_subscription_id = ?',
+        [stripeSubscription.id]
+      ))!;
     } else {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .insert(subscriptionData)
-        .select()
-        .single();
-
-      if (error) throw new Error(`Failed to create subscription: ${error.message}`);
-      return data as DbSubscription;
+      const id = uuidv4();
+      return await insert<DbSubscription>('subscriptions', { id, ...subscriptionData });
     }
   }
 
@@ -279,7 +262,7 @@ class SubscriptionService {
     stripePaymentIntentId?: string,
     stripeCheckoutSessionId?: string
   ): Promise<DbPurchase> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
@@ -288,38 +271,31 @@ class SubscriptionService {
       quantity = PRODUCTS.oneTime.detail_pack.quantity;
     }
 
-    const { data, error } = await supabase
-      .from('purchases')
-      .insert({
-        user_id: userId,
-        product_type: productType,
-        product_id: productId,
-        amount,
-        stripe_payment_intent_id: stripePaymentIntentId,
-        stripe_checkout_session_id: stripeCheckoutSessionId,
-        status: 'completed',
-        quantity,
-        consumed: 0,
-      })
-      .select()
-      .single();
+    const id = uuidv4();
+    const purchase = await insert<DbPurchase>('purchases', {
+      id,
+      user_id: userId,
+      product_type: productType,
+      product_id: productId,
+      amount,
+      stripe_payment_intent_id: stripePaymentIntentId || null,
+      stripe_checkout_session_id: stripeCheckoutSessionId || null,
+      status: 'completed',
+      quantity,
+      consumed: 0,
+    });
 
-    if (error) throw new Error(`Failed to record purchase: ${error.message}`);
-    return data as DbPurchase;
+    return purchase;
   }
 
   // Get user's purchases
   async getPurchases(userId: string): Promise<DbPurchase[]> {
-    if (!isSupabaseConfigured()) return [];
+    if (!isDatabaseConfigured()) return [];
 
-    const { data, error } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) return [];
-    return data as DbPurchase[];
+    return query<DbPurchase>(
+      'SELECT * FROM purchases WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
   }
 
   // Get available purchase credits
@@ -327,67 +303,54 @@ class SubscriptionService {
     userId: string,
     productType: 'ask' | 'detail_pack' | 'synastry' | 'cbt_analysis'
   ): Promise<number> {
-    if (!isSupabaseConfigured()) return 0;
+    if (!isDatabaseConfigured()) return 0;
 
-    const { data } = await supabase
-      .from('purchases')
-      .select('quantity, consumed')
-      .eq('user_id', userId)
-      .eq('product_type', productType)
-      .eq('status', 'completed');
+    const rows = await query<{ quantity: number; consumed: number }>(
+      'SELECT quantity, consumed FROM purchases WHERE user_id = ? AND product_type = ? AND status = ?',
+      [userId, productType, 'completed']
+    );
 
-    if (!data) return 0;
-
-    return data.reduce((total, p) => total + (p.quantity - p.consumed), 0);
+    return rows.reduce((total, p) => total + (p.quantity - p.consumed), 0);
   }
 
   // Consume a purchase credit
   async consumeCredit(userId: string, productType: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
     // Find a purchase with available credits
-    const { data: purchase } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('product_type', productType)
-      .eq('status', 'completed')
-      .gt('quantity', supabase.rpc('consumed'))
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .single();
+    const purchase = await getOne<DbPurchase>(
+      'SELECT * FROM purchases WHERE user_id = ? AND product_type = ? AND status = ? AND quantity > consumed ORDER BY created_at ASC LIMIT 1',
+      [userId, productType, 'completed']
+    );
 
     if (!purchase) return false;
 
     // Increment consumed count
-    const { error } = await supabase
-      .from('purchases')
-      .update({ consumed: purchase.consumed + 1 })
-      .eq('id', purchase.id);
+    const affected = await update(
+      'purchases',
+      { consumed: purchase.consumed + 1 },
+      'id = ?',
+      [purchase.id]
+    );
 
-    return !error;
+    return affected > 0;
   }
 
   // Check if user has purchased a report
   async hasReport(userId: string, reportType: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
-    const { data } = await supabase
-      .from('purchases')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('product_type', 'report')
-      .eq('product_id', reportType)
-      .eq('status', 'completed')
-      .limit(1)
-      .single();
+    const row = await getOne<{ id: string }>(
+      'SELECT id FROM purchases WHERE user_id = ? AND product_type = ? AND product_id = ? AND status = ? LIMIT 1',
+      [userId, 'report', reportType, 'completed']
+    );
 
-    return !!data;
+    return !!row;
   }
 
   // Use synastry read from subscription
   async useSynastryRead(userId: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
     const subscription = await this.getSubscription(userId);
     if (!subscription || subscription.status !== 'active') return false;
@@ -397,22 +360,24 @@ class SubscriptionService {
       return false;
     }
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
+    const affected = await update(
+      'subscriptions',
+      {
         usage: {
           ...usage,
           synastryReads: usage.synastryReads + 1,
         },
-      })
-      .eq('id', subscription.id);
+      },
+      'id = ?',
+      [subscription.id]
+    );
 
-    return !error;
+    return affected > 0;
   }
 
   // Claim monthly report
   async claimMonthlyReport(userId: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
     const subscription = await this.getSubscription(userId);
     if (!subscription || subscription.status !== 'active') return false;
@@ -421,32 +386,36 @@ class SubscriptionService {
       return false;
     }
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
+    const affected = await update(
+      'subscriptions',
+      {
         usage: {
           ...subscription.usage,
           monthlyReportClaimed: true,
         },
-      })
-      .eq('id', subscription.id);
+      },
+      'id = ?',
+      [subscription.id]
+    );
 
-    return !error;
+    return affected > 0;
   }
 
   // Reset monthly usage (called by cron job or webhook)
   async resetMonthlyUsage(subscriptionId: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
+    if (!isDatabaseConfigured()) return;
 
-    await supabase
-      .from('subscriptions')
-      .update({
+    await update(
+      'subscriptions',
+      {
         usage: {
           synastryReads: 0,
           monthlyReportClaimed: false,
         },
-      })
-      .eq('id', subscriptionId);
+      },
+      'id = ?',
+      [subscriptionId]
+    );
   }
 }
 

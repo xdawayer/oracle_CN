@@ -1,5 +1,6 @@
 // Report Service - handles paid report generation and storage
-import { supabase, isSupabaseConfigured, BirthProfile } from '../db/supabase.js';
+import { v4 as uuidv4 } from 'uuid';
+import { isDatabaseConfigured, BirthProfile, query, getOne, insert, remove } from '../db/mysql.js';
 import { PRODUCTS } from '../config/stripe.js';
 import { generateAIContent } from './ai.js';
 
@@ -155,57 +156,43 @@ const REPORT_PROMPTS: Record<ReportType, { systemPrompt: string; sections: strin
 class ReportService {
   // Check if user has purchased a specific report type
   async hasReportAccess(userId: string, reportType: ReportType): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
-    const { data: record } = await supabase
-      .from('purchase_records')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('feature_type', 'report')
-      .eq('feature_id', reportType)
-      .single();
-
+    const record = await getOne<{ id: string }>(
+      'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ?',
+      [userId, 'report', reportType]
+    );
     if (record) return true;
 
     // Check for existing purchased report
-    const { data: existingReport } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('report_type', reportType)
-      .single();
-
+    const existingReport = await getOne<{ id: string }>(
+      'SELECT id FROM reports WHERE user_id = ? AND report_type = ?',
+      [userId, reportType]
+    );
     if (existingReport) return true;
 
     // Check for purchase record
-    const { data: purchase } = await supabase
-      .from('purchases')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('product_type', 'report')
-      .eq('product_id', reportType)
-      .eq('status', 'completed')
-      .single();
+    const purchase = await getOne<{ id: string }>(
+      'SELECT id FROM purchases WHERE user_id = ? AND product_type = ? AND product_id = ? AND status = ?',
+      [userId, 'report', reportType, 'completed']
+    );
 
     return !!purchase;
   }
 
   // Get user's purchased reports (deduplicated by report_type, keeping latest)
   async getUserReports(userId: string): Promise<DbReport[]> {
-    if (!isSupabaseConfigured()) return [];
+    if (!isDatabaseConfigured()) return [];
 
-    const { data, error } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error || !data) return [];
+    const data = await query<DbReport>(
+      'SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
 
     // 按 report_type 去重，保留最新的一份
     const seen = new Set<string>();
     const deduped: DbReport[] = [];
-    for (const row of data as DbReport[]) {
+    for (const row of data) {
       if (!seen.has(row.report_type)) {
         seen.add(row.report_type);
         deduped.push(row);
@@ -216,49 +203,35 @@ class ReportService {
 
   // Get report count for a user (deduplicated by report_type)
   async getReportCount(userId: string): Promise<number> {
-    if (!isSupabaseConfigured()) return 0;
+    if (!isDatabaseConfigured()) return 0;
 
-    const { data, error } = await supabase
-      .from('reports')
-      .select('report_type')
-      .eq('user_id', userId);
+    const data = await query<{ report_type: string }>(
+      'SELECT report_type FROM reports WHERE user_id = ?',
+      [userId]
+    );
 
-    if (error || !data) return 0;
-
-    const uniqueTypes = new Set(data.map((r: { report_type: string }) => r.report_type));
+    const uniqueTypes = new Set(data.map(r => r.report_type));
     return uniqueTypes.size;
   }
 
   // Get a specific report
   async getReport(userId: string, reportId: string): Promise<DbReport | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('id', reportId)
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbReport;
+    return getOne<DbReport>(
+      'SELECT * FROM reports WHERE id = ? AND user_id = ?',
+      [reportId, userId]
+    );
   }
 
   // Get report by type (most recent)
   async getReportByType(userId: string, reportType: ReportType): Promise<DbReport | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('report_type', reportType)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbReport;
+    return getOne<DbReport>(
+      'SELECT * FROM reports WHERE user_id = ? AND report_type = ? ORDER BY created_at DESC LIMIT 1',
+      [userId, reportType]
+    );
   }
 
   // Generate a new report
@@ -269,7 +242,7 @@ class ReportService {
     language: 'en' | 'zh' = 'en',
     partnerProfile?: BirthProfile
   ): Promise<DbReport> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
@@ -289,6 +262,7 @@ class ReportService {
 
     // Store the report
     const reportData = {
+      id: uuidv4(),
       user_id: userId,
       report_type: reportType,
       title: content.title,
@@ -298,17 +272,8 @@ class ReportService {
       generated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from('reports')
-      .insert(reportData)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to save report: ${error.message}`);
-    }
-
-    return data as DbReport;
+    const report = await insert<DbReport>('reports', reportData);
+    return report;
   }
 
   // Generate report content using AI
@@ -451,15 +416,10 @@ class ReportService {
 
   // Delete a report
   async deleteReport(userId: string, reportId: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) return false;
+    if (!isDatabaseConfigured()) return false;
 
-    const { error } = await supabase
-      .from('reports')
-      .delete()
-      .eq('id', reportId)
-      .eq('user_id', userId);
-
-    return !error;
+    const affected = await remove('reports', 'id = ? AND user_id = ?', [reportId, userId]);
+    return affected > 0;
   }
 }
 

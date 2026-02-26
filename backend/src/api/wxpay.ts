@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, requireAuth } from './auth.js';
 import wxpayService from '../services/wxpayService.js';
 import { isWxPayConfigured, VIP_PLANS } from '../config/wxpay.js';
-import { supabase, isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured, update, getOne, insert, query } from '../db/mysql.js';
 import { addDevGmCredits } from '../services/entitlementService.js';
 
 const router = Router();
@@ -94,25 +94,18 @@ router.post('/refund-notify', async (req: Request, res: Response) => {
       if (result.refundStatus === 'SUCCESS') {
         // 退款成功：回收权益
         if (order.orderType === 'subscription') {
-          if (isSupabaseConfigured()) {
-            await supabase
-              .from('subscriptions')
-              .update({
-                status: 'canceled',
-                current_period_end: new Date().toISOString(),
-              })
-              .eq('user_id', order.userId)
-              .in('status', ['active', 'trialing']);
+          if (isDatabaseConfigured()) {
+            await update('subscriptions', {
+              status: 'canceled',
+              current_period_end: new Date().toISOString(),
+            }, 'user_id = ? AND status IN (?, ?)', [order.userId, 'active', 'trialing']);
           }
         }
         if (order.orderType === 'points' && order.pointsAmount) {
-          if (isSupabaseConfigured()) {
-            await supabase
-              .from('purchase_records')
-              .update({ consumed: order.pointsAmount })
-              .eq('user_id', order.userId)
-              .eq('feature_type', 'gm_credit')
-              .eq('feature_id', order.orderId);
+          if (isDatabaseConfigured()) {
+            await update('purchase_records', { consumed: order.pointsAmount },
+              'user_id = ? AND feature_type = ? AND feature_id = ?',
+              [order.userId, 'gm_credit', order.orderId]);
           }
         }
       }
@@ -214,20 +207,14 @@ router.post('/refund', authMiddleware, requireAuth, async (req: Request, res: Re
       if (!isWxPayConfigured()) {
         const order = await wxpayService.getOrder(orderId);
         if (order) {
-          if (order.orderType === 'subscription' && isSupabaseConfigured()) {
-            await supabase
-              .from('subscriptions')
-              .update({ status: 'canceled' })
-              .eq('user_id', req.userId!)
-              .in('status', ['active', 'trialing']);
+          if (order.orderType === 'subscription' && isDatabaseConfigured()) {
+            await update('subscriptions', { status: 'canceled' },
+              'user_id = ? AND status IN (?, ?)', [req.userId!, 'active', 'trialing']);
           }
-          if (order.orderType === 'points' && order.pointsAmount && isSupabaseConfigured()) {
-            await supabase
-              .from('purchase_records')
-              .update({ consumed: order.pointsAmount })
-              .eq('user_id', req.userId!)
-              .eq('feature_type', 'gm_credit')
-              .eq('feature_id', orderId);
+          if (order.orderType === 'points' && order.pointsAmount && isDatabaseConfigured()) {
+            await update('purchase_records', { consumed: order.pointsAmount },
+              'user_id = ? AND feature_type = ? AND feature_id = ?',
+              [req.userId!, 'gm_credit', orderId]);
           }
         }
       }
@@ -293,15 +280,12 @@ router.post('/dev-confirm', authMiddleware, requireAuth, async (req: Request, re
 
 // VIP 订阅支付成功处理
 async function handleSubscriptionPaid(userId: string, plan: string, days: number, _totalFee: number, _orderId: string) {
-  if (isSupabaseConfigured()) {
+  if (isDatabaseConfigured()) {
     // 查询当前有效订阅
-    const { data: existing } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .in('status', ['active', 'trialing'])
-      .order('current_period_end', { ascending: false })
-      .limit(1);
+    const existing = await query<{ current_period_end: string }>(
+      'SELECT * FROM subscriptions WHERE user_id = ? AND status IN (?, ?) ORDER BY current_period_end DESC LIMIT 1',
+      [userId, 'active', 'trialing']
+    );
 
     const now = new Date();
     let startDate = now;
@@ -315,7 +299,7 @@ async function handleSubscriptionPaid(userId: string, plan: string, days: number
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + days);
 
-    await supabase.from('subscriptions').insert({
+    await insert('subscriptions', {
       user_id: userId,
       plan,
       status: 'active',
@@ -330,20 +314,17 @@ async function handleSubscriptionPaid(userId: string, plan: string, days: number
 
 // 积分充值支付成功处理
 async function handlePointsRecharge(userId: string, pointsAmount: number, totalFee: number, orderId: string) {
-  if (isSupabaseConfigured()) {
+  if (isDatabaseConfigured()) {
     // 幂等检查：通过 orderId 防止重复充值
-    const { data: existing } = await supabase
-      .from('purchase_records')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('feature_type', 'gm_credit')
-      .eq('feature_id', orderId)
-      .limit(1);
+    const existing = await getOne<{ id: string }>(
+      'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ? LIMIT 1',
+      [userId, 'gm_credit', orderId]
+    );
 
-    if (existing && existing.length > 0) return;
+    if (existing) return;
 
     // 记录充值：feature_type=gm_credit, scope=consumable
-    await supabase.from('purchase_records').insert({
+    await insert('purchase_records', {
       user_id: userId,
       feature_type: 'gm_credit',
       feature_id: orderId,

@@ -1,7 +1,7 @@
 // GM Commands API - 测试/开发用命令
 import { Router, Request, Response } from 'express';
 import { authMiddleware, requireAuth } from './auth.js';
-import { supabase, isSupabaseConfigured, DbUser } from '../db/supabase.js';
+import { isDatabaseConfigured, DbUser, upsert, update, insert, remove } from '../db/mysql.js';
 import { userService } from '../services/userService.js';
 import { addDevGmCredits, clearDevGmCredits, resetDevEntitlements, setDevSubscription } from '../services/entitlementService.js';
 
@@ -25,36 +25,27 @@ router.post('/unlock-subscription', authMiddleware, requireAuth, async (req: Req
   try {
     const userId = req.userId!;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       setDevSubscription(userId, true);
       return res.json({ success: true, message: 'Subscription unlocked' });
     }
 
-    // 设置订阅状态
-    const { error } = await supabase
-      .from('subscriptions')
-      .upsert({
-        user_id: userId,
-        stripe_subscription_id: `gm_sub_${Date.now()}`,
-        stripe_customer_id: `gm_cus_${Date.now()}`,
-        plan: 'monthly',
-        status: 'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 年后
-      }, {
-        onConflict: 'user_id',
-      });
+    // 设置订阅状态：先取消旧的，再插入新的
+    await update('subscriptions', { status: 'canceled' },
+      'user_id = ? AND status IN (?, ?)', [userId, 'active', 'trialing']);
 
-    if (error) {
-      console.error('GM unlock subscription error:', error);
-      return res.status(500).json({ error: 'Failed to unlock subscription' });
-    }
+    await insert('subscriptions', {
+      user_id: userId,
+      stripe_subscription_id: `gm_sub_${Date.now()}`,
+      stripe_customer_id: `gm_cus_${Date.now()}`,
+      plan: 'monthly',
+      status: 'active',
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    });
 
     // 清除试用期（因为现在是正式订阅）
-    await supabase
-      .from('users')
-      .update({ trial_ends_at: null })
-      .eq('id', userId);
+    await update('users', { trial_ends_at: null }, 'id = ?', [userId]);
 
     res.json({ success: true, message: 'Subscription unlocked' });
   } catch (error) {
@@ -76,27 +67,16 @@ router.post('/cancel-subscription', authMiddleware, requireAuth, async (req: Req
   try {
     const userId = req.userId!;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       setDevSubscription(userId, false);
       return res.json({ success: true, message: 'Subscription cancelled' });
     }
 
     // 删除订阅记录
-    const { error } = await supabase
-      .from('subscriptions')
-      .delete()
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('GM cancel subscription error:', error);
-      return res.status(500).json({ error: 'Failed to cancel subscription' });
-    }
+    await remove('subscriptions', 'user_id = ?', [userId]);
 
     // 同时清除试用期
-    await supabase
-      .from('users')
-      .update({ trial_ends_at: null })
-      .eq('id', userId);
+    await update('users', { trial_ends_at: null }, 'id = ?', [userId]);
 
     res.json({ success: true, message: 'Subscription cancelled' });
   } catch (error) {
@@ -119,30 +99,23 @@ router.post('/add-tokens', authMiddleware, requireAuth, async (req: Request, res
     const userId = req.userId!;
     const { amount = 9999 } = req.body;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       addDevGmCredits(userId, amount);
       return res.json({ success: true, message: `Added ${amount} credits` });
     }
 
-    const { error } = await supabase
-      .from('purchase_records')
-      .insert({
-        user_id: userId,
-        feature_type: 'gm_credit',
-        feature_id: null,
-        scope: 'consumable',
-        price_cents: 0,
-        valid_until: null,
-        quantity: amount,
-        consumed: 0,
-        stripe_payment_intent_id: `gm_pi_${Date.now()}`,
-        stripe_checkout_session_id: `gm_sess_${Date.now()}`,
-      });
-
-    if (error) {
-      console.error('GM add tokens error:', error);
-      return res.status(500).json({ error: 'Failed to add tokens' });
-    }
+    await insert('purchase_records', {
+      user_id: userId,
+      feature_type: 'gm_credit',
+      feature_id: null,
+      scope: 'consumable',
+      price_cents: 0,
+      valid_until: null,
+      quantity: amount,
+      consumed: 0,
+      stripe_payment_intent_id: `gm_pi_${Date.now()}`,
+      stripe_checkout_session_id: `gm_sess_${Date.now()}`,
+    });
 
     res.json({ success: true, message: `Added ${amount} credits` });
   } catch (error) {
@@ -164,49 +137,32 @@ router.post('/clear-tokens', authMiddleware, requireAuth, async (req: Request, r
   try {
     const userId = req.userId!;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       clearDevGmCredits(userId);
       return res.json({ success: true, message: 'Credits cleared' });
     }
 
-    const { error: deleteError } = await supabase
-      .from('purchase_records')
-      .delete()
-      .eq('user_id', userId)
-      .eq('feature_type', 'gm_credit');
-
-    if (deleteError) {
-      console.error('GM clear tokens error:', deleteError);
-      return res.status(500).json({ error: 'Failed to clear tokens' });
-    }
+    await remove('purchase_records', 'user_id = ? AND feature_type = ?', [userId, 'gm_credit']);
 
     // 重置免费使用记录
-    const { error: usageError } = await supabase
-      .from('free_usage')
-      .upsert({
+    try {
+      await upsert('free_usage', {
         user_id: userId,
-        ask_used: 9999, // 设置为已用完
+        ask_used: 9999,
         synastry_used: 0,
-      }, {
-        onConflict: 'user_id',
-      });
-
-    if (usageError) {
+      }, ['ask_used', 'synastry_used']);
+    } catch (usageError) {
       console.error('GM clear tokens usage error:', usageError);
     }
 
     // 重置订阅使用记录
     const weekStart = getWeekStart();
-    await supabase
-      .from('subscription_usage')
-      .upsert({
-        user_id: userId,
-        week_start: weekStart,
-        ask_used: 9999, // 设置为已用完
-        synastry_used: 0,
-      }, {
-        onConflict: 'user_id,week_start',
-      });
+    await upsert('subscription_usage', {
+      user_id: userId,
+      week_start: weekStart,
+      ask_used: 9999,
+      synastry_used: 0,
+    }, ['ask_used', 'synastry_used']);
 
     res.json({ success: true, message: 'Credits cleared' });
   } catch (error) {
@@ -228,28 +184,28 @@ router.post('/reset-all', authMiddleware, requireAuth, async (req: Request, res:
   try {
     const userId = req.userId!;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       resetDevEntitlements(userId);
       return res.json({ success: true, message: 'All entitlements reset' });
     }
 
     // 删除订阅
-    await supabase.from('subscriptions').delete().eq('user_id', userId);
+    await remove('subscriptions', 'user_id = ?', [userId]);
 
     // 删除所有购买记录
-    await supabase.from('purchase_records').delete().eq('user_id', userId);
+    await remove('purchase_records', 'user_id = ?', [userId]);
 
     // 删除合盘记录
-    await supabase.from('synastry_records').delete().eq('user_id', userId);
+    await remove('synastry_records', 'user_id = ?', [userId]);
 
     // 重置免费使用
-    await supabase.from('free_usage').delete().eq('user_id', userId);
+    await remove('free_usage', 'user_id = ?', [userId]);
 
     // 重置订阅使用
-    await supabase.from('subscription_usage').delete().eq('user_id', userId);
+    await remove('subscription_usage', 'user_id = ?', [userId]);
 
     // 清除试用期
-    await supabase.from('users').update({ trial_ends_at: null }).eq('id', userId);
+    await update('users', { trial_ends_at: null }, 'id = ?', [userId]);
 
     res.json({ success: true, message: 'All entitlements reset' });
   } catch (error) {
@@ -267,7 +223,7 @@ router.post('/dev-session', async (_req: Request, res: Response) => {
     const email = 'gm-dev@local';
     let user: DbUser;
 
-    if (isSupabaseConfigured()) {
+    if (isDatabaseConfigured()) {
       const existingUser = await userService.findByEmail(email);
 
       if (existingUser) {
@@ -295,6 +251,7 @@ router.post('/dev-session', async (_req: Request, res: Response) => {
         preferences: { theme: 'dark', language: 'zh' },
         email_verified: true,
         trial_ends_at: null,
+        deleted_at: null,
         created_at: now,
         updated_at: now,
       };

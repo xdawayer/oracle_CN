@@ -5,7 +5,7 @@ import entitlementServiceV2, {
   FeatureType,
   generateSynastryHash,
 } from '../services/entitlementServiceV2.js';
-import { SynastryPersonInfo, isSupabaseConfigured } from '../db/supabase.js';
+import { SynastryPersonInfo, isDatabaseConfigured } from '../db/mysql.js';
 
 const router = Router();
 
@@ -159,7 +159,7 @@ router.post('/v2/synastry/check-hash', authMiddleware, async (req: Request, res:
 
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       const hash = generateSynastryHash(personA, personB, relationshipType);
       const entitlements = await entitlementServiceV2.getEntitlements(req.userId || null, deviceFingerprint);
 
@@ -214,7 +214,7 @@ router.post('/v2/synastry/record', authMiddleware, async (req: Request, res: Res
 
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       const hash = generateSynastryHash(personA, personB, relationshipType);
       const entitlements = await entitlementServiceV2.getEntitlements(req.userId || null, deviceFingerprint);
       const synastry = { ...entitlements.synastry };

@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, requireAuth } from './auth.js';
 import subscriptionService from '../services/subscriptionService.js';
 import userService from '../services/userService.js';
-import { supabase, isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured, getOne, insert } from '../db/mysql.js';
 import { stripe, STRIPE_WEBHOOK_SECRET, isStripeConfigured, PRODUCTS, SUBSCRIBER_DISCOUNT } from '../config/stripe.js';
 import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 import { addDevGmCredits } from '../services/entitlementService.js';
@@ -312,32 +312,27 @@ router.post('/webhook', async (req: Request, res: Response) => {
             }
             const bonus = SUBSCRIPTION_BENEFITS.SUBSCRIPTION_BONUS_CREDITS;
             if (bonus > 0) {
-              if (!isSupabaseConfigured()) {
+              if (!isDatabaseConfigured()) {
                 addDevGmCredits(userId, bonus);
               } else {
                 const paymentId = invoice.payment_intent || invoice.id || `invoice_${Date.now()}`;
-                const { data: existing } = await supabase
-                  .from('purchase_records')
-                  .select('id')
-                  .eq('user_id', userId)
-                  .eq('feature_type', 'gm_credit')
-                  .eq('stripe_payment_intent_id', paymentId)
-                  .limit(1);
+                const existing = await getOne<{ id: string }>(
+                  'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND stripe_payment_intent_id = ? LIMIT 1',
+                  [userId, 'gm_credit', paymentId]
+                );
 
-                if (!existing || existing.length === 0) {
-                  await supabase
-                    .from('purchase_records')
-                    .insert({
-                      user_id: userId,
-                      feature_type: 'gm_credit',
-                      feature_id: 'subscription_bonus',
-                      scope: 'consumable',
-                      price_cents: 0,
-                      quantity: bonus,
-                      consumed: 0,
-                      stripe_payment_intent_id: paymentId,
-                      stripe_checkout_session_id: invoice.id || null,
-                    });
+                if (!existing) {
+                  await insert('purchase_records', {
+                    user_id: userId,
+                    feature_type: 'gm_credit',
+                    feature_id: 'subscription_bonus',
+                    scope: 'consumable',
+                    price_cents: 0,
+                    quantity: bonus,
+                    consumed: 0,
+                    stripe_payment_intent_id: paymentId,
+                    stripe_checkout_session_id: invoice.id || null,
+                  });
                 }
               }
             }

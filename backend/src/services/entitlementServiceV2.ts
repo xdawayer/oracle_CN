@@ -2,16 +2,21 @@
 // 支持：7天试用、每周重置、永久解锁、合盘唯一性校验等
 
 import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import {
-  supabase,
+  isDatabaseConfigured,
+  isDuplicateKeyError,
   DbFreeUsage,
   DbPurchaseRecord,
   DbSynastryRecord,
   DbSubscriptionUsage,
   SynastryPersonInfo,
   PurchaseScope,
-  isSupabaseConfigured,
-} from '../db/supabase.js';
+  query,
+  getOne,
+  insert,
+  update,
+} from '../db/mysql.js';
 import { FREE_TIER_LIMITS, SUBSCRIPTION_BENEFITS, PRICING } from '../config/auth.js';
 import subscriptionService from './subscriptionService.js';
 import { getOrCreateDevEntitlementState } from './entitlementService.js';
@@ -301,7 +306,7 @@ class EntitlementServiceV2 {
         discount: SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT,
       };
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       if (userId) {
         const devState = ensureDevCollections(getOrCreateDevEntitlementState(userId));
         const weekStartIso = weekStart.toISOString().split('T')[0];
@@ -574,16 +579,13 @@ class EntitlementServiceV2 {
 
       switch (featureType) {
         case 'dimension': {
-          // 前 2 个维度免费
           const freeDimensions = ['Emotions', 'Attachment'];
           if (featureId && freeDimensions.includes(featureId)) {
             return { canAccess: true, reason: 'free_quota' };
           }
-          // 订阅/试用用户全部解锁
           if (entitlements.isSubscriber) {
             return { canAccess: true, reason: entitlements.isTrialing ? 'trial' : 'subscribed' };
           }
-          // 已购买
           if (featureId && entitlements.purchasedFeatures.dimensions.includes(featureId)) {
             return { canAccess: true, reason: 'purchased' };
           }
@@ -630,7 +632,6 @@ class EntitlementServiceV2 {
           if (entitlements.isSubscriber) {
             return { canAccess: true, reason: entitlements.isTrialing ? 'trial' : 'subscribed' };
           }
-          // 检查今日是否已购买
           const hasPurchased = await this.checkDailyPurchase(userId, featureType, today);
           if (hasPurchased) {
             return { canAccess: true, reason: 'purchased' };
@@ -664,7 +665,6 @@ class EntitlementServiceV2 {
           if (entitlements.isSubscriber) {
             return { canAccess: true, reason: entitlements.isTrialing ? 'trial' : 'subscribed' };
           }
-          // 检查是否已购买该合盘的详情
           if (featureId && entitlements.purchasedFeatures.synastryHashes.includes(featureId)) {
             return { canAccess: true, reason: 'purchased' };
           }
@@ -736,7 +736,6 @@ class EntitlementServiceV2 {
       }
     } catch (error) {
       console.error('Check access error:', error);
-      // Return safe default instead of throwing
       return { canAccess: false };
     }
   }
@@ -747,7 +746,7 @@ class EntitlementServiceV2 {
     featureType: FeatureType,
     deviceFingerprint?: string
   ): Promise<boolean> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       if (!userId) {
         return true;
       }
@@ -877,30 +876,24 @@ class EntitlementServiceV2 {
   // =====================================================
 
   private async getUser(userId: string) {
-    const { data } = await supabase
-      .from('users')
-      .select('trial_ends_at')
-      .eq('id', userId)
-      .single();
-    return data;
+    return getOne<{ trial_ends_at: string | null }>(
+      'SELECT trial_ends_at FROM users WHERE id = ?',
+      [userId]
+    );
   }
 
   private async getFreeUsage(deviceFingerprint: string): Promise<DbFreeUsage | null> {
-    const { data } = await supabase
-      .from('free_usage')
-      .select('*')
-      .eq('device_fingerprint', deviceFingerprint)
-      .single();
-    return data as DbFreeUsage | null;
+    return getOne<DbFreeUsage>(
+      'SELECT * FROM free_usage WHERE device_fingerprint = ?',
+      [deviceFingerprint]
+    );
   }
 
   private async getFreeUsageByUserId(userId: string): Promise<DbFreeUsage | null> {
-    const { data } = await supabase
-      .from('free_usage')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    return data as DbFreeUsage | null;
+    return getOne<DbFreeUsage>(
+      'SELECT * FROM free_usage WHERE user_id = ?',
+      [userId]
+    );
   }
 
   private async getOrCreateFreeUsageForUser(
@@ -914,23 +907,17 @@ class EntitlementServiceV2 {
       return existing;
     }
 
-    // ... (logic to migrate device usage if needed) ...
+    // Try to migrate device usage if needed
     let deviceUsage: DbFreeUsage | null = null;
     if (deviceFingerprint) {
       deviceUsage = await this.getFreeUsage(deviceFingerprint);
       if (deviceUsage && (!deviceUsage.user_id || deviceUsage.user_id === userId)) {
         try {
-          const { data, error } = await supabase
-            .from('free_usage')
-            .update({ user_id: userId })
-            .eq('id', deviceUsage.id)
-            .select()
-            .single();
-          if (!error && data) {
-            return data as DbFreeUsage;
-          }
-        } catch (e) {
-          // Update failed, possibly race condition or row deleted. Proceed to create new.
+          await update('free_usage', { user_id: userId }, 'id = ?', [deviceUsage.id]);
+          const updated = await getOne<DbFreeUsage>('SELECT * FROM free_usage WHERE id = ?', [deviceUsage.id]);
+          if (updated) return updated;
+        } catch {
+          // Update failed, proceed to create new
         }
       }
     }
@@ -943,35 +930,26 @@ class EntitlementServiceV2 {
 
     // 2. Try to insert new usage
     try {
-      const { data, error } = await supabase
-        .from('free_usage')
-        .insert({
-          user_id: userId,
-          device_fingerprint: fingerprintValue,
-          ip_address: ipAddress || null,
-          ask_reset_at: weekStart.toISOString(),
-          synthetica_reset_at: dayStart.toISOString(),
-          synastry_total_used: 0,
-          synthetica_used: 0,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        // If error is unique constraint violation, it means another request created it concurrently
-        if (error.code === '23505') { // Postgres unique_violation
-           // 3. Retry fetching existing usage
-           existing = await this.getFreeUsageByUserId(userId);
-           if (existing) return existing;
-        }
-        throw new Error(`Failed to create free usage record: ${error.message}`);
+      const newRecord = await insert<DbFreeUsage>('free_usage', {
+        id: uuidv4(),
+        user_id: userId,
+        device_fingerprint: fingerprintValue,
+        ip_address: ipAddress || null,
+        ask_reset_at: weekStart.toISOString(),
+        synthetica_reset_at: dayStart.toISOString(),
+        synastry_total_used: 0,
+        synthetica_used: 0,
+      });
+      return newRecord;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        existing = await this.getFreeUsageByUserId(userId);
+        if (existing) return existing;
       }
-      return data as DbFreeUsage;
-    } catch (e) {
-      // General error handling - attempt one last fetch just in case
+      // General error handling - attempt one last fetch
       existing = await this.getFreeUsageByUserId(userId);
       if (existing) return existing;
-      throw e;
+      throw error;
     }
   }
 
@@ -981,35 +959,26 @@ class EntitlementServiceV2 {
     if (!freeUsage) {
       const weekStart = getWeekStart();
       const dayStart = getDayStart();
-      
-      try {
-        const { data, error } = await supabase
-          .from('free_usage')
-          .insert({
-            device_fingerprint: deviceFingerprint,
-            ip_address: ipAddress || null,
-            ask_reset_at: weekStart.toISOString(),
-            synthetica_reset_at: dayStart.toISOString(),
-            synastry_total_used: 0,
-            synthetica_used: 0,
-          })
-          .select()
-          .single();
 
-        if (error) {
-          if (error.code === '23505') { // unique_violation
-             // Retry fetch
-             freeUsage = await this.getFreeUsage(deviceFingerprint);
-             if (freeUsage) return freeUsage;
-          }
-          throw new Error(`Failed to create free usage record: ${error.message}`);
+      try {
+        freeUsage = await insert<DbFreeUsage>('free_usage', {
+          id: uuidv4(),
+          device_fingerprint: deviceFingerprint,
+          ip_address: ipAddress || null,
+          ask_reset_at: weekStart.toISOString(),
+          synthetica_reset_at: dayStart.toISOString(),
+          synastry_total_used: 0,
+          synthetica_used: 0,
+        });
+        return freeUsage;
+      } catch (error) {
+        if (isDuplicateKeyError(error)) {
+          freeUsage = await this.getFreeUsage(deviceFingerprint);
+          if (freeUsage) return freeUsage;
         }
-        return data as DbFreeUsage;
-      } catch (e) {
-        // Retry fetch
         freeUsage = await this.getFreeUsage(deviceFingerprint);
         if (freeUsage) return freeUsage;
-        throw e;
+        throw error;
       }
     }
 
@@ -1018,86 +987,61 @@ class EntitlementServiceV2 {
 
   private async resetWeeklyFreeUsage(freeUsageId: string): Promise<void> {
     const weekStart = getWeekStart();
-    await supabase
-      .from('free_usage')
-      .update({
-        ask_used: 0,
-        ask_reset_at: weekStart.toISOString(),
-      })
-      .eq('id', freeUsageId);
+    await update('free_usage', {
+      ask_used: 0,
+      ask_reset_at: weekStart.toISOString(),
+    }, 'id = ?', [freeUsageId]);
   }
 
   private async resetDailySyntheticaUsage(freeUsageId: string): Promise<void> {
     const dayStart = getDayStart();
-    await supabase
-      .from('free_usage')
-      .update({
-        synthetica_used: 0,
-        synthetica_reset_at: dayStart.toISOString(),
-      })
-      .eq('id', freeUsageId);
+    await update('free_usage', {
+      synthetica_used: 0,
+      synthetica_reset_at: dayStart.toISOString(),
+    }, 'id = ?', [freeUsageId]);
   }
 
   private async getOrCreateSubscriptionUsage(userId: string, weekStart: Date): Promise<DbSubscriptionUsage> {
     const weekStartStr = weekStart.toISOString().split('T')[0];
 
-    const { data: existing } = await supabase
-      .from('subscription_usage')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('week_start', weekStartStr)
-      .single();
+    const existing = await getOne<DbSubscriptionUsage>(
+      'SELECT * FROM subscription_usage WHERE user_id = ? AND week_start = ?',
+      [userId, weekStartStr]
+    );
 
     if (existing) {
-      return existing as DbSubscriptionUsage;
+      return existing;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('subscription_usage')
-        .insert({
-          user_id: userId,
-          week_start: weekStartStr,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') { // unique_violation
-           // Retry fetch
-           const { data: retryData } = await supabase
-            .from('subscription_usage')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('week_start', weekStartStr)
-            .single();
-           
-           if (retryData) return retryData as DbSubscriptionUsage;
-        }
-        throw new Error(`Failed to create subscription usage: ${error.message}`);
+      const newRecord = await insert<DbSubscriptionUsage>('subscription_usage', {
+        id: uuidv4(),
+        user_id: userId,
+        week_start: weekStartStr,
+      });
+      return newRecord;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        const retryData = await getOne<DbSubscriptionUsage>(
+          'SELECT * FROM subscription_usage WHERE user_id = ? AND week_start = ?',
+          [userId, weekStartStr]
+        );
+        if (retryData) return retryData;
       }
-      return data as DbSubscriptionUsage;
-    } catch (e) {
-      // Retry fetch
-      const { data: retryData } = await supabase
-        .from('subscription_usage')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('week_start', weekStartStr)
-        .single();
-        
-      if (retryData) return retryData as DbSubscriptionUsage;
-      throw e;
+      const retryData = await getOne<DbSubscriptionUsage>(
+        'SELECT * FROM subscription_usage WHERE user_id = ? AND week_start = ?',
+        [userId, weekStartStr]
+      );
+      if (retryData) return retryData;
+      throw error;
     }
   }
 
   private async getPurchaseRecords(userId: string): Promise<DbPurchaseRecord[]> {
-    const { data } = await supabase
-      .from('purchase_records')
-      .select('*')
-      .eq('user_id', userId);
-
-    return (data || []) as DbPurchaseRecord[];
+    return query<DbPurchaseRecord>(
+      'SELECT * FROM purchase_records WHERE user_id = ?',
+      [userId]
+    );
   }
 
   private async checkDailyPurchase(
@@ -1107,16 +1051,12 @@ class EntitlementServiceV2 {
   ): Promise<boolean> {
     if (!userId) return false;
 
-    const { data } = await supabase
-      .from('purchase_records')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('feature_type', featureType)
-      .eq('feature_id', date)
-      .eq('scope', 'daily')
-      .single();
+    const row = await getOne<{ id: string }>(
+      'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ? AND scope = ?',
+      [userId, featureType, date, 'daily']
+    );
 
-    return !!data;
+    return !!row;
   }
 
   private async consumeFreeAsk(userId: string | null, deviceFingerprint?: string): Promise<boolean> {
@@ -1125,12 +1065,13 @@ class EntitlementServiceV2 {
       : (deviceFingerprint ? await this.getOrCreateFreeUsageForDevice(deviceFingerprint) : null);
     if (!freeUsage) return false;
 
-    const { error } = await supabase
-      .from('free_usage')
-      .update({ ask_used: freeUsage.ask_used + 1 })
-      .eq('id', freeUsage.id);
-
-    return !error;
+    const affected = await update(
+      'free_usage',
+      { ask_used: freeUsage.ask_used + 1 },
+      'id = ?',
+      [freeUsage.id]
+    );
+    return affected > 0;
   }
 
   private async consumeFreeSynthetica(userId: string | null, deviceFingerprint?: string): Promise<boolean> {
@@ -1139,24 +1080,26 @@ class EntitlementServiceV2 {
       : (deviceFingerprint ? await this.getOrCreateFreeUsageForDevice(deviceFingerprint) : null);
     if (!freeUsage) return false;
 
-    const { error } = await supabase
-      .from('free_usage')
-      .update({ synthetica_used: (freeUsage.synthetica_used || 0) + 1 })
-      .eq('id', freeUsage.id);
-
-    return !error;
+    const affected = await update(
+      'free_usage',
+      { synthetica_used: (freeUsage.synthetica_used || 0) + 1 },
+      'id = ?',
+      [freeUsage.id]
+    );
+    return affected > 0;
   }
 
   private async consumeSubscriptionAsk(userId: string): Promise<boolean> {
     const weekStart = getWeekStart();
     const usage = await this.getOrCreateSubscriptionUsage(userId, weekStart);
 
-    const { error } = await supabase
-      .from('subscription_usage')
-      .update({ ask_used: usage.ask_used + 1 })
-      .eq('id', usage.id);
-
-    return !error;
+    const affected = await update(
+      'subscription_usage',
+      { ask_used: usage.ask_used + 1 },
+      'id = ?',
+      [usage.id]
+    );
+    return affected > 0;
   }
 
   private async consumeFreeSynastry(userId: string | null, deviceFingerprint?: string): Promise<boolean> {
@@ -1165,24 +1108,26 @@ class EntitlementServiceV2 {
       : (deviceFingerprint ? await this.getOrCreateFreeUsageForDevice(deviceFingerprint) : null);
     if (!freeUsage) return false;
 
-    const { error } = await supabase
-      .from('free_usage')
-      .update({ synastry_total_used: (freeUsage.synastry_total_used || 0) + 1 })
-      .eq('id', freeUsage.id);
-
-    return !error;
+    const affected = await update(
+      'free_usage',
+      { synastry_total_used: (freeUsage.synastry_total_used || 0) + 1 },
+      'id = ?',
+      [freeUsage.id]
+    );
+    return affected > 0;
   }
 
   private async consumeSubscriptionSynastry(userId: string): Promise<boolean> {
     const weekStart = getWeekStart();
     const usage = await this.getOrCreateSubscriptionUsage(userId, weekStart);
 
-    const { error } = await supabase
-      .from('subscription_usage')
-      .update({ synastry_used: usage.synastry_used + 1 })
-      .eq('id', usage.id);
-
-    return !error;
+    const affected = await update(
+      'subscription_usage',
+      { synastry_used: usage.synastry_used + 1 },
+      'id = ?',
+      [usage.id]
+    );
+    return affected > 0;
   }
 
   private async consumeConsumableRecord(
@@ -1190,31 +1135,30 @@ class EntitlementServiceV2 {
     featureType: string,
     quantity = 1
   ): Promise<boolean> {
-    const { data } = await supabase
-      .from('purchase_records')
-      .select('id, quantity, consumed')
-      .eq('user_id', userId)
-      .eq('feature_type', featureType)
-      .eq('scope', 'consumable')
-      .order('created_at', { ascending: true });
+    const records = await query<{ id: string; quantity: number; consumed: number }>(
+      'SELECT id, quantity, consumed FROM purchase_records WHERE user_id = ? AND feature_type = ? AND scope = ? ORDER BY created_at ASC',
+      [userId, featureType, 'consumable']
+    );
 
-    if (!data || data.length === 0) {
+    if (records.length === 0) {
       return false;
     }
 
     let remainingToConsume = quantity;
 
-    for (const record of data) {
+    for (const record of records) {
       const available = Math.max(0, (record.quantity || 0) - (record.consumed || 0));
       if (available <= 0) {
         continue;
       }
       const consumeNow = Math.min(available, remainingToConsume);
-      const { error } = await supabase
-        .from('purchase_records')
-        .update({ consumed: (record.consumed || 0) + consumeNow })
-        .eq('id', record.id);
-      if (error) {
+      const affected = await update(
+        'purchase_records',
+        { consumed: (record.consumed || 0) + consumeNow },
+        'id = ?',
+        [record.id]
+      );
+      if (affected === 0) {
         return false;
       }
       remainingToConsume -= consumeNow;
@@ -1243,17 +1187,15 @@ class EntitlementServiceV2 {
   }> {
     const hash = generateSynastryHash(personA, personB, relationshipType);
 
-    const { data } = await supabase
-      .from('synastry_records')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('synastry_hash', hash)
-      .single();
+    const record = await getOne<DbSynastryRecord>(
+      'SELECT * FROM synastry_records WHERE user_id = ? AND synastry_hash = ?',
+      [userId, hash]
+    );
 
     return {
-      exists: !!data,
+      exists: !!record,
       hash,
-      record: data as DbSynastryRecord | undefined,
+      record: record || undefined,
     };
   }
 
@@ -1267,21 +1209,17 @@ class EntitlementServiceV2 {
   ): Promise<DbSynastryRecord> {
     const hash = generateSynastryHash(personA, personB, relationshipType);
 
-    const { data, error } = await supabase
-      .from('synastry_records')
-      .insert({
-        user_id: userId,
-        synastry_hash: hash,
-        person_a_info: personA,
-        person_b_info: personB,
-        relationship_type: relationshipType,
-        is_free: isFree,
-      })
-      .select()
-      .single();
+    const record = await insert<DbSynastryRecord>('synastry_records', {
+      id: uuidv4(),
+      user_id: userId,
+      synastry_hash: hash,
+      person_a_info: personA,
+      person_b_info: personB,
+      relationship_type: relationshipType,
+      is_free: isFree,
+    });
 
-    if (error) throw new Error(`Failed to record synastry: ${error.message}`);
-    return data as DbSynastryRecord;
+    return record;
   }
 
   // =====================================================
@@ -1295,7 +1233,7 @@ class EntitlementServiceV2 {
     scope: PurchaseScope,
     priceCents: number
   ): Promise<DbPurchaseRecord | null> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       const devState = ensureDevCollections(getOrCreateDevEntitlementState(userId));
       if (priceCents > 0 && devState.gmCredits < priceCents) {
         return null;
@@ -1368,13 +1306,14 @@ class EntitlementServiceV2 {
     }
 
     const payload: Record<string, unknown> = {
+      id: uuidv4(),
       user_id: userId,
       feature_type: featureType,
       feature_id: featureId,
       scope,
       price_cents: priceCents,
-      stripe_payment_intent_id: stripePaymentIntentId,
-      stripe_checkout_session_id: stripeCheckoutSessionId,
+      stripe_payment_intent_id: stripePaymentIntentId || null,
+      stripe_checkout_session_id: stripeCheckoutSessionId || null,
       valid_until: validUntil,
     };
 
@@ -1383,25 +1322,16 @@ class EntitlementServiceV2 {
       payload.consumed = 0;
     }
 
-    const { data, error } = await supabase
-      .from('purchase_records')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to record purchase: ${error.message}`);
-    return data as DbPurchaseRecord;
+    const record = await insert<DbPurchaseRecord>('purchase_records', payload);
+    return record;
   }
 
   // 获取用户购买记录
   async getUserPurchases(userId: string): Promise<DbPurchaseRecord[]> {
-    const { data } = await supabase
-      .from('purchase_records')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    return (data || []) as DbPurchaseRecord[];
+    return query<DbPurchaseRecord>(
+      'SELECT * FROM purchase_records WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
   }
 }
 

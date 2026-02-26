@@ -3,7 +3,8 @@
 // POS: 通用报告任务服务；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { cacheService } from '../cache/redis.js';
-import { supabase, isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured, query, insert } from '../db/mysql.js';
+import { v4 as uuidv4 } from 'uuid';
 import { generateAIContent } from './ai.js';
 import { buildCompactChartSummary, ephemerisService } from './ephemeris.js';
 import { resolveLocation } from './geocoding.js';
@@ -227,7 +228,7 @@ export async function getReportTaskStatus(
     const cached = await cacheService.get<ReportTask>(taskKey);
     if (cached) return cached;
 
-    // Redis 缓存未命中 → 从 Supabase 查找已完成的报告
+    // Redis 缓存未命中 → 从 MySQL 查找已完成的报告
     const dbTask = await findCompletedReportInDB(config, userId, chartHash);
     if (dbTask) {
       // 回写 Redis 缓存，避免后续重复查 DB
@@ -488,7 +489,7 @@ async function executeReportTask(
 
   console.log(`[ReportTask:${config.reportType}] Task ${finalStatus}: ${completedModules.length} success, ${failedModules.length} failed`);
 
-  // 报告完成后写入 Supabase reports 表（fire-and-forget，不阻塞任务结束）
+  // 报告完成后写入 MySQL reports 表（fire-and-forget，不阻塞任务结束）
   if (finalStatus === 'completed') {
     saveReportToDatabase(config, userId, chartHash, completedModules, lang).catch((err) => {
       console.error(`[ReportTask:${config.reportType}] saveReportToDatabase error:`, err);
@@ -608,7 +609,7 @@ async function retryFailedModules(
 
   console.log(`[ReportTask:${config.reportType}] Retry completed: ${completedModules.length} total success, ${failedModules.length} still failed`);
 
-  // 重试完成后写入 Supabase reports 表（fire-and-forget）
+  // 重试完成后写入 MySQL reports 表（fire-and-forget）
   if (finalStatus === 'completed') {
     saveReportToDatabase(config, userId, chartHash, completedModules, lang).catch((err) => {
       console.error(`[ReportTask:${config.reportType}] saveReportToDatabase error:`, err);
@@ -617,30 +618,27 @@ async function retryFailedModules(
 }
 
 // ============================================================
-// Supabase 兜底查询（缓存丢失时从 DB 恢复）
+// MySQL 兜底查询（缓存丢失时从 DB 恢复）
 // ============================================================
 
-/** 从 Supabase 查找已完成的报告，构造一个合成的 ReportTask */
+/** 从数据库查找已完成的报告，构造一个合成的 ReportTask */
 async function findCompletedReportInDB(
   config: ReportConfig,
   userId: string,
   chartHash: string,
 ): Promise<ReportTask | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isDatabaseConfigured()) return null;
 
   try {
-    const { data } = await supabase
-      .from('reports')
-      .select('id, created_at, content')
-      .eq('user_id', userId)
-      .eq('report_type', config.reportType)
-      .filter('content->>chartHash', 'eq', chartHash)
-      .limit(1);
+    const rows = await query<{ id: string; created_at: string; content: Record<string, unknown> | null }>(
+      'SELECT id, created_at, content FROM reports WHERE user_id = ? AND report_type = ? AND JSON_UNQUOTE(JSON_EXTRACT(content, \'$.chartHash\')) = ? LIMIT 1',
+      [userId, config.reportType, chartHash]
+    );
 
-    if (!data || data.length === 0) return null;
+    if (rows.length === 0) return null;
 
-    const row = data[0];
-    const content = row.content as Record<string, unknown> | null;
+    const row = rows[0];
+    const content = row.content;
     const modules = (content?.modules || {}) as Record<string, unknown>;
     const completedModuleIds = Object.keys(modules);
 
@@ -667,7 +665,7 @@ async function findCompletedReportInDB(
   }
 }
 
-/** 从 Supabase 加载已完成报告的模块内容 */
+/** 从数据库加载已完成报告的模块内容 */
 async function loadReportContentFromDB(
   config: ReportConfig,
   userId: string,
@@ -677,20 +675,17 @@ async function loadReportContentFromDB(
   meta: Record<string, ModuleMeta>;
   completedModules: string[];
 } | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isDatabaseConfigured()) return null;
 
   try {
-    const { data } = await supabase
-      .from('reports')
-      .select('content')
-      .eq('user_id', userId)
-      .eq('report_type', config.reportType)
-      .filter('content->>chartHash', 'eq', chartHash)
-      .limit(1);
+    const rows = await query<{ content: Record<string, unknown> | null }>(
+      'SELECT content FROM reports WHERE user_id = ? AND report_type = ? AND JSON_UNQUOTE(JSON_EXTRACT(content, \'$.chartHash\')) = ? LIMIT 1',
+      [userId, config.reportType, chartHash]
+    );
 
-    if (!data || data.length === 0) return null;
+    if (rows.length === 0) return null;
 
-    const content = data[0].content as Record<string, unknown> | null;
+    const content = rows[0].content;
     const modules = (content?.modules || {}) as Record<string, unknown>;
     const completedModules = Object.keys(modules);
 
@@ -708,7 +703,7 @@ async function loadReportContentFromDB(
 }
 
 // ============================================================
-// 报告持久化（写入 Supabase）
+// 报告持久化（写入 MySQL）
 // ============================================================
 
 /** 报告完成后写入 reports 表（供收藏列表读取） */
@@ -719,22 +714,19 @@ async function saveReportToDatabase(
   completedModuleIds: string[],
   lang: Language,
 ): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    console.log(`[ReportTask:${config.reportType}] Supabase not configured, skipping DB save`);
+  if (!isDatabaseConfigured()) {
+    console.log(`[ReportTask:${config.reportType}] Database not configured, skipping DB save`);
     return;
   }
 
   try {
-    // 查重：同一用户 + 同一报告类型 + 同一 chartHash（数据库层 JSONB 过滤）
-    const { data: existing } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('report_type', config.reportType)
-      .filter('content->>chartHash', 'eq', chartHash)
-      .limit(1);
+    // 查重：同一用户 + 同一报告类型 + 同一 chartHash
+    const existingRows = await query<{ id: string }>(
+      'SELECT id FROM reports WHERE user_id = ? AND report_type = ? AND JSON_UNQUOTE(JSON_EXTRACT(content, \'$.chartHash\')) = ? LIMIT 1',
+      [userId, config.reportType, chartHash]
+    );
 
-    if (existing && existing.length > 0) {
+    if (existingRows.length > 0) {
       console.log(`[ReportTask:${config.reportType}] Report already in DB for chartHash ${chartHash.slice(0, 8)}, skipping`);
       return;
     }
@@ -743,8 +735,8 @@ async function saveReportToDatabase(
     const modules: Record<string, unknown> = {};
     for (const moduleId of completedModuleIds) {
       const contentKey = buildContentKey(config, userId, moduleId, chartHash);
-      const content = await cacheService.get<unknown>(contentKey);
-      if (content) modules[moduleId] = content;
+      const contentItem = await cacheService.get<unknown>(contentKey);
+      if (contentItem) modules[moduleId] = contentItem;
     }
 
     // 获取 birthData
@@ -752,7 +744,7 @@ async function saveReportToDatabase(
     const task = await cacheService.get<ReportTask>(taskKey);
     const birthData = task?.birthData || {};
 
-    // 组装 content JSONB
+    // 组装 content JSON
     const title = config.reportTitle[lang] || config.reportTitle.zh || config.reportType;
     const content = {
       title,
@@ -762,22 +754,17 @@ async function saveReportToDatabase(
       meta: config.moduleMeta,
     };
 
-    const { error } = await supabase
-      .from('reports')
-      .insert({
-        user_id: userId,
-        report_type: config.reportType,
-        title,
-        content,
-        birth_profile: birthData,
-        generated_at: new Date().toISOString(),
-      });
+    await insert('reports', {
+      id: uuidv4(),
+      user_id: userId,
+      report_type: config.reportType,
+      title,
+      content,
+      birth_profile: birthData,
+      generated_at: new Date().toISOString(),
+    });
 
-    if (error) {
-      console.error(`[ReportTask:${config.reportType}] Failed to save to DB:`, error.message);
-    } else {
-      console.log(`[ReportTask:${config.reportType}] Report saved to database successfully`);
-    }
+    console.log(`[ReportTask:${config.reportType}] Report saved to database successfully`);
   } catch (err) {
     console.error(`[ReportTask:${config.reportType}] Error saving to database:`, err);
   }
@@ -803,7 +790,7 @@ export async function getReportContent(
     const task = await cacheService.get<ReportTask>(taskKey);
 
     if (!task || (task.status !== 'completed' && task.status !== 'processing')) {
-      // Redis 中无任务或未完成 → 尝试从 Supabase 加载已完成报告内容
+      // Redis 中无任务或未完成 → 尝试从 MySQL 加载已完成报告内容
       const dbResult = await loadReportContentFromDB(config, userId, chartHash);
       if (dbResult) {
         // 回写 Redis 缓存
@@ -828,7 +815,7 @@ export async function getReportContent(
       }
     }
 
-    // Redis 中有任务但内容缺失（部分或全部模块被驱逐）→ 从 Supabase 补全
+    // Redis 中有任务但内容缺失（部分或全部模块被驱逐）→ 从 MySQL 补全
     if (completedModules.length === 0 && task.status === 'completed') {
       const dbResult = await loadReportContentFromDB(config, userId, chartHash);
       if (dbResult) {

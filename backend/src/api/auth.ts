@@ -2,7 +2,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { userService, AuthTokens } from '../services/userService.js';
-import { isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured } from '../db/mysql.js';
 import { GOOGLE_CONFIG, isGoogleConfigured, isWechatConfigured } from '../config/auth.js';
 import { wechatService } from '../services/wechatService.js';
 
@@ -76,7 +76,7 @@ const sendAuthResponse = (res: Response, tokens: AuthTokens, user: { id: string;
 // Google login
 router.post('/google', async (req: Request, res: Response) => {
   try {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       return res.status(503).json({ error: 'Authentication service unavailable' });
     }
 
@@ -138,7 +138,7 @@ router.post('/google', async (req: Request, res: Response) => {
 // WeChat login
 router.post('/wechat', async (req: Request, res: Response) => {
   try {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       return res.status(503).json({ error: 'Authentication service unavailable' });
     }
 
@@ -206,7 +206,7 @@ router.post('/wechat', async (req: Request, res: Response) => {
 // Apple login
 router.post('/apple', async (req: Request, res: Response) => {
   try {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       return res.status(503).json({ error: 'Authentication service unavailable' });
     }
 
@@ -257,7 +257,7 @@ router.post('/apple', async (req: Request, res: Response) => {
 // Email registration
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       return res.status(503).json({ error: 'Authentication service unavailable' });
     }
 
@@ -314,7 +314,7 @@ router.post('/register', async (req: Request, res: Response) => {
 // Email login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       return res.status(503).json({ error: 'Authentication service unavailable' });
     }
 

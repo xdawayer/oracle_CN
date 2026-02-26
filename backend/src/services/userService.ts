@@ -2,7 +2,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase, DbUser, BirthProfile, UserPreferences, isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured, isDuplicateKeyError, DbUser, BirthProfile, UserPreferences, getOne, insert, update, remove } from '../db/mysql.js';
 import { JWT_CONFIG, SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 
 export interface CreateUserInput {
@@ -38,7 +38,7 @@ export interface AuthTokens {
 class UserService {
   // Create a new user with 7-day trial
   async createUser(input: CreateUserInput): Promise<DbUser> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
@@ -50,9 +50,10 @@ class UserService {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + SUBSCRIPTION_BENEFITS.TRIAL_DAYS);
 
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
+    const id = uuidv4();
+    try {
+      const user = await insert<DbUser>('users', {
+        id,
         email: input.email.toLowerCase(),
         name: input.name || null,
         avatar: input.avatar || null,
@@ -60,38 +61,26 @@ class UserService {
         provider_id: input.providerId || null,
         password_hash: passwordHash,
         email_verified: input.provider !== 'email', // OAuth users are pre-verified
-        trial_ends_at: trialEndsAt.toISOString(),   // 首次注册赠送 7 天试用
-      })
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
+        trial_ends_at: trialEndsAt.toISOString(),
+      });
+      return user;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
         throw new Error('Email already registered');
       }
-      throw new Error(`Failed to create user: ${error.message}`);
+      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    return data as DbUser;
   }
 
   // Find user by WeChat openid
   async findByWechatOpenid(openid: string): Promise<DbUser | null> {
-    if (!isSupabaseConfigured()) return null;
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('wechat_openid', openid)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbUser;
+    if (!isDatabaseConfigured()) return null;
+    return getOne<DbUser>('SELECT * FROM users WHERE wechat_openid = ?', [openid]);
   }
 
   // Create a new user via WeChat login
   async createWechatUser(input: CreateWechatUserInput): Promise<DbUser> {
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       throw new Error('Database not configured');
     }
 
@@ -99,10 +88,11 @@ class UserService {
     trialEndsAt.setDate(trialEndsAt.getDate() + SUBSCRIPTION_BENEFITS.TRIAL_DAYS);
 
     const syntheticEmail = `${input.openid}@wechat.local`;
+    const id = uuidv4();
 
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
+    try {
+      const user = await insert<DbUser>('users', {
+        id,
         email: syntheticEmail,
         name: input.name || null,
         avatar: input.avatar || null,
@@ -114,61 +104,32 @@ class UserService {
         wechat_unionid: input.unionid || null,
         wechat_session_key: input.sessionKey,
         trial_ends_at: trialEndsAt.toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
+      });
+      return user;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
         throw new Error('WeChat user already registered');
       }
-      throw new Error(`Failed to create WeChat user: ${error.message}`);
+      throw new Error(`Failed to create WeChat user: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    return data as DbUser;
   }
 
   // Find user by email
   async findByEmail(email: string): Promise<DbUser | null> {
-    if (!isSupabaseConfigured()) return null;
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .single();
-
-    if (error || !data) return null;
-    return data as DbUser;
+    if (!isDatabaseConfigured()) return null;
+    return getOne<DbUser>('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
   }
 
   // Find user by ID
   async findById(id: string): Promise<DbUser | null> {
-    if (!isSupabaseConfigured()) return null;
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbUser;
+    if (!isDatabaseConfigured()) return null;
+    return getOne<DbUser>('SELECT * FROM users WHERE id = ?', [id]);
   }
 
   // Find user by OAuth provider
   async findByProvider(provider: string, providerId: string): Promise<DbUser | null> {
-    if (!isSupabaseConfigured()) return null;
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('provider', provider)
-      .eq('provider_id', providerId)
-      .single();
-
-    if (error || !data) return null;
-    return data as DbUser;
+    if (!isDatabaseConfigured()) return null;
+    return getOne<DbUser>('SELECT * FROM users WHERE provider = ? AND provider_id = ?', [provider, providerId]);
   }
 
   // Verify password
@@ -187,20 +148,20 @@ class UserService {
       preferences: UserPreferences;
     }>
   ): Promise<DbUser | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
+    const data: Record<string, unknown> = {};
+    if (updates.name !== undefined) data.name = updates.name;
+    if (updates.avatar !== undefined) data.avatar = updates.avatar;
+    if (updates.birth_profile !== undefined) data.birth_profile = updates.birth_profile;
+    if (updates.preferences !== undefined) data.preferences = updates.preferences;
 
-    if (error) {
-      throw new Error(`Failed to update profile: ${error.message}`);
+    if (Object.keys(data).length === 0) {
+      return this.findById(userId);
     }
 
-    return data as DbUser;
+    await update('users', data, 'id = ?', [userId]);
+    return this.findById(userId);
   }
 
   // Migrate localStorage data to user account
@@ -217,17 +178,13 @@ class UserService {
 
   // Mark email as verified
   async verifyEmail(userId: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-
-    await supabase
-      .from('users')
-      .update({ email_verified: true })
-      .eq('id', userId);
+    if (!isDatabaseConfigured()) return;
+    await update('users', { email_verified: true }, 'id = ?', [userId]);
   }
 
   // Update WeChat session key and unionid
   async updateWechatSessionKey(userId: string, sessionKey: string, unionid?: string | null): Promise<void> {
-    if (!isSupabaseConfigured()) return;
+    if (!isDatabaseConfigured()) return;
 
     const updates: Record<string, unknown> = {
       wechat_session_key: sessionKey,
@@ -237,10 +194,7 @@ class UserService {
       updates.wechat_unionid = unionid;
     }
 
-    await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', userId);
+    await update('users', updates, 'id = ?', [userId]);
   }
 
   // Generate JWT tokens
@@ -292,9 +246,10 @@ class UserService {
 
   // Store refresh token
   async storeRefreshToken(userId: string, token: string, expiresAt: Date): Promise<void> {
-    if (!isSupabaseConfigured()) return;
+    if (!isDatabaseConfigured()) return;
 
-    await supabase.from('refresh_tokens').insert({
+    await insert('refresh_tokens', {
+      id: uuidv4(),
       user_id: userId,
       token,
       expires_at: expiresAt.toISOString(),
@@ -303,31 +258,27 @@ class UserService {
 
   // Validate refresh token
   async validateRefreshToken(token: string): Promise<string | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('refresh_tokens')
-      .select('user_id')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    const row = await getOne<{ user_id: string }>(
+      'SELECT user_id FROM refresh_tokens WHERE token = ? AND expires_at > ?',
+      [token, new Date().toISOString()]
+    );
 
-    if (error || !data) return null;
-    return data.user_id;
+    if (!row) return null;
+    return row.user_id;
   }
 
   // Revoke refresh token
   async revokeRefreshToken(token: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-
-    await supabase.from('refresh_tokens').delete().eq('token', token);
+    if (!isDatabaseConfigured()) return;
+    await remove('refresh_tokens', 'token = ?', [token]);
   }
 
   // Revoke all user tokens
   async revokeAllUserTokens(userId: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-
-    await supabase.from('refresh_tokens').delete().eq('user_id', userId);
+    if (!isDatabaseConfigured()) return;
+    await remove('refresh_tokens', 'user_id = ?', [userId]);
   }
 
   // Create email verification token
@@ -335,8 +286,9 @@ class UserService {
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    if (isSupabaseConfigured()) {
-      await supabase.from('email_verification_tokens').insert({
+    if (isDatabaseConfigured()) {
+      await insert('email_verification_tokens', {
+        id: uuidv4(),
         user_id: userId,
         token,
         expires_at: expiresAt.toISOString(),
@@ -348,24 +300,22 @@ class UserService {
 
   // Verify email token
   async verifyEmailToken(token: string): Promise<string | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (!isDatabaseConfigured()) return null;
 
-    const { data, error } = await supabase
-      .from('email_verification_tokens')
-      .select('user_id')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    const row = await getOne<{ user_id: string }>(
+      'SELECT user_id FROM email_verification_tokens WHERE token = ? AND expires_at > ?',
+      [token, new Date().toISOString()]
+    );
 
-    if (error || !data) return null;
+    if (!row) return null;
 
     // Delete the token after use
-    await supabase.from('email_verification_tokens').delete().eq('token', token);
+    await remove('email_verification_tokens', 'token = ?', [token]);
 
     // Mark user as verified
-    await this.verifyEmail(data.user_id);
+    await this.verifyEmail(row.user_id);
 
-    return data.user_id;
+    return row.user_id;
   }
 }
 

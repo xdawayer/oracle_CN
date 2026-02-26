@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authMiddleware, requireAuth } from './auth.js';
-import { supabase, isSupabaseConfigured } from '../db/supabase.js';
+import { isDatabaseConfigured, getOne, update, query, DbUser } from '../db/mysql.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import subscriptionService from '../services/subscriptionService.js';
 import reportService from '../services/reportService.js';
@@ -17,14 +17,13 @@ const devProfiles = new Map<string, Record<string, unknown>>();
 // GET /api/user/profile - 获取用户资料
 router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
-    if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, avatar, birth_profile, trial_ends_at')
-        .eq('id', req.userId!)
-        .single();
+    if (isDatabaseConfigured()) {
+      const data = await getOne<DbUser>(
+        'SELECT id, name, avatar, birth_profile, trial_ends_at FROM users WHERE id = ?',
+        [req.userId!]
+      );
 
-      if (error || !data) {
+      if (!data) {
         return res.status(404).json({ error: 'User not found' });
       }
 
@@ -37,7 +36,7 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
       const isVip = !!(subscription && (subscription.status === 'active' || subscription.status === 'trialing'));
       const vipExpireDate = subscription?.current_period_end || '';
 
-      const birthProfile = data.birth_profile || {};
+      const birthProfile = (data.birth_profile as unknown as Record<string, string>) || {};
 
       res.json({
         name: data.name || '',
@@ -94,19 +93,18 @@ router.put('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
       return res.status(400).json({ error: '出生城市格式错误' });
     }
 
-    if (isSupabaseConfigured()) {
+    if (isDatabaseConfigured()) {
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name.trim();
 
-      // 更新 birth_profile JSONB
+      // 更新 birth_profile JSON
       const hasBirthChange = birthDate !== undefined || birthTime !== undefined || birthCity !== undefined;
       if (hasBirthChange) {
         // 先读取当前 birth_profile
-        const { data: current } = await supabase
-          .from('users')
-          .select('birth_profile')
-          .eq('id', req.userId!)
-          .single();
+        const current = await getOne<{ birth_profile: Record<string, unknown> | null }>(
+          'SELECT birth_profile FROM users WHERE id = ?',
+          [req.userId!]
+        );
 
         const currentBP = (current?.birth_profile as Record<string, unknown>) || {};
         if (birthDate !== undefined) currentBP.date = birthDate;
@@ -119,12 +117,8 @@ router.put('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
       }
 
       if (Object.keys(updates).length > 0) {
-        const { error } = await supabase
-          .from('users')
-          .update(updates)
-          .eq('id', req.userId!);
-
-        if (error) {
+        const affected = await update('users', updates, 'id = ?', [req.userId!]);
+        if (affected === 0) {
           return res.status(500).json({ error: 'Failed to update profile' });
         }
       }
@@ -153,11 +147,8 @@ router.post('/avatar', authMiddleware, requireAuth, async (req: Request, res: Re
       return res.status(400).json({ error: 'avatarUrl required' });
     }
 
-    if (isSupabaseConfigured()) {
-      await supabase
-        .from('users')
-        .update({ avatar: avatarUrl })
-        .eq('id', req.userId!);
+    if (isDatabaseConfigured()) {
+      await update('users', { avatar: avatarUrl }, 'id = ?', [req.userId!]);
     } else {
       const profile = devProfiles.get(req.userId!) || {};
       profile.avatarUrl = avatarUrl;
@@ -174,7 +165,7 @@ router.post('/avatar', authMiddleware, requireAuth, async (req: Request, res: Re
 // GET /api/user/subscription - 获取 VIP 订阅状态
 router.get('/subscription', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
-    if (isSupabaseConfigured()) {
+    if (isDatabaseConfigured()) {
       const subscription = await subscriptionService.getSubscription(req.userId!);
       const isVip = !!(subscription && (subscription.status === 'active' || subscription.status === 'trialing'));
 
@@ -206,28 +197,22 @@ router.delete('/delete-account', authMiddleware, requireAuth, async (req: Reques
       return res.status(400).json({ error: '请输入"确认注销"以继续' });
     }
 
-    if (isSupabaseConfigured()) {
+    if (isDatabaseConfigured()) {
       // 软删除：标记用户为已删除，保留30天恢复期
-      const { error } = await supabase
-        .from('users')
-        .update({
-          deleted_at: new Date().toISOString(),
-          name: '[已注销用户]',
-          avatar: null,
-          birth_profile: null,
-        })
-        .eq('id', req.userId!);
+      const affected = await update('users', {
+        deleted_at: new Date().toISOString(),
+        name: '[已注销用户]',
+        avatar: null,
+        birth_profile: null,
+      }, 'id = ?', [req.userId!]);
 
-      if (error) {
+      if (affected === 0) {
         return res.status(500).json({ error: '注销失败' });
       }
 
       // 取消有效订阅
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'canceled' })
-        .eq('user_id', req.userId!)
-        .in('status', ['active', 'trialing']);
+      await update('subscriptions', { status: 'canceled' },
+        'user_id = ? AND status IN (?, ?)', [req.userId!, 'active', 'trialing']);
     } else {
       devProfiles.delete(req.userId!);
     }
@@ -246,19 +231,21 @@ router.get('/points-history', authMiddleware, requireAuth, async (req: Request, 
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string) || 20));
     const offset = (page - 1) * pageSize;
 
-    if (isSupabaseConfigured()) {
-      const { data, error, count } = await supabase
-        .from('purchase_records')
-        .select('id, feature_type, feature_id, quantity, consumed, created_at, price_cents', { count: 'exact' })
-        .eq('user_id', req.userId!)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
+    if (isDatabaseConfigured()) {
+      // 获取总数
+      const countResult = await getOne<{ cnt: number }>(
+        'SELECT COUNT(*) as cnt FROM purchase_records WHERE user_id = ?',
+        [req.userId!]
+      );
+      const total = countResult?.cnt || 0;
 
-      if (error) {
-        return res.status(500).json({ error: 'Failed to get points history' });
-      }
+      // 获取分页数据
+      const data = await query<{ id: string; feature_type: string; feature_id: string | null; quantity: number; consumed: number; created_at: string; price_cents: number }>(
+        'SELECT id, feature_type, feature_id, quantity, consumed, created_at, price_cents FROM purchase_records WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        [req.userId!, pageSize, offset]
+      );
 
-      const records = (data || []).map(item => {
+      const records = data.map((item: { feature_type: string; feature_id: string | null; id: string; quantity: number; created_at: string; price_cents: number }) => {
         const isIncome = item.feature_type === 'gm_credit';
         return {
           id: item.id,
@@ -272,8 +259,8 @@ router.get('/points-history', authMiddleware, requireAuth, async (req: Request, 
         records,
         page,
         pageSize,
-        total: count || 0,
-        hasMore: (count || 0) > offset + pageSize,
+        total,
+        hasMore: total > offset + pageSize,
       });
     } else {
       // 开发模式：返回模拟数据
@@ -329,11 +316,8 @@ router.post('/avatar/upload', authMiddleware, requireAuth, upload.single('file')
     const avatarUrl = `${baseUrl}/uploads/avatars/${file.filename}`;
 
     // 更新数据库
-    if (isSupabaseConfigured()) {
-      await supabase
-        .from('users')
-        .update({ avatar: avatarUrl })
-        .eq('id', req.userId!);
+    if (isDatabaseConfigured()) {
+      await update('users', { avatar: avatarUrl }, 'id = ?', [req.userId!]);
     }
 
     res.json({ success: true, url: avatarUrl });

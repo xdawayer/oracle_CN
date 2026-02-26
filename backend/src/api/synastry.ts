@@ -26,7 +26,7 @@ import { ASPECT_TYPES, PLANETS, SIGNS } from '../data/sources.js';
 import { authMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { PRICING } from '../config/auth.js';
-import { isSupabaseConfigured, type SynastryPersonInfo } from '../db/supabase.js';
+import { isDatabaseConfigured, type SynastryPersonInfo } from '../db/mysql.js';
 import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const synastryRouter = Router();
@@ -825,7 +825,7 @@ synastryRouter.get('/overview-section', authMiddleware, async (req, res) => {
     let shouldRecord = false;
     let shouldConsume = false;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       // 开发环境：使用设备指纹检查权限
       const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
       if (!access.canAccess) {
@@ -981,7 +981,7 @@ synastryRouter.get('/full', authMiddleware, async (req, res) => {
     let shouldRecord = false;
     let shouldConsume = false;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
       if (!access.canAccess) {
         return res.status(403).json({
@@ -1151,7 +1151,7 @@ synastryRouter.get('/full/stream', authMiddleware, async (req, res) => {
     let shouldRecord = false;
     let shouldConsume = false;
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
       if (!access.canAccess) {
         return res.status(403).json({
@@ -1355,7 +1355,7 @@ synastryRouter.get('/', authMiddleware, async (req, res) => {
     // 其他 tab 假设用户已通过 overview 验证，直接放行
     const isOverviewTab = tab === 'overview';
 
-    if (!isSupabaseConfigured()) {
+    if (!isDatabaseConfigured()) {
       // 开发环境：只在 overview tab 时检查权益
       if (isOverviewTab) {
         const access = await entitlementServiceV2.checkAccess(userId, 'synastry', undefined, deviceFingerprint);
