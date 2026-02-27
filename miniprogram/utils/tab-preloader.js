@@ -215,28 +215,34 @@ const createTabPreloader = () => {
     const reportTypes = ['love-topic', 'career-topic', 'wealth-topic'];
     const statuses = {};
 
-    for (const reportType of reportTypes) {
-      if (controls.shouldDefer && controls.shouldDefer()) {
-        throw createDeferredError('discovery');
-      }
+    if (controls.shouldDefer && controls.shouldDefer()) {
+      throw createDeferredError('discovery');
+    }
 
-      try {
-        const result = await request({
+    const results = await Promise.allSettled(
+      reportTypes.map((reportType) =>
+        request({
           url: API_ENDPOINTS.REPORT_STATUS,
           method: 'GET',
           data: { reportType, birth: JSON.stringify(birth) },
           timeout: 120000,
-        });
+        }).then((result) => ({ reportType, result }))
+      )
+    );
 
+    results.forEach((entry, i) => {
+      const reportType = reportTypes[i];
+      if (entry.status === 'fulfilled') {
+        const { result } = entry.value;
         statuses[reportType] = {
           status: result && result.exists ? result.status : 'none',
           progress: result && result.exists ? (result.progress || 0) : 0,
         };
-      } catch (error) {
-        logger.warn('[tab-preload] discovery status failed:', reportType, error?.statusCode || error?.message || error);
+      } else {
+        logger.warn('[tab-preload] discovery status failed:', reportType, entry.reason?.statusCode || entry.reason?.message || entry.reason);
         statuses[reportType] = { status: 'none', progress: 0 };
       }
-    }
+    });
 
     storage.set(cacheKey, { ts: Date.now(), statuses });
   };

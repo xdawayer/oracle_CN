@@ -185,14 +185,20 @@ Page({
     const statusSnapshot = {};
     let hasError = false;
 
-    for (const reportType of types) {
-      try {
-        const result = await request({
+    const results = await Promise.allSettled(
+      types.map((reportType) =>
+        request({
           url: API_ENDPOINTS.REPORT_STATUS,
           method: 'GET',
           data: { reportType, birth: JSON.stringify(birthData) },
-        });
+        }).then((result) => ({ reportType, result }))
+      )
+    );
 
+    results.forEach((entry, i) => {
+      const reportType = types[i];
+      if (entry.status === 'fulfilled') {
+        const { result } = entry.value;
         if (result && result.exists) {
           this.setData({
             [stateKeys[reportType].status]: result.status,
@@ -214,14 +220,14 @@ Page({
             statusSnapshot[reportType] = { status: 'none', progress: 0 };
           }
         }
-      } catch (error) {
-        logger.log(`Check ${reportType} status:`, error?.statusCode || error);
+      } else {
+        logger.log(`Check ${reportType} status:`, entry.reason?.statusCode || entry.reason);
         // 网络出错时保留当前状态，不重置为 'none'
         hasError = true;
         const currentStatus = this.data[stateKeys[reportType].status];
         statusSnapshot[reportType] = { status: currentStatus, progress: this.data[stateKeys[reportType].progress] || 0 };
       }
-    }
+    });
 
     // 仅在没有请求错误时才更新缓存，避免错误状态污染缓存
     if (cacheKey && !hasError) {
