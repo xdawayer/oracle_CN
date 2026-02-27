@@ -84,19 +84,27 @@ Page({
   },
 
   // 轮询订单状态（最多30秒）
+  // 使用 POST /api/wxpay/query-order 主动向微信查询，
+  // 避免仅依赖回调导致订阅未激活
   pollOrderStatus(orderId, onSuccess, retries = 0) {
     if (this._destroyed) return;
     if (retries >= 6) {
-      // 轮询超时，仍然尝试刷新状态（后端可能已处理但订单状态更新延迟）
       onSuccess && onSuccess();
       return;
     }
     setTimeout(async () => {
       if (this._destroyed) return;
       try {
-        const res = await request({ url: `/api/wxpay/order/${orderId}` });
-        if (res && res.status === 'paid') {
+        const res = await request({
+          url: '/api/wxpay/query-order',
+          method: 'POST',
+          data: { orderId },
+        });
+        if (res && (res.status === 'paid' || res.tradeState === 'SUCCESS')) {
           onSuccess && onSuccess();
+          return;
+        }
+        if (res && ['CLOSED', 'REVOKED', 'PAYERROR'].includes(res.tradeState)) {
           return;
         }
       } catch (e) { /* ignore */ }

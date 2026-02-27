@@ -138,13 +138,16 @@ router.post('/query-order', authMiddleware, requireAuth, async (req: Request, re
       return res.status(403).json({ error: '无权访问' });
     }
 
+    // 在查询微信前先捕获本地状态（queryWxPayOrder 可能会修改缓存中的同一对象）
+    const wasPending = existingOrder.status === 'pending';
+
     const result = await wxpayService.queryWxPayOrder(orderId);
     if (!result.success) {
       return res.status(500).json({ error: '查询失败' });
     }
 
     // 如果查询发现已支付且之前未处理，触发后续处理
-    if (result.tradeState === 'SUCCESS' && result.order && existingOrder.status === 'pending') {
+    if (result.tradeState === 'SUCCESS' && result.order && wasPending) {
       const order = result.order;
       if (order.orderType === 'subscription' && order.plan) {
         const planConfig = VIP_PLANS[order.plan as keyof typeof VIP_PLANS];
