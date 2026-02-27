@@ -90,5 +90,10 @@
         <text class="menu-item-chevron">></text>
       </view>
     </view>
+
+    <!-- 备案信息 -->
+    <view class="icp-footer">
+      <text class="icp-text">粤ICP2026015568号-1X</text>
+    </view>
   </view>
 </view>

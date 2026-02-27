@@ -3,7 +3,7 @@ const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
 
 const PLANS = {
-  monthly: { price: '9.9', totalFee: 990, label: '连续包月' },
+  monthly: { price: '9.9', totalFee: 990, label: '月度会员' },
   yearly: { price: '128', totalFee: 12800, label: '年度会员' },
   quarterly: { price: '45', totalFee: 4500, label: '季度会员' },
 };

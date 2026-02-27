@@ -4,7 +4,7 @@
 // 一旦我被更新，务必更新我的开头注释，以及所属的文件夹的md。
 
 import { getPrompt, buildCacheKey } from '../prompts/index.js';
-import { replaceSensitiveWords } from './content-security.js';
+import { replaceSensitiveWords, checkTextSecurity, containsHighRiskContent } from './content-security.js';
 import { hashInput, CACHE_TTL } from '../cache/strategy.js';
 import { cacheService } from '../cache/redis.js';
 import type { AIContentMeta, LocalizedContent, Language } from '../types/api.js';
@@ -571,6 +571,16 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
 
     if (RAW_TEXT_PROMPTS.has(options.promptId)) {
       const cleaned = replaceSensitiveWords(stripCodeFence(text));
+
+      // 内容安全审核（本地高风险检测 + 微信 msgSecCheck）
+      const isSafe = await checkTextSecurity(cleaned);
+      if (!isSafe) {
+        console.warn(`[AI] Content filtered for ${options.promptId} (security check failed)`);
+        const safeContent = '根据星象分析，当前阶段适合自我反思与内在成长。建议关注自身的身心健康，保持积极乐观的心态，在日常生活中寻找平衡与和谐。';
+        const safeResult: LocalizedContent<T> = { lang, content: safeContent as T };
+        return buildAIResult(safeResult);
+      }
+
       const result: LocalizedContent<T> = { lang, content: cleaned as T };
       if (shouldUseCache) {
         await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
@@ -601,6 +611,13 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       parsed = JSON.parse(repaired) as unknown;
     }
     const result = normalizeLocalizedContent<T>(parsed, lang);
+
+    // 内容安全审核（JSON 结构内容做本地高风险检测）
+    const jsonContentStr = JSON.stringify(result.content);
+    if (containsHighRiskContent(jsonContentStr)) {
+      console.warn(`[AI] JSON content filtered for ${options.promptId} (high-risk content detected)`);
+      throw new AIUnavailableError('content_filtered', 'Content filtered by security check');
+    }
 
     // 写入缓存
     if (shouldUseCache) {
@@ -772,11 +789,23 @@ export async function* generateAIContentStream(
   const elapsed = Date.now() - startTime;
   console.log(`[AI-Stream] <<< Completed ${options.promptId} in ${elapsed}ms, ${fullText.length} chars (model=${model}, maxTokens=${maxTokens})`);
 
-  // 写入缓存（复用上方计算的 cacheKey）
-  if (shouldUseCache && fullText) {
+  // 流式完成后内容安全审核
+  if (fullText) {
     const cleaned = stripCodeFence(fullText);
-    const result: LocalizedContent<string> = { lang, content: cleaned };
-    await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
+    const streamSafe = await checkTextSecurity(cleaned);
+    if (!streamSafe) {
+      console.warn(`[AI-Stream] Content filtered for ${options.promptId} (security check failed)`);
+      // 缓存安全版本，后续请求返回安全内容
+      const safeContent = '根据星象分析，当前阶段适合自我反思与内在成长。建议关注自身的身心健康，保持积极乐观的心态，在日常生活中寻找平衡与和谐。';
+      if (shouldUseCache) {
+        const safeResult: LocalizedContent<string> = { lang, content: safeContent };
+        await cacheService.set(cacheKey, safeResult, CACHE_TTL.AI_OUTPUT);
+      }
+    } else if (shouldUseCache) {
+      // 写入缓存（复用上方计算的 cacheKey）
+      const result: LocalizedContent<string> = { lang, content: cleaned };
+      await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
+    }
   }
 }
 

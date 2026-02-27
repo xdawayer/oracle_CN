@@ -15,7 +15,7 @@ export interface LocalizedContent<T> {
 export interface AIContentMeta {
   source: 'ai' | 'mock';
   cached?: boolean;
-  reason?: 'missing_api_key' | 'prompt_missing' | 'timeout' | 'invalid_json' | 'error';
+  reason?: 'missing_api_key' | 'prompt_missing' | 'timeout' | 'invalid_json' | 'error' | 'content_filtered';
 }
 
 // === 用户输入 ===

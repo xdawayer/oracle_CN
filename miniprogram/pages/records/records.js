@@ -38,7 +38,7 @@ Page({
         wx.switchTab({
           url: '/pages/discovery/discovery',
           fail: () => {
-            wx.switchTab({ url: '/pages/index/index' });
+            wx.switchTab({ url: '/pages/home/home' });
           }
         });
       }

@@ -1,0 +1,14 @@
+<view class="privacy-mask" wx:if="{{show}}" catchtouchmove="noop">
+  <view class="privacy-dialog ink-border">
+    <view class="privacy-title font-ancient">隐私保护提示</view>
+    <view class="privacy-content">
+      <text>在使用星语服务之前，请阅读并同意</text>
+      <text class="privacy-link" bindtap="openPrivacyDetail">《隐私政策》</text>
+      <text>。您的个人信息仅用于性格分析服务，我们将严格保护您的个人数据。</text>
+    </view>
+    <view class="privacy-buttons">
+      <button class="btn-disagree" bindtap="onDisagree">不同意</button>
+      <button class="btn-agree" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onAgree">同意</button>
+    </view>
+  </view>
+</view>

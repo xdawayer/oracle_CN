@@ -3,7 +3,7 @@ const logger = require('./logger');
 
 const DEFAULT_BASE_URL = 'https://express-wb6g-225568-8-1404386472.sh.run.tcloudbase.com';
 // 本地开发时使用本地后端，扫码真机预览需使用云托管地址
-const DEFAULT_DEV_BASE_URL = 'http://127.0.0.1:3001';
+const DEFAULT_DEV_BASE_URL = DEFAULT_BASE_URL; // 原值 'http://127.0.0.1:3001'，改为使用云托管地址
 const DEFAULT_TIMEOUT_MS = 120000;
 
 // ---- 微信云托管 callContainer 配置（绕过域名白名单限制）----
@@ -161,6 +161,53 @@ const refreshAccessToken = async () => {
   return tokens.accessToken;
 };
 
+// 静默重新登录（token 刷新失败时的兜底）
+const _silentRelogin = async () => {
+  const loginResult = await new Promise((resolve, reject) => {
+    wx.login({ success: resolve, fail: reject });
+  });
+  if (!loginResult || !loginResult.code) {
+    throw new Error('wx.login failed');
+  }
+
+  const baseUrl = getBaseUrl();
+  const response = await wxRequest({
+    url: `${baseUrl}/api/auth/wechat`,
+    method: 'POST',
+    data: { code: loginResult.code },
+    header: { 'Content-Type': 'application/json' },
+  });
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error('Silent relogin failed');
+  }
+
+  const tokens = normalizeTokens(response.data);
+  if (!tokens || !tokens.accessToken) {
+    throw new Error('Silent relogin failed');
+  }
+
+  storage.set('access_token', tokens.accessToken);
+  if (tokens.refreshToken) {
+    storage.set('refresh_token', tokens.refreshToken);
+  }
+  return tokens.accessToken;
+};
+
+// 确保认证有效：先刷新 token，失败则静默重登录（带并发锁）
+let _authPromise = null;
+const _ensureAuth = async () => {
+  if (_authPromise) return _authPromise;
+  _authPromise = (async () => {
+    try {
+      return await refreshAccessToken();
+    } catch {
+      return await _silentRelogin();
+    }
+  })().finally(() => { _authPromise = null; });
+  return _authPromise;
+};
+
 const buildHeaders = (headers, skipAuth) => {
   const token = storage.get('access_token');
   const deviceFingerprint = storage.get('device_fingerprint');
@@ -241,7 +288,11 @@ const _requestInternal = async (options) => {
     const response = await wxRequest(requestOptions);
 
     if (response.statusCode === 401 && !skipAuth) {
-      await refreshAccessToken();
+      try {
+        await _ensureAuth();
+      } catch {
+        throw _normalizeRequestError(response, requestOptions);
+      }
       const retryResponse = await wxRequest({
         ...requestOptions,
         header: buildHeaders(headers, false),

@@ -14,8 +14,8 @@
   <!-- 套餐选择 -->
   <view class="plans-section">
     <view class="plan-card ink-border {{selectedPlan === 'monthly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="monthly">
-      <view class="plan-badge">首月特惠</view>
-      <text class="plan-name">连续包月</text>
+      <view class="plan-badge">特惠</view>
+      <text class="plan-name">月度会员</text>
       <view class="plan-price-row">
         <text class="plan-currency">¥</text>
         <text class="plan-price font-ancient">9.9</text>

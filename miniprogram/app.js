@@ -76,21 +76,13 @@ App({
       })
     })
 
-    // 隐私保护授权回调
+    // 隐私保护授权回调（使用自定义弹窗组件，包含可点击隐私政策链接）
     wx.onNeedPrivacyAuthorization((resolve) => {
-      wx.showModal({
-        title: '隐私保护提示',
-        content: '在使用星语服务之前，请阅读并同意《隐私政策》。您的个人信息仅用于性格分析服务，我们将严格保护您的个人数据。',
-        confirmText: '同意',
-        cancelText: '不同意',
-        success: (res) => {
-          if (res.confirm) {
-            resolve({ buttonId: 'agree-btn', event: 'agree' });
-          } else {
-            resolve({ buttonId: 'agree-btn', event: 'disagree' });
-          }
-        }
-      });
+      this._pendingPrivacyResolve = resolve;
+      if (this._privacyPopup) {
+        this._privacyPopup.showPopup();
+      }
+      // 若组件尚未挂载，attached 时会自动检测并展示
     });
 
     // 全局错误监控

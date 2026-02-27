@@ -179,3 +179,15 @@
 .danger-item .menu-item-label {
   color: var(--danger);
 }
+
+/* 备案信息 */
+.icp-footer {
+  text-align: center;
+  padding: var(--spacing-xl) 0 var(--spacing-lg);
+}
+
+.icp-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+  letter-spacing: 1rpx;
+}

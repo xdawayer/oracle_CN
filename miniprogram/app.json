@@ -80,7 +80,8 @@
   "lazyCodeLoading": "requiredComponents",
   "usingComponents": {
     "astro-chart": "/components/astro-chart/astro-chart",
-    "credits-modal": "/components/credits-modal/credits-modal"
+    "credits-modal": "/components/credits-modal/credits-modal",
+    "privacy-popup": "/components/privacy-popup/privacy-popup"
   },
   "__private_config__": {
     "owner_desc": "星语 — 心理洞察与自我认知应用",
