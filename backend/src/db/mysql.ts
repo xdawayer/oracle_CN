@@ -25,9 +25,9 @@ const poolConfig: PoolOptions = {
   connectionLimit: 10,
   queueLimit: 0,
   // JSON 字段自动反序列化
-  typeCast: function (field: { type: string; string: () => string | null }, next: () => unknown) {
+  typeCast: function (field: { type: string; string: (encoding?: string) => string | null }, next: () => unknown) {
     if (field.type === 'JSON') {
-      const val = field.string();
+      const val = field.string('utf8');
       if (val === null) return null;
       try {
         return JSON.parse(val);
