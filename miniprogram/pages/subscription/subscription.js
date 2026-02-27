@@ -1,6 +1,7 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
+const avatarBehavior = require('../../behaviors/avatar');
 
 const PLANS = {
   monthly: { price: '9.9', totalFee: 990, label: '月度会员' },
@@ -9,6 +10,7 @@ const PLANS = {
 };
 
 Page({
+  behaviors: [avatarBehavior],
   data: {
     userName: '',
     avatarUrl: '',

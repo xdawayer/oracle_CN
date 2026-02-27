@@ -71,8 +71,15 @@ annualTaskRouter.get('/status', authMiddleware, async (req: Request, res: Respon
     return;
   }
 
+  let birthData: Partial<BirthInput>;
   try {
-    const birthData = JSON.parse(birth) as Partial<BirthInput>;
+    birthData = JSON.parse(birth) as Partial<BirthInput>;
+  } catch {
+    res.status(400).json({ error: 'Invalid birth data format' });
+    return;
+  }
+
+  try {
     const task = await getTaskStatus(userId, birthData);
 
     if (!task) {
@@ -115,8 +122,15 @@ annualTaskRouter.get('/content', authMiddleware, async (req: Request, res: Respo
     return;
   }
 
+  let birthData: Partial<BirthInput>;
   try {
-    const birthData = JSON.parse(birth) as Partial<BirthInput>;
+    birthData = JSON.parse(birth) as Partial<BirthInput>;
+  } catch {
+    res.status(400).json({ error: 'Invalid birth data format' });
+    return;
+  }
+
+  try {
     const result = await getReportContent(userId, birthData);
 
     if (!result) {

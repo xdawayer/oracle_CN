@@ -5,7 +5,7 @@
     <!-- 用户头部 -->
     <view class="user-header ink-border" bindtap="goToProfile">
       <view class="avatar-wrap">
-        <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+        <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
         <view class="avatar placeholder" wx:else>
           <text class="avatar-text">U</text>
         </view>

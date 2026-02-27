@@ -1,6 +1,7 @@
 const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
+const avatarBehavior = require('../../behaviors/avatar');
 
 const NAME_CHARS = '星月云风雪晨夏秋瑶琳萱语梦溪岚霜璃羽翼灵芷蕊瑾璇沐澜清若曦妤熙彤昕婉悦涵筱宁恬雅柔芸茉苒忆安然初墨黛素尘烟';
 
@@ -29,6 +30,7 @@ const ZODIAC_ICONS = [
 ];
 
 Page({
+  behaviors: [avatarBehavior],
   data: {
     name: '',
     avatarUrl: '',
@@ -91,20 +93,29 @@ Page({
       const res = await request({ url: '/api/user/profile' });
       if (res) {
         const serverName = res.name || this.data.name;
+        const hasAvatarField = Object.prototype.hasOwnProperty.call(res, 'avatarUrl');
+        const serverAvatar = hasAvatarField ? (res.avatarUrl || '') : this.data.avatarUrl;
         this.setData({
           name: serverName,
-          avatarUrl: res.avatarUrl || this.data.avatarUrl,
+          avatarUrl: serverAvatar,
           birthDate: res.birthDate || this.data.birthDate,
           birthTime: res.birthTime || this.data.birthTime,
           birthCity: res.birthCity || this.data.birthCity,
           originalData: {
             name: serverName,
-            avatarUrl: res.avatarUrl || this.data.avatarUrl,
+            avatarUrl: serverAvatar,
             birthDate: res.birthDate || this.data.birthDate,
             birthTime: res.birthTime || this.data.birthTime,
             birthCity: res.birthCity || this.data.birthCity,
           },
         });
+        if (hasAvatarField) {
+          if (serverAvatar) {
+            storage.set('user_avatar', serverAvatar);
+          } else {
+            storage.remove('user_avatar');
+          }
+        }
       }
     } catch (err) {
       // 使用本地数据
@@ -136,6 +147,24 @@ Page({
 
   onCloseAvatarPicker() {
     this.setData({ showAvatarPicker: false });
+  },
+
+  // 覆盖 avatarBehavior 的默认实现，额外标记 hasChanges
+  onAvatarLoadError() {
+    // 首次失败可能是瞬时网络抖动，重试一次
+    if (!this.data._avatarRetried && this.data.avatarUrl) {
+      this.setData({ _avatarRetried: true });
+      const url = this.data.avatarUrl;
+      this.setData({ avatarUrl: '' });
+      setTimeout(() => {
+        this.setData({ avatarUrl: url });
+      }, 1000);
+      return;
+    }
+    storage.remove('user_avatar');
+    if (this.data.avatarUrl) {
+      this.setData({ avatarUrl: '', hasChanges: true, _avatarRetried: false });
+    }
   },
 
   onNoop() {},
@@ -226,7 +255,11 @@ Page({
       const profile = storage.get('user_profile') || {};
       profile.name = this.data.name;
       storage.set('user_profile', profile);
-      storage.set('user_avatar', avatarUrl);
+      if (avatarUrl) {
+        storage.set('user_avatar', avatarUrl);
+      } else {
+        storage.remove('user_avatar');
+      }
 
       const astroUser = storage.get('astro_user') || {};
       astroUser.birthDate = this.data.birthDate;

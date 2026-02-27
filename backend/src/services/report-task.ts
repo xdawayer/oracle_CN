@@ -124,6 +124,43 @@ function buildContentKey(config: ReportConfig, userId: string, moduleId: string,
   return `report:${config.reportType}:${userId}:${moduleId}:${chartHash}`;
 }
 
+/** 规范化出生信息（用于快速索引，避免重复算盘） */
+function normalizeBirthLookupInput(birthData: Partial<BirthInput>): Record<string, unknown> {
+  const lat = birthData.lat;
+  const lon = birthData.lon;
+  const parseNumber = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
+  return {
+    date: typeof birthData.date === 'string' ? birthData.date : '',
+    time: typeof birthData.time === 'string' ? birthData.time : '',
+    city: typeof birthData.city === 'string' ? birthData.city.trim() : '',
+    lat: parseNumber(lat),
+    lon: parseNumber(lon),
+    timezone: typeof birthData.timezone === 'string' ? birthData.timezone.trim() : '',
+    accuracy: birthData.accuracy || 'exact',
+  };
+}
+
+/** 构建出生信息索引 hash（比 chartHash 计算更轻量） */
+function buildBirthLookupHash(birthData: Partial<BirthInput>): string {
+  return hashInput(normalizeBirthLookupInput(birthData));
+}
+
+/** 构建出生信息索引 key（birthHash -> chartHash） */
+function buildBirthLookupKey(config: ReportConfig, userId: string, birthLookupHash: string): string {
+  return `report_task_lookup:${config.reportType}:${userId}:${birthLookupHash}`;
+}
+
+// 仅供测试使用
+export { normalizeBirthLookupInput as _normalizeBirthLookupInput, buildBirthLookupHash as _buildBirthLookupHash };
+
 /** 解析出生信息 */
 async function parseBirthInput(query: Record<string, unknown>): Promise<BirthInput> {
   const city = (query.city as string) || '';
@@ -219,26 +256,49 @@ export async function getReportTaskStatus(
   birthData: Partial<BirthInput>
 ): Promise<ReportTask | null> {
   try {
+    const birthLookupHash = buildBirthLookupHash(birthData);
+    const birthLookupKey = buildBirthLookupKey(config, userId, birthLookupHash);
+
+    // 快速路径：命中出生信息索引后，直接按 chartHash 查任务
+    const cachedChartHash = await cacheService.get<string>(birthLookupKey);
+    if (cachedChartHash) {
+      const fastTask = await getTaskStatusByChartHash(config, userId, cachedChartHash);
+      if (fastTask) return fastTask;
+      // 索引失效（缓存被淘汰等），清理并走慢路径重建
+      await cacheService.del(birthLookupKey);
+    }
+
     const birthInput = await parseBirthInput(birthData as Record<string, unknown>);
     const chart = await ephemerisService.calculateNatalChart(birthInput);
     const chartSummary = buildCompactChartSummary(chart) as Record<string, unknown>;
     const chartHash = hashInput(chartSummary);
 
-    const taskKey = buildTaskKey(config, userId, chartHash);
-    const cached = await cacheService.get<ReportTask>(taskKey);
-    if (cached) return cached;
-
-    // Redis 缓存未命中 → 从 MySQL 查找已完成的报告
-    const dbTask = await findCompletedReportInDB(config, userId, chartHash);
-    if (dbTask) {
-      // 回写 Redis 缓存，避免后续重复查 DB
-      await cacheService.set(taskKey, dbTask, config.taskTTL);
-    }
-    return dbTask;
+    // 回写出生信息索引，后续轮询直接走快速路径
+    await cacheService.set(birthLookupKey, chartHash, config.taskTTL);
+    return await getTaskStatusByChartHash(config, userId, chartHash);
   } catch (error) {
     console.error(`[ReportTask:${config.reportType}] Failed to get task status:`, error);
     return null;
   }
+}
+
+/** 按 chartHash 查询任务状态（缓存+DB） */
+async function getTaskStatusByChartHash(
+  config: ReportConfig,
+  userId: string,
+  chartHash: string,
+): Promise<ReportTask | null> {
+  const taskKey = buildTaskKey(config, userId, chartHash);
+  const cached = await cacheService.get<ReportTask>(taskKey);
+  if (cached) return cached;
+
+  // Redis 缓存未命中 → 从 MySQL 查找已完成的报告
+  const dbTask = await findCompletedReportInDB(config, userId, chartHash);
+  if (dbTask) {
+    // 回写 Redis 缓存，避免后续重复查 DB
+    await cacheService.set(taskKey, dbTask, config.taskTTL);
+  }
+  return dbTask;
 }
 
 /** 创建异步任务 */
@@ -248,10 +308,15 @@ export async function createReportTask(
   birthData: Partial<BirthInput>,
   lang: Language = 'zh'
 ): Promise<{ task: ReportTask; isNew: boolean }> {
+  const birthLookupHash = buildBirthLookupHash(birthData);
+  const birthLookupKey = buildBirthLookupKey(config, userId, birthLookupHash);
   const birthInput = await parseBirthInput(birthData as Record<string, unknown>);
   const chart = await ephemerisService.calculateNatalChart(birthInput);
   const chartSummary = buildCompactChartSummary(chart) as Record<string, unknown>;
   const chartHash = hashInput(chartSummary);
+
+  // 维护出生信息 -> chartHash 索引，供 status 快速查询
+  await cacheService.set(birthLookupKey, chartHash, config.taskTTL);
 
   const taskKey = buildTaskKey(config, userId, chartHash);
 

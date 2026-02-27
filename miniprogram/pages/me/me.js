@@ -1,6 +1,7 @@
 const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
 const { request } = require('../../utils/request');
+const avatarBehavior = require('../../behaviors/avatar');
 
 const NAME_CHARS = '星月云风雪晨夏秋瑶琳萱语梦溪岚霜璃羽翼灵芷蕊瑾璇沐澜清若曦妤熙彤昕婉悦涵筱宁恬雅柔芸茉苒忆安然初墨黛素尘烟';
 
@@ -14,6 +15,7 @@ function generateRandomName() {
 }
 
 Page({
+  behaviors: [avatarBehavior],
   data: {
     auditMode: false,
     userProfile: {},
@@ -85,12 +87,17 @@ Page({
         profile.matchCount = Array.isArray(synastryRecords) ? synastryRecords.length : 0;
 
         storage.set('user_profile', profile);
-        if (res.avatarUrl) {
-          storage.set('user_avatar', res.avatarUrl);
+        const hasAvatarField = Object.prototype.hasOwnProperty.call(res, 'avatarUrl');
+        if (hasAvatarField) {
+          if (res.avatarUrl) {
+            storage.set('user_avatar', res.avatarUrl);
+          } else {
+            storage.remove('user_avatar');
+          }
         }
         this.setData({
           userProfile: profile,
-          avatarUrl: res.avatarUrl || this.data.avatarUrl,
+          avatarUrl: hasAvatarField ? (res.avatarUrl || '') : this.data.avatarUrl,
         });
       }
     } catch (err) {

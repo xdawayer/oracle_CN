@@ -5,6 +5,7 @@ const logger = require('../../utils/logger');
 const { isDev } = logger;
 const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 const { buildDailyFullCacheKey, buildProfileFingerprint } = require('../../utils/tab-preloader');
+const avatarBehavior = require('../../behaviors/avatar');
 
 // 星座英文→中文名映射
 const SIGN_CN = {
@@ -24,6 +25,7 @@ const DEFAULT_PROFILE = {
 };
 
 Page({
+  behaviors: [avatarBehavior],
   data: {
     auditMode: false,
     greeting: '早安, 星语用户',
@@ -205,51 +207,61 @@ Page({
 
   /** 检查年度报告任务状态 */
   async checkAnnualReportAccess() {
-    try {
-      const userProfile = storage.get('user_profile');
-      if (!userProfile || !userProfile.birthDate) return;
+    if (this._annualStatusPromise) {
+      return this._annualStatusPromise;
+    }
 
-      const birthData = {
-        date: userProfile.birthDate,
-        time: userProfile.birthTime || '12:00',
-        city: userProfile.birthCity || '',
-        lat: userProfile.lat,
-        lon: userProfile.lon,
-        timezone: userProfile.timezone || 'Asia/Shanghai',
-        accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
-      };
+    this._annualStatusPromise = (async () => {
+      try {
+        const userProfile = storage.get('user_profile');
+        if (!userProfile || !userProfile.birthDate) return;
 
-      const result = await request({
-        url: '/api/annual-task/status',
-        method: 'GET',
-        data: { birth: JSON.stringify(birthData) },
-      });
+        const birthData = {
+          date: userProfile.birthDate,
+          time: userProfile.birthTime || '12:00',
+          city: userProfile.birthCity || '',
+          lat: userProfile.lat,
+          lon: userProfile.lon,
+          timezone: userProfile.timezone || 'Asia/Shanghai',
+          accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
+        };
 
-      if (result && result.exists) {
-        this.setData({
-          annualTaskStatus: result.status,
-          annualTaskProgress: result.progress || 0,
-          annualTaskMessage: result.message || '',
+        const result = await request({
+          url: '/api/annual-task/status',
+          method: 'GET',
+          data: { birth: JSON.stringify(birthData) },
         });
 
-        if (result.status === 'processing' || result.status === 'pending') {
-          this._startStatusPolling();
-        }
-      } else {
-        // pending/processing 可能是刚创建任务的竞态，保留当前状态
-        const currentStatus = this.data.annualTaskStatus;
-        if (currentStatus !== 'pending' && currentStatus !== 'processing') {
+        if (result && result.exists) {
           this.setData({
-            annualTaskStatus: 'none',
-            annualTaskProgress: 0,
-            annualTaskMessage: '',
+            annualTaskStatus: result.status,
+            annualTaskProgress: result.progress || 0,
+            annualTaskMessage: result.message || '',
           });
+
+          if (result.status === 'processing' || result.status === 'pending') {
+            this._startStatusPolling();
+          }
+        } else {
+          // pending/processing 可能是刚创建任务的竞态，保留当前状态
+          const currentStatus = this.data.annualTaskStatus;
+          if (currentStatus !== 'pending' && currentStatus !== 'processing') {
+            this.setData({
+              annualTaskStatus: 'none',
+              annualTaskProgress: 0,
+              annualTaskMessage: '',
+            });
+          }
         }
+      } catch (error) {
+        logger.log('Check annual task status:', error?.statusCode || error);
+        // 网络出错时保留当前状态，不重置为 'none'
       }
-    } catch (error) {
-      logger.log('Check annual task status:', error?.statusCode || error);
-      // 网络出错时保留当前状态，不重置为 'none'
-    }
+    })().finally(() => {
+      this._annualStatusPromise = null;
+    });
+
+    return this._annualStatusPromise;
   },
 
   /** 开始轮询任务状态（递归 setTimeout 防止异步堆叠） */

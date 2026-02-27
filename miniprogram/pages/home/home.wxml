@@ -9,7 +9,7 @@
       <text class="date font-body">{{currentDate}}</text>
       <text class="date-lunar font-body" wx:if="{{lunarDate}}">{{lunarDate}}</text>
     </view>
-    <image class="avatar ink-border" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+    <image class="avatar ink-border" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
     <view class="avatar placeholder ink-border" wx:else>
       <text class="avatar-text">☉</text>
     </view>

@@ -13,6 +13,67 @@ const router = Router();
 
 // 开发模式内存存储
 const devProfiles = new Map<string, Record<string, unknown>>();
+const LOCAL_AVATAR_PREFIX = '/uploads/avatars/';
+
+function isLocalAvatarUrl(avatarUrl: string): boolean {
+  // 相对路径（以 / 开头）视为本地
+  if (avatarUrl.startsWith('/')) return true;
+  // 完整 URL 需匹配本服务器域名
+  try {
+    const parsed = new URL(avatarUrl);
+    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const baseHost = new URL(baseUrl).host;
+    return parsed.host === baseHost;
+  } catch {
+    return false;
+  }
+}
+
+/** 解析本地头像路径，返回 { local, path }。local=false 表示非本地 URL，local=true + path=null 表示本地但非法 */
+function resolveLocalAvatarPath(avatarUrl: string): { local: boolean; path: string | null } {
+  if (!isLocalAvatarUrl(avatarUrl)) return { local: false, path: null };
+  let pathname: string;
+  try {
+    const parsed = new URL(avatarUrl);
+    pathname = decodeURIComponent(parsed.pathname || '');
+  } catch {
+    pathname = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+  }
+  if (!pathname.startsWith(LOCAL_AVATAR_PREFIX)) return { local: false, path: null };
+  const resolved = path.resolve(process.cwd(), pathname.slice(1));
+  // 防止路径遍历：确保解析后的路径在 uploads/avatars 目录内
+  const avatarsDir = path.resolve(process.cwd(), 'uploads', 'avatars');
+  if (!resolved.startsWith(avatarsDir + path.sep)) return { local: true, path: null };
+  return { local: true, path: resolved };
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function sanitizeAvatarUrl(avatarUrl: unknown): Promise<{ url: string; staleLocalUpload: boolean }> {
+  if (typeof avatarUrl !== 'string' || avatarUrl.trim() === '') {
+    return { url: '', staleLocalUpload: false };
+  }
+  const trimmedUrl = avatarUrl.trim();
+  const { local, path: localPath } = resolveLocalAvatarPath(trimmedUrl);
+  if (!local) {
+    return { url: trimmedUrl, staleLocalUpload: false };
+  }
+  // 本地 URL 但路径非法（遍历攻击等）→ 清除
+  if (!localPath) {
+    return { url: '', staleLocalUpload: true };
+  }
+  if (!(await fileExists(localPath))) {
+    return { url: '', staleLocalUpload: true };
+  }
+  return { url: trimmedUrl, staleLocalUpload: false };
+}
 
 // GET /api/user/profile - 获取用户资料
 router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Response) => {
@@ -37,10 +98,17 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
       const vipExpireDate = subscription?.current_period_end || '';
 
       const birthProfile = (data.birth_profile as unknown as Record<string, string>) || {};
+      const { url: avatarUrl, staleLocalUpload } = await sanitizeAvatarUrl(data.avatar);
+      if (staleLocalUpload) {
+        // 已失效的本地上传头像会持续触发 404，异步清理数据库旧值（不阻塞响应）
+        update('users', { avatar: null }, 'id = ?', [req.userId!]).catch((err) =>
+          console.error('Failed to clean stale avatar:', err)
+        );
+      }
 
       res.json({
         name: data.name || '',
-        avatarUrl: data.avatar || '',
+        avatarUrl,
         birthDate: birthProfile.date || '',
         birthTime: birthProfile.time || '',
         birthCity: birthProfile.city || birthProfile.location || '',
@@ -56,9 +124,14 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         entitlementServiceV2.getEntitlements(req.userId!),
         reportService.getReportCount(req.userId!),
       ]);
+      const { url: avatarUrl, staleLocalUpload } = await sanitizeAvatarUrl(profile.avatarUrl);
+      if (staleLocalUpload) {
+        profile.avatarUrl = '';
+        devProfiles.set(req.userId!, profile);
+      }
       res.json({
         name: profile.name || '星智用户',
-        avatarUrl: profile.avatarUrl || '',
+        avatarUrl,
         birthDate: profile.birthDate || '',
         birthTime: profile.birthTime || '',
         birthCity: profile.birthCity || '',
@@ -345,3 +418,6 @@ function getFeatureDescription(featureType: string, featureId: string | null): s
 }
 
 export { router as userRouter };
+
+// 仅供测试使用
+export { isLocalAvatarUrl as _isLocalAvatarUrl, resolveLocalAvatarPath as _resolveLocalAvatarPath, sanitizeAvatarUrl as _sanitizeAvatarUrl };

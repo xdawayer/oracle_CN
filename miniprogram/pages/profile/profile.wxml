@@ -2,7 +2,7 @@
   <!-- 头像区域 -->
   <view class="avatar-section">
     <view class="avatar-wrap" bindtap="onChooseAvatar">
-      <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+      <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
       <view class="avatar placeholder" wx:else>
         <text class="avatar-text">U</text>
       </view>

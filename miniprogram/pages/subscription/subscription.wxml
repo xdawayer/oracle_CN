@@ -1,7 +1,7 @@
 <view class="page-container">
   <!-- 用户信息头部 -->
   <view class="user-header">
-    <image class="user-avatar" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+    <image class="user-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
     <view class="user-avatar placeholder" wx:else>
       <text>U</text>
     </view>
