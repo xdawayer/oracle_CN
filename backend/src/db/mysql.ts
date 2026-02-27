@@ -60,6 +60,27 @@ export function isDatabaseConfigured(): boolean {
 }
 
 // ============================================
+// ISO 日期 → MySQL DATETIME 格式转换
+// ============================================
+
+/** 将 ISO 8601 字符串转为 MySQL DATETIME 格式：'2026-03-06T15:23:08.871Z' → '2026-03-06 15:23:08.871' */
+function toMySQLDatetime(value: string): string {
+  return value.replace('T', ' ').replace('Z', '');
+}
+
+/** ISO 日期字符串正则：匹配 YYYY-MM-DDTHH:mm:ss 格式 */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
+/** 序列化值：JSON 对象转字符串，ISO 日期转 MySQL 格式 */
+function serializeValue(v: unknown): unknown {
+  if (v === null || v === undefined) return v;
+  if (v instanceof Date) return toMySQLDatetime(v.toISOString());
+  if (typeof v === 'string' && ISO_DATE_RE.test(v)) return toMySQLDatetime(v);
+  if (typeof v === 'object') return JSON.stringify(v);
+  return v;
+}
+
+// ============================================
 // 通用查询方法
 // ============================================
 
@@ -86,14 +107,7 @@ export async function insert<T = RowDataPacket>(
   }
   const keys = Object.keys(data);
   const placeholders = keys.map(() => '?').join(', ');
-  const values = keys.map(k => {
-    const v = data[k];
-    // JSON 对象需要序列化
-    if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
-      return JSON.stringify(v);
-    }
-    return v;
-  });
+  const values = keys.map(k => serializeValue(data[k]));
 
   const sql = `INSERT INTO \`${table}\` (${keys.map(k => `\`${k}\``).join(', ')}) VALUES (${placeholders})`;
   await getPool().execute(sql, values as (string | number | boolean | null | Buffer)[]);
@@ -117,13 +131,7 @@ export async function update(
 ): Promise<number> {
   const keys = Object.keys(data);
   const setClauses = keys.map(k => `\`${k}\` = ?`).join(', ');
-  const values = keys.map(k => {
-    const v = data[k];
-    if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
-      return JSON.stringify(v);
-    }
-    return v;
-  });
+  const values = keys.map(k => serializeValue(data[k]));
 
   const sql = `UPDATE \`${table}\` SET ${setClauses} WHERE ${where}`;
   const [result] = await getPool().execute<ResultSetHeader>(sql, [...values, ...whereParams] as (string | number | boolean | null | Buffer)[]);
@@ -165,13 +173,7 @@ export async function upsert<T = RowDataPacket>(
   }
   const keys = Object.keys(data);
   const placeholders = keys.map(() => '?').join(', ');
-  const values = keys.map(k => {
-    const v = data[k];
-    if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
-      return JSON.stringify(v);
-    }
-    return v;
-  });
+  const values = keys.map(k => serializeValue(data[k]));
 
   // 默认更新所有非 id 字段
   const fieldsToUpdate = updateFields || keys.filter(k => k !== 'id');
