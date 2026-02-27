@@ -1,6 +1,32 @@
-const { request, getBaseUrl } = require('../../utils/request');
+const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
+
+const NAME_CHARS = '星月云风雪晨夏秋瑶琳萱语梦溪岚霜璃羽翼灵芷蕊瑾璇沐澜清若曦妤熙彤昕婉悦涵筱宁恬雅柔芸茉苒忆安然初墨黛素尘烟';
+
+function generateRandomName() {
+  const len = 2 + Math.floor(Math.random() * 3); // 2-4个字
+  let name = '';
+  for (let i = 0; i < len; i++) {
+    name += NAME_CHARS[Math.floor(Math.random() * NAME_CHARS.length)];
+  }
+  return name;
+}
+
+const ZODIAC_ICONS = [
+  { url: '/images/astro-symbols/aries.png', label: '白羊' },
+  { url: '/images/astro-symbols/taurus.png', label: '金牛' },
+  { url: '/images/astro-symbols/gemini.png', label: '双子' },
+  { url: '/images/astro-symbols/cancer.png', label: '巨蟹' },
+  { url: '/images/astro-symbols/leo.png', label: '狮子' },
+  { url: '/images/astro-symbols/virgo.png', label: '处女' },
+  { url: '/images/astro-symbols/libra.png', label: '天秤' },
+  { url: '/images/astro-symbols/scorpio.png', label: '天蝎' },
+  { url: '/images/astro-symbols/sagittarius.png', label: '射手' },
+  { url: '/images/astro-symbols/capricorn.png', label: '摩羯' },
+  { url: '/images/astro-symbols/aquarius.png', label: '水瓶' },
+  { url: '/images/astro-symbols/pisces.png', label: '双鱼' },
+];
 
 Page({
   data: {
@@ -13,9 +39,20 @@ Page({
     originalData: {},
     showDatePicker: false,
     showTimePicker: false,
+    showAvatarPicker: false,
+    avatarOptions: [],
   },
 
   onLoad() {
+    // 构建头像选项列表
+    const wechatAvatar = storage.get('wechat_avatar') || '';
+    const avatarOptions = [];
+    if (wechatAvatar) {
+      avatarOptions.push({ url: wechatAvatar, label: '微信' });
+    }
+    avatarOptions.push(...ZODIAC_ICONS);
+    this.setData({ avatarOptions });
+
     this.loadProfile();
   },
 
@@ -25,14 +62,16 @@ Page({
     const avatarUrl = storage.get('user_avatar') || '';
     const birthInfo = storage.get('astro_user') || {};
 
+    const name = cached.name || generateRandomName();
+
     this.setData({
-      name: cached.name || '',
+      name: name,
       avatarUrl: avatarUrl,
       birthDate: birthInfo.birthDate || '2000-01-01',
       birthTime: birthInfo.birthTime || '12:00',
       birthCity: birthInfo.birthCity || '北京, 中国',
       originalData: {
-        name: cached.name || '',
+        name: name,
         avatarUrl: avatarUrl,
         birthDate: birthInfo.birthDate || '2000-01-01',
         birthTime: birthInfo.birthTime || '12:00',
@@ -40,18 +79,26 @@ Page({
       },
     });
 
+    // 如果昵称是新生成的，保存到缓存
+    if (!cached.name) {
+      const profile = storage.get('user_profile') || {};
+      profile.name = name;
+      storage.set('user_profile', profile);
+    }
+
     // 尝试从后端获取最新数据
     try {
       const res = await request({ url: '/api/user/profile' });
       if (res) {
+        const serverName = res.name || this.data.name;
         this.setData({
-          name: res.name || this.data.name,
+          name: serverName,
           avatarUrl: res.avatarUrl || this.data.avatarUrl,
           birthDate: res.birthDate || this.data.birthDate,
           birthTime: res.birthTime || this.data.birthTime,
           birthCity: res.birthCity || this.data.birthCity,
           originalData: {
-            name: res.name || this.data.name,
+            name: serverName,
             avatarUrl: res.avatarUrl || this.data.avatarUrl,
             birthDate: res.birthDate || this.data.birthDate,
             birthTime: res.birthTime || this.data.birthTime,
@@ -75,18 +122,23 @@ Page({
   },
 
   onChooseAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        this.setData({ avatarUrl: tempFilePath });
-        this.checkChanges();
-      },
-    });
+    this.setData({ showAvatarPicker: true });
   },
+
+  onSelectAvatar(e) {
+    const url = e.currentTarget.dataset.url;
+    this.setData({
+      avatarUrl: url,
+      showAvatarPicker: false,
+    });
+    this.checkChanges();
+  },
+
+  onCloseAvatarPicker() {
+    this.setData({ showAvatarPicker: false });
+  },
+
+  onNoop() {},
 
   onEditName() {
     wx.showModal({
@@ -106,8 +158,6 @@ Page({
   onEditBirthDate() {
     // 使用 picker 组件
     this.setData({ showDatePicker: true });
-    // picker 需要用户点击触发，这里通过编程方式不可行
-    // 改用 wx.showActionSheet 或内联 picker
   },
 
   onDateChange(e) {
@@ -145,42 +195,10 @@ Page({
     wx.showLoading({ title: '保存中' });
 
     try {
-      // 头像处理
-      // 微信登录头像 URL 是永久的，可直接存储
-      // 本地临时文件（wxfile://）需要上传到云存储才能持久化
       let avatarUrl = this.data.avatarUrl;
-      const isLocalTemp = avatarUrl && (avatarUrl.startsWith('wxfile://') || avatarUrl.startsWith('http://tmp'));
 
-      if (isLocalTemp) {
-        // 通过后端接口上传头像文件
-        try {
-          const uploadRes = await new Promise((resolve, reject) => {
-            wx.uploadFile({
-              url: getBaseUrl() + '/api/user/avatar/upload',
-              filePath: avatarUrl,
-              name: 'file',
-              header: {
-                Authorization: `Bearer ${storage.get('access_token')}`,
-              },
-              success: (res) => {
-                try {
-                  resolve(JSON.parse(res.data));
-                } catch (e) {
-                  reject(e);
-                }
-              },
-              fail: reject,
-            });
-          });
-          if (uploadRes && uploadRes.url) {
-            avatarUrl = uploadRes.url;
-          }
-        } catch (err) {
-          // 上传失败，保留原有头像
-          avatarUrl = this.data.originalData.avatarUrl || avatarUrl;
-        }
-      } else if (avatarUrl && avatarUrl !== this.data.originalData.avatarUrl) {
-        // 非本地临时文件（如微信头像 URL），直接同步到后端
+      // 头像变更时同步到后端（URL或本地路径直接同步，不需要上传文件）
+      if (avatarUrl && avatarUrl !== this.data.originalData.avatarUrl) {
         try {
           await request({
             url: '/api/user/avatar',

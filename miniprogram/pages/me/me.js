@@ -2,6 +2,17 @@ const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
 const { request } = require('../../utils/request');
 
+const NAME_CHARS = '星月云风雪晨夏秋瑶琳萱语梦溪岚霜璃羽翼灵芷蕊瑾璇沐澜清若曦妤熙彤昕婉悦涵筱宁恬雅柔芸茉苒忆安然初墨黛素尘烟';
+
+function generateRandomName() {
+  const len = 2 + Math.floor(Math.random() * 3);
+  let name = '';
+  for (let i = 0; i < len; i++) {
+    name += NAME_CHARS[Math.floor(Math.random() * NAME_CHARS.length)];
+  }
+  return name;
+}
+
 Page({
   data: {
     auditMode: false,
@@ -98,11 +109,12 @@ Page({
           const previousProfile = storage.get('user_profile') || {};
           const mergedProfile = {
             ...previousProfile,
-            name: (data && data.user && data.user.name) || res.userInfo.nickName || previousProfile.name || '',
+            name: ((data && data.user && data.user.name && data.user.name !== '微信用户') ? data.user.name : null) || (res.userInfo.nickName && res.userInfo.nickName !== '微信用户' ? res.userInfo.nickName : null) || previousProfile.name || generateRandomName(),
           };
           storage.set('user_profile', mergedProfile);
           if (res.userInfo.avatarUrl) {
             storage.set('user_avatar', res.userInfo.avatarUrl);
+            storage.set('wechat_avatar', res.userInfo.avatarUrl);
           }
           this.setData({
             userProfile: mergedProfile,

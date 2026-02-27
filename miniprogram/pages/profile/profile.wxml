@@ -10,7 +10,7 @@
         <text class="camera-icon">+</text>
       </view>
     </view>
-    <text class="avatar-hint">点击更换头像</text>
+    <text class="avatar-hint">点击选择头像</text>
   </view>
 
   <!-- 表单区域 -->
@@ -72,4 +72,26 @@
   <picker mode="time" value="{{birthTime}}" bindchange="onTimeChange" wx:if="{{showTimePicker}}">
     <view></view>
   </picker>
+
+  <!-- 头像选择弹窗 -->
+  <view class="avatar-picker-mask" wx:if="{{showAvatarPicker}}" bindtap="onCloseAvatarPicker" catchtouchmove="onCloseAvatarPicker">
+    <view class="avatar-picker-popup" catchtap="onNoop" catchtouchmove="onNoop">
+      <view class="avatar-picker-header">
+        <text class="avatar-picker-title">选择头像</text>
+        <text class="avatar-picker-close" bindtap="onCloseAvatarPicker">×</text>
+      </view>
+      <view class="avatar-picker-grid">
+        <view
+          class="avatar-picker-item {{avatarUrl === item.url ? 'selected' : ''}}"
+          wx:for="{{avatarOptions}}"
+          wx:key="url"
+          data-url="{{item.url}}"
+          bindtap="onSelectAvatar"
+        >
+          <image class="avatar-picker-img" src="{{item.url}}" mode="aspectFill"></image>
+          <text class="avatar-picker-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </view>
