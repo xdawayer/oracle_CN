@@ -35,6 +35,7 @@ import wxpayService from './services/wxpayService.js';
 import { userRouter } from './api/user.js';
 import logRouter from './api/log.js';
 import { apiResponseMiddleware } from './utils/apiResponse.js';
+import { initDatabase } from './db/init.js';
 
 const envPaths = [
   path.resolve(process.cwd(), '.env'),
@@ -142,13 +143,27 @@ const checkEnvVars = () => {
 };
 checkEnvVars();
 
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+// 启动服务：先初始化数据库，再监听端口
+async function startServer() {
+  // 自动建库建表（幂等，可重复执行）
+  if (process.env.MYSQL_HOST) {
+    try {
+      await initDatabase();
+    } catch (err) {
+      console.error('[db-init] 数据库初始化失败，使用内存存储:', err);
+    }
+  }
 
-  // 订单超时自动关闭：每 10 分钟检查一次
-  setInterval(() => {
-    wxpayService.closeExpiredOrders().catch(err => {
-      console.error('[wxpay] 定时关闭超时订单异常:', err);
-    });
-  }, 10 * 60 * 1000);
-});
+  app.listen(PORT, () => {
+    console.log(`Backend running on port ${PORT}`);
+
+    // 订单超时自动关闭：每 10 分钟检查一次
+    setInterval(() => {
+      wxpayService.closeExpiredOrders().catch(err => {
+        console.error('[wxpay] 定时关闭超时订单异常:', err);
+      });
+    }, 10 * 60 * 1000);
+  });
+}
+
+startServer();
