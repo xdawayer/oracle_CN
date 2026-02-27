@@ -85,7 +85,12 @@ Page({
 
   // 轮询订单状态（最多30秒）
   pollOrderStatus(orderId, onSuccess, retries = 0) {
-    if (retries >= 6 || this._destroyed) return;
+    if (this._destroyed) return;
+    if (retries >= 6) {
+      // 轮询超时，仍然尝试刷新状态（后端可能已处理但订单状态更新延迟）
+      onSuccess && onSuccess();
+      return;
+    }
     setTimeout(async () => {
       if (this._destroyed) return;
       try {
@@ -140,7 +145,9 @@ Page({
         ...res.payParams,
         success: () => {
           wx.showToast({ title: '开通成功', icon: 'success', duration: 2000 });
-          // 轮询订单状态确认
+          // 延迟1秒后立即刷新一次状态
+          setTimeout(() => { if (!this._destroyed) this.loadSubscriptionStatus(); }, 1000);
+          // 轮询订单状态确认后再次刷新
           this.pollOrderStatus(orderId, () => {
             this.loadSubscriptionStatus();
           });
