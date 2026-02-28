@@ -296,7 +296,7 @@ const REPORT_PAYMENT_META = {
       { title: '季度详解', desc: '四季节奏与关键时间点' },
       { title: '成长建议', desc: '个性化发展与提升建议' },
     ],
-    price: 500,
+    price: 200,
     note: '约 8000-10000 字深度解读，永久保存',
   },
   'natal-report': {
@@ -308,7 +308,7 @@ const REPORT_PAYMENT_META = {
       { title: '内在动力解读', desc: '内在动力与潜在张力的深度剖析' },
       { title: '成长建议', desc: '基于分析的个性化发展方向' },
     ],
-    price: 500,
+    price: 150,
     note: '约 5000-8000 字深度解读，永久保存',
   },
 };
@@ -1142,18 +1142,30 @@ Page({
     });
   },
 
-  showPaymentModal(reportType) {
+  async showPaymentModal(reportType) {
     const type = reportType || 'annual';
     const meta = REPORT_PAYMENT_META[type];
     if (!meta) return;
     if (wx.hideTabBar) {
       wx.hideTabBar({ animation: false });
     }
+    // 先用本地默认价格展示，再异步获取后端实时价格
+    const displayMeta = { ...meta };
     this.setData({
       showPayment: true,
       paymentReportType: type,
-      paymentMeta: meta,
+      paymentMeta: displayMeta,
     });
+    // 异步获取后端实时价格（含 VIP 折扣）
+    try {
+      const res = await request({ url: `/api/reports/access/${type}` });
+      if (res && res.price > 0) {
+        displayMeta.price = res.price;
+        this.setData({ paymentMeta: displayMeta });
+      }
+    } catch (e) {
+      // 降级到本地默认价格
+    }
   },
 
   closePayment() {
@@ -1219,6 +1231,7 @@ Page({
         await this._createNatalTask(birthData);
       }
     } catch (error) {
+      if (handleInsufficientCredits(this, error)) return;
       logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

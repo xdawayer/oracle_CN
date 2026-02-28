@@ -627,7 +627,7 @@ Page({
       // 2. 非 VIP 且未购买，提供两个选择
       wx.showModal({
         title: '解锁完整报告',
-        content: '消耗 500 积分解锁完整报告，或开通 VIP 免费查看所有报告',
+        content: '消耗 300 积分解锁完整报告，或开通 VIP 免费查看所有报告',
         confirmText: '积分解锁',
         cancelText: '开通VIP',
         success: async (modalRes) => {

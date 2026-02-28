@@ -2,20 +2,24 @@
  * 积分不足弹窗工具函数
  */
 
-const RECHARGE_TIERS = [1, 10, 50, 100, 200, 500];
+const RECHARGE_TIERS = [60, 100, 200, 500, 1200];
 
 /**
  * 检查后端返回是否为积分不足错误，若是则显示弹窗
+ * 支持两种调用场景：
+ *   1. 成功路径：result 为响应 data 对象
+ *   2. 异常路径：result 为 RequestError（statusCode=403, data 含错误详情）
  * @param {Object} page - 页面实例 (this)
- * @param {Object} result - 后端返回的结果
+ * @param {Object|Error} result - 后端返回的结果或 RequestError
  * @returns {boolean} 是否为积分不足错误
  */
 function handleInsufficientCredits(page, result) {
-  if (result && result.error === 'Insufficient credits') {
+  const data = (result instanceof Error && result.data) ? result.data : result;
+  if (data && data.error === 'Insufficient credits') {
     page.setData({
       showCreditsModal: true,
-      creditsModalPrice: result.price || 0,
-      creditsModalBalance: result.balance || 0,
+      creditsModalPrice: data.price || 0,
+      creditsModalBalance: data.balance || 0,
     });
     return true;
   }
@@ -48,6 +52,10 @@ const creditsModalMethods = {
   onCreditsModalRecharge(e) {
     this.setData({ showCreditsModal: false });
     navigateToRecharge(e.detail);
+  },
+  onCreditsModalGoVip() {
+    this.setData({ showCreditsModal: false });
+    wx.navigateTo({ url: '/pages/subscription/subscription' });
   },
 };
 

@@ -20,7 +20,6 @@
         <text class="plan-currency">¥</text>
         <text class="plan-price font-ancient">9.9</text>
       </view>
-      <text class="plan-original">¥30</text>
     </view>
 
     <view class="plan-card ink-border {{selectedPlan === 'yearly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="yearly">
@@ -30,7 +29,6 @@
         <text class="plan-currency">¥</text>
         <text class="plan-price font-ancient">128</text>
       </view>
-      <text class="plan-original">¥360</text>
     </view>
 
     <view class="plan-card ink-border {{selectedPlan === 'quarterly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="quarterly">
@@ -39,7 +37,6 @@
         <text class="plan-currency">¥</text>
         <text class="plan-price font-ancient">45</text>
       </view>
-      <text class="plan-original">¥90</text>
     </view>
   </view>
 

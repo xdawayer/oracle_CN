@@ -264,7 +264,7 @@
       <view class="unlock-area" wx:if="{{!isUnlocked}}">
         <view class="unlock-btn" bindtap="onUnlockReport">
           <text class="unlock-text">解锁完整报告</text>
-          <text class="unlock-price">¥29.9</text>
+          <text class="unlock-price">300积分</text>
         </view>
         <text class="unlock-hint">或订阅VIP自动解锁</text>
       </view>

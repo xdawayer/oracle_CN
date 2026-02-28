@@ -19,6 +19,19 @@ import { LOVE_TOPIC_CONFIG } from '../services/love-topic-task.js';
 import { CAREER_TOPIC_CONFIG } from '../services/career-topic-task.js';
 import { WEALTH_TOPIC_CONFIG } from '../services/wealth-topic-task.js';
 import type { BirthInput, Language } from '../types/api.js';
+import entitlementServiceV2 from '../services/entitlementServiceV2.js';
+import reportService from '../services/reportService.js';
+import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
+
+/** 中国市场报告定价（积分，1 积分 = ¥0.1） */
+export const REPORT_PRICES: Record<string, number> = {
+  'monthly':       60,   // ¥6
+  'annual':        200,  // ¥20
+  'natal-report':  150,  // ¥15
+  'love-topic':    150,  // ¥15
+  'career-topic':  150,  // ¥15
+  'wealth-topic':  150,  // ¥15
+};
 
 /** 开发模式默认用户 ID（仅 development 环境生效） */
 const DEV_USER_ID = process.env.NODE_ENV === 'production' ? '' : 'dev-user-report';
@@ -76,19 +89,58 @@ reportRouter.post('/create', authMiddleware, async (req: Request, res: Response)
     return;
   }
 
+  // 月度报告：提前验证 year/month 参数（在扣积分之前）
+  let reportYear: number | undefined;
+  let reportMonth: number | undefined;
+  if (reportType === 'monthly') {
+    const now = new Date();
+    reportYear = year || now.getFullYear();
+    reportMonth = month || now.getMonth() + 1;
+    if (reportMonth < 1 || reportMonth > 12 || reportYear < 1900 || reportYear > 2100) {
+      res.status(400).json({ error: 'Invalid year or month' });
+      return;
+    }
+  }
+
   try {
+    // 积分检查门控：查询价格 → VIP 折扣 → 已购检查 → 余额检查 → 扣减
+    const basePrice = REPORT_PRICES[reportType];
+    if (basePrice && basePrice > 0) {
+      // 检查是否已购买（已购直接跳过扣费）
+      const hasAccess = await reportService.hasReportAccess(userId, reportType as Parameters<typeof reportService.hasReportAccess>[1]);
+      if (!hasAccess) {
+        const entitlements = await entitlementServiceV2.getEntitlements(userId);
+        const discount = entitlements.isSubscriber
+          ? (entitlements.discount || SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT)
+          : 0;
+        const price = discount > 0 ? Math.ceil(basePrice * (1 - discount)) : basePrice;
+
+        if (entitlements.credits < price) {
+          res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });
+          return;
+        }
+
+        // 扣减积分
+        const record = await entitlementServiceV2.purchaseWithCredits(
+          userId,
+          'report',
+          reportType,
+          'permanent',
+          price
+        );
+
+        if (!record) {
+          res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });
+          return;
+        }
+      }
+    }
+
     // 月度报告需要额外的 year/month 参数，使用专用创建函数
     let task: Awaited<ReturnType<typeof createReportTask>>['task'];
     let isNew: boolean;
     if (reportType === 'monthly') {
-      const now = new Date();
-      const reportYear = year || now.getFullYear();
-      const reportMonth = month || now.getMonth() + 1;
-      if (reportMonth < 1 || reportMonth > 12 || reportYear < 1900 || reportYear > 2100) {
-        res.status(400).json({ error: 'Invalid year or month' });
-        return;
-      }
-      const result = await createMonthlyReportTask(userId, birth, reportYear, reportMonth, lang);
+      const result = await createMonthlyReportTask(userId, birth, reportYear!, reportMonth!, lang);
       task = result.task;
       isNew = result.isNew;
     } else {
@@ -114,7 +166,9 @@ reportRouter.post('/create', authMiddleware, async (req: Request, res: Response)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[Report API] Create task failed:`, message);
-    res.status(500).json({ error: message });
+    // 积分已扣但 task 创建失败时，purchase_record 已持久化，
+    // 用户重试时 hasReportAccess 返回 true，自动跳过扣费
+    res.status(500).json({ error: '报告生成失败，请重试（不会重复扣费）' });
   }
 });
 

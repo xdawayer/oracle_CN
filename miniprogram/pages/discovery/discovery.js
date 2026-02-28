@@ -2,6 +2,7 @@ const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
+const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 const DISCOVERY_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 // 专题报告元数据（用于支付弹窗展示）
@@ -15,7 +16,7 @@ const TOPIC_REPORT_META = {
       { title: '情感成长指南', desc: '亲密关系中的课题与蜕变方向' },
       { title: '感情趋势预测', desc: '未来一年的恋爱关键节点' },
     ],
-    price: 500,
+    price: 150,
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'career-topic': {
@@ -27,7 +28,7 @@ const TOPIC_REPORT_META = {
       { title: '使命与发展路径', desc: '使命感指引的人生事业蓝图' },
       { title: '事业趋势预测', desc: '未来一年的职场关键机遇' },
     ],
-    price: 500,
+    price: 150,
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'wealth-topic': {
@@ -39,7 +40,7 @@ const TOPIC_REPORT_META = {
       { title: '理财盲点洞察', desc: '性格中隐藏的财务风险信号' },
       { title: '财运趋势预测', desc: '未来一年的财富关键节点' },
     ],
-    price: 500,
+    price: 150,
     note: '约 5000-8000 字深度解读，永久保存',
   },
 };
@@ -67,6 +68,7 @@ Page({
     paymentLoading: false,
     currentReportType: '',
     paymentMeta: null, // 当前弹窗显示的报告元数据
+    ...creditsModalData,
   },
 
   _topicPolling: false,
@@ -277,17 +279,28 @@ Page({
 
   // ========== 支付弹窗逻辑 ==========
 
-  showPaymentSheet(reportType) {
+  async showPaymentSheet(reportType) {
     const meta = TOPIC_REPORT_META[reportType];
     if (!meta) return;
     if (wx.hideTabBar) {
       wx.hideTabBar({ animation: false });
     }
+    const displayMeta = { ...meta };
     this.setData({
       showPayment: true,
       currentReportType: reportType,
-      paymentMeta: meta,
+      paymentMeta: displayMeta,
     });
+    // 异步获取后端实时价格（含 VIP 折扣）
+    try {
+      const res = await request({ url: `/api/reports/access/${reportType}` });
+      if (res && res.price > 0) {
+        displayMeta.price = res.price;
+        this.setData({ paymentMeta: displayMeta });
+      }
+    } catch (e) {
+      // 降级到本地默认价格
+    }
   },
 
   closePayment() {
@@ -314,11 +327,17 @@ Page({
     }
 
     try {
+      // create 接口已内置积分门控（检查+扣减），直接调用
       const result = await request({
         url: API_ENDPOINTS.REPORT_CREATE,
         method: 'POST',
         data: { reportType, birth: birthData, lang: 'zh' },
       });
+
+      // 处理积分不足
+      if (handleInsufficientCredits(this, result)) {
+        return;
+      }
 
       if (result && result.success) {
         // 关闭弹窗
@@ -349,6 +368,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
+      if (handleInsufficientCredits(this, error)) return;
       logger.error(`Create ${reportType} task error:`, error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
@@ -433,4 +453,6 @@ Page({
       this._topicPollTimer = null;
     }
   },
+
+  ...creditsModalMethods,
 });

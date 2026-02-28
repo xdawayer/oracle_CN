@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { isDatabaseConfigured, isDuplicateKeyError, DbUser, BirthProfile, UserPreferences, getOne, insert, update, remove } from '../db/mysql.js';
-import { JWT_CONFIG, SUBSCRIPTION_BENEFITS } from '../config/auth.js';
+import { JWT_CONFIG, SUBSCRIPTION_BENEFITS, NEW_USER_BONUS_CREDITS } from '../config/auth.js';
 
 export interface CreateUserInput {
   email: string;
@@ -105,6 +105,30 @@ class UserService {
         wechat_session_key: input.sessionKey,
         trial_ends_at: trialEndsAt.toISOString(),
       });
+
+      // 新用户注册赠送积分（幂等：先查后插）
+      if (NEW_USER_BONUS_CREDITS > 0) {
+        try {
+          const existingBonus = await getOne<{ id: string }>(
+            'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ? LIMIT 1',
+            [id, 'gm_credit', 'welcome_bonus']
+          );
+          if (!existingBonus) {
+            await insert('purchase_records', {
+              user_id: id,
+              feature_type: 'gm_credit',
+              feature_id: 'welcome_bonus',
+              scope: 'consumable',
+              price_cents: 0,
+              quantity: NEW_USER_BONUS_CREDITS,
+              consumed: 0,
+            });
+          }
+        } catch (bonusErr) {
+          console.error('Failed to grant welcome bonus:', bonusErr);
+        }
+      }
+
       return user;
     } catch (error) {
       if (isDuplicateKeyError(error)) {

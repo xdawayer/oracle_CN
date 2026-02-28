@@ -21,8 +21,8 @@
         bindtap="onSelectPackage"
         data-index="{{index}}"
       >
-        <view class="package-badge" wx:if="{{item.badge}}">
-          <text>{{item.badge}}</text>
+        <view class="package-badge" wx:if="{{item.badge || isFirstRecharge}}">
+          <text>{{isFirstRecharge ? (item.amount <= 100 ? '首充翻倍' : '首充+50%') : item.badge}}</text>
         </view>
         <view class="package-amount-row">
           <text class="package-amount font-ancient">{{item.amount}}</text>

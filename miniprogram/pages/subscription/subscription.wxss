@@ -107,13 +107,6 @@
   line-height: 1;
 }
 
-.plan-original {
-  font-size: 20rpx;
-  color: var(--ink-light);
-  text-decoration: line-through;
-  margin-top: var(--spacing-xs);
-}
-
 /* 会员权益 */
 .benefits-section {
   margin: var(--spacing-lg);

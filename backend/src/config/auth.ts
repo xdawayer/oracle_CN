@@ -70,8 +70,8 @@ export const SUBSCRIPTION_BENEFITS = {
   // 报告折扣
   REPORT_DISCOUNT: 0.2,              // 8 折 (20% off)
 
-  // 订阅赠送积分
-  SUBSCRIPTION_BONUS_CREDITS: 500,   // 每次成功支付发放
+  // 订阅赠送积分（已废弃，使用 SUBSCRIPTION_BONUS_BY_PLAN）
+  SUBSCRIPTION_BONUS_CREDITS: 500,   // @deprecated
 
   // 试用期
   TRIAL_DAYS: 7,                     // 首次注册赠送 7 天试用
@@ -98,6 +98,16 @@ export const PRICING = {
   CBT_STATS_MONTHLY: 20,             // 20 积分 - CBT 统计月度
   SYNTHETICA_USE: 10,                // 10 积分 - Synthetica 单次使用
 };
+
+// VIP 订阅赠送积分（按套餐差异化）
+export const SUBSCRIPTION_BONUS_BY_PLAN = {
+  monthly: 100,    // ¥9.9 → 赠 100 积分
+  quarterly: 350,  // ¥45  → 赠 350 积分
+  yearly: 1500,    // ¥128 → 赠 1500 积分
+} as const;
+
+// 新用户注册赠送积分
+export const NEW_USER_BONUS_CREDITS = 60;
 
 // Check if auth providers are configured
 export const isGoogleConfigured = (): boolean => {

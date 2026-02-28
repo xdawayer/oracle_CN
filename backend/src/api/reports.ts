@@ -5,6 +5,7 @@ import reportService, { ReportType } from '../services/reportService.js';
 import userService from '../services/userService.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
+import { REPORT_PRICES } from './report.js';
 
 const router = Router();
 
@@ -74,7 +75,8 @@ router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Reque
     const hasAccess = await reportService.hasReportAccess(req.userId!, reportType);
     const existingReport = await reportService.getReportByType(req.userId!, reportType);
     const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
-    const basePrice = reportService.getReportPrice(reportType);
+    // 优先使用中国市场定价，回退到 Stripe 定价
+    const basePrice = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
     if (!basePrice) {
       return res.status(400).json({ error: 'Report pricing unavailable' });
     }
@@ -169,7 +171,7 @@ router.post('/purchase', authMiddleware, requireAuth, async (req: Request, res: 
     }
 
     const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
-    const basePrice = reportService.getReportPrice(reportType);
+    const basePrice = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
     const discount = entitlements.isSubscriber
       ? (entitlements.discount || SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT)
       : 0;

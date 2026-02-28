@@ -3,7 +3,7 @@ const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
 const { RECHARGE_TIERS } = require('../../utils/credits');
 
-const BADGES = { 50: '热门', 500: '推荐' };
+const BADGES = { 200: '推荐', 1200: '尊享' };
 const PACKAGES = RECHARGE_TIERS.map((amount) => ({
   amount,
   price: amount * 10,               // 1 RMB = 10 积分，单位：分
@@ -15,10 +15,11 @@ Page({
   data: {
     points: 0,
     packages: PACKAGES,
-    selectedIndex: 2, // 默认选中 50 积分
-    selectedPriceText: '50.00',
+    selectedIndex: 2, // 默认选中 200 积分
+    selectedPriceText: '20.00',
     agreedTerms: false,
     paying: false,
+    isFirstRecharge: false,
   },
 
   onLoad(options) {
@@ -30,10 +31,12 @@ Page({
       }
     }
     this.loadBalance();
+    this.checkFirstRecharge();
   },
 
   onShow() {
     this.loadBalance();
+    this.checkFirstRecharge();
   },
 
   loadBalance() {
@@ -61,6 +64,17 @@ Page({
   onRefreshBalance() {
     this.fetchBalance();
     wx.showToast({ title: '已刷新', icon: 'none', duration: 800 });
+  },
+
+  async checkFirstRecharge() {
+    try {
+      const res = await request({ url: '/api/wxpay/first-recharge-status' });
+      if (res && res.isFirstRecharge) {
+        this.setData({ isFirstRecharge: true });
+      }
+    } catch (e) {
+      // ignore
+    }
   },
 
   onSelectPackage(e) {
@@ -155,6 +169,8 @@ Page({
         ...res.payParams,
         success: () => {
           wx.showToast({ title: '充值成功，积分已到账', icon: 'success', duration: 2000 });
+          // 首充状态已失效，立即刷新
+          this.setData({ isFirstRecharge: false });
           // 延迟1秒后立即刷新一次余额
           setTimeout(() => { if (!this._destroyed) this.fetchBalance(); }, 1000);
           // 轮询订单状态确认后再次刷新

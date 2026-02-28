@@ -385,8 +385,8 @@ router.post('/unlock', requireAuth, async (req: Request, res: Response) => {
       return res.json({ success: true, method: 'points' });
     }
 
-    // 积分购买（500 积分）
-    const price = 500;
+    // 积分购买（300 积分 = ¥30）
+    const price = 300;
     if (entitlements.credits < price) {
       return res.json({
         success: false,

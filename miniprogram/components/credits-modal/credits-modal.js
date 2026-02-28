@@ -37,6 +37,11 @@ Component({
       this.triggerEvent('recharge', { defaultIndex: this.data.defaultIndex });
     },
 
+    onGoVip() {
+      this.triggerEvent('cancel');
+      wx.navigateTo({ url: '/pages/subscription/subscription' });
+    },
+
     preventBubble() {},
   },
 });

@@ -24,6 +24,27 @@
   font-size: 32rpx;
 }
 
+.vip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  margin: 16rpx 0 0;
+  background: linear-gradient(135deg, #fdf6ec, #fcefd4);
+  border-radius: 12rpx;
+}
+
+.vip-banner-text {
+  font-size: 24rpx;
+  color: #b8860b;
+  font-weight: 500;
+}
+
+.vip-banner-arrow {
+  font-size: 24rpx;
+  color: #b8860b;
+}
+
 .credits-btn {
   flex: 1;
   height: 80rpx;

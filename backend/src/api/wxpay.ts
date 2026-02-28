@@ -5,6 +5,7 @@ import wxpayService from '../services/wxpayService.js';
 import { isWxPayConfigured, VIP_PLANS } from '../config/wxpay.js';
 import { isDatabaseConfigured, update, getOne, insert, query } from '../db/mysql.js';
 import { addDevGmCredits } from '../services/entitlementService.js';
+import { SUBSCRIPTION_BONUS_BY_PLAN } from '../config/auth.js';
 
 const router = Router();
 
@@ -231,6 +232,24 @@ router.post('/refund', authMiddleware, requireAuth, async (req: Request, res: Re
   }
 });
 
+// GET /api/wxpay/first-recharge-status - 检查用户是否已首充
+router.get('/first-recharge-status', authMiddleware, requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (isDatabaseConfigured()) {
+      const pastRecharges = await query<{ id: string }>(
+        'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND price_cents > 0 LIMIT 1',
+        [req.userId!, 'gm_credit']
+      );
+      res.json({ isFirstRecharge: !pastRecharges || pastRecharges.length === 0 });
+    } else {
+      res.json({ isFirstRecharge: true });
+    }
+  } catch (error) {
+    console.error('Check first recharge error:', error);
+    res.json({ isFirstRecharge: false });
+  }
+});
+
 // GET /api/wxpay/orders - 获取用户订单列表
 router.get('/orders', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
@@ -282,7 +301,7 @@ router.post('/dev-confirm', authMiddleware, requireAuth, async (req: Request, re
 });
 
 // VIP 订阅支付成功处理
-async function handleSubscriptionPaid(userId: string, plan: string, days: number, _totalFee: number, _orderId: string) {
+async function handleSubscriptionPaid(userId: string, plan: string, days: number, _totalFee: number, orderId: string) {
   if (isDatabaseConfigured()) {
     // 查询当前有效订阅
     const existing = await query<{ current_period_end: string }>(
@@ -310,6 +329,27 @@ async function handleSubscriptionPaid(userId: string, plan: string, days: number
       current_period_end: endDate.toISOString(),
       payment_channel: 'wechat',
     });
+
+    // 发放订阅赠送积分（幂等：以 sub_bonus_{orderId} 为唯一标识）
+    const bonusCredits = SUBSCRIPTION_BONUS_BY_PLAN[plan as keyof typeof SUBSCRIPTION_BONUS_BY_PLAN] || 0;
+    if (bonusCredits > 0) {
+      const bonusFeatureId = `sub_bonus_${orderId}`;
+      const existingBonus = await getOne<{ id: string }>(
+        'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ? LIMIT 1',
+        [userId, 'gm_credit', bonusFeatureId]
+      );
+      if (!existingBonus) {
+        await insert('purchase_records', {
+          user_id: userId,
+          feature_type: 'gm_credit',
+          feature_id: bonusFeatureId,
+          scope: 'consumable',
+          price_cents: 0, // 赠送，无实际支付
+          quantity: bonusCredits,
+          consumed: 0,
+        });
+      }
+    }
   } else {
     console.log(`[DEV] VIP subscription activated: user=${userId}, plan=${plan}, days=${days}`);
   }
@@ -336,6 +376,35 @@ async function handlePointsRecharge(userId: string, pointsAmount: number, totalF
       quantity: pointsAmount,
       consumed: 0,
     });
+
+    // 首充双倍：用户维度幂等 key，防止并发订单导致多次赠送
+    const bonusFeatureId = `first_recharge_bonus`;
+    const existingBonus = await getOne<{ id: string }>(
+      'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ? LIMIT 1',
+      [userId, 'gm_credit', bonusFeatureId]
+    );
+    if (!existingBonus) {
+      // 查询历史付费充值记录（排除赠送记录 price_cents=0 和当前订单）
+      const pastRecharges = await query<{ id: string }>(
+        'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND price_cents > 0 AND feature_id != ? LIMIT 1',
+        [userId, 'gm_credit', orderId]
+      );
+      if (!pastRecharges || pastRecharges.length === 0) {
+        // 首充：amount ≤ 100 翻倍，amount > 100 赠 50%
+        const bonusAmount = pointsAmount <= 100 ? pointsAmount : Math.floor(pointsAmount * 0.5);
+        if (bonusAmount > 0) {
+          await insert('purchase_records', {
+            user_id: userId,
+            feature_type: 'gm_credit',
+            feature_id: bonusFeatureId,
+            scope: 'consumable',
+            price_cents: 0,
+            quantity: bonusAmount,
+            consumed: 0,
+          });
+        }
+      }
+    }
   } else {
     addDevGmCredits(userId, pointsAmount);
     console.log(`[DEV] Points recharged: user=${userId}, amount=${pointsAmount}`);

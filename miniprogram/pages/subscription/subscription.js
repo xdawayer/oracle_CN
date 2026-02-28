@@ -22,6 +22,7 @@ Page({
     paying: false,
     benefits: [
       { icon: '∞', title: '无限次深度解读', desc: '不消耗积分，随时查看' },
+      { icon: '★', title: '订阅赠积分', desc: '月卡赠100积分，季卡赠350，年卡赠1500' },
       { icon: '心', title: 'AI 深度心理分析', desc: '结合个人特质的深度分析' },
       { icon: '☆', title: '实时周期分析', desc: '掌握每日洞察指南' },
       { icon: '♡', title: '高级关系分析', desc: '多维度关系互动深度解析' },

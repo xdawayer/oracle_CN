@@ -3,6 +3,7 @@ const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 const { buildDailyFullCacheKey } = require('../../utils/tab-preloader');
+const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 
 const LoadingState = {
   IDLE: 'IDLE',
@@ -223,6 +224,7 @@ Page({
     showPayment: false,
     paymentLoading: false,
     paymentMeta: null,
+    ...creditsModalData,
   },
 
   _monthlyPollTimer: null,
@@ -467,24 +469,32 @@ Page({
 
   // ========== 支付弹窗 ==========
 
-  _showMonthlyPayment() {
+  async _showMonthlyPayment() {
     const monthNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
     const monthName = monthNames[(this._monthlyMonth || 1) - 1];
-    this.setData({
-      showPayment: true,
-      paymentMeta: {
-        title: `${monthName}月度深度解读`,
-        subtitle: '专属月度深度解读',
-        features: [
-          { title: '月度总览', desc: '当月主题与趋势走向' },
-          { title: '重点领域', desc: '事业、感情、健康等月度指引' },
-          { title: '关键时间点', desc: '本月重要节点与应对建议' },
-          { title: '行动指南', desc: '本月个人提升与成长方向' },
-        ],
-        price: 200,
-        note: '约 3000-5000 字深度解读，永久保存',
-      },
-    });
+    const paymentMeta = {
+      title: `${monthName}月度深度解读`,
+      subtitle: '专属月度深度解读',
+      features: [
+        { title: '月度总览', desc: '当月主题与趋势走向' },
+        { title: '重点领域', desc: '事业、感情、健康等月度指引' },
+        { title: '关键时间点', desc: '本月重要节点与应对建议' },
+        { title: '行动指南', desc: '本月个人提升与成长方向' },
+      ],
+      price: 60,
+      note: '约 3000-5000 字深度解读，永久保存',
+    };
+    this.setData({ showPayment: true, paymentMeta });
+    // 异步获取后端实时价格（含 VIP 折扣）
+    try {
+      const res = await request({ url: '/api/reports/access/monthly' });
+      if (res && res.price > 0) {
+        paymentMeta.price = res.price;
+        this.setData({ paymentMeta });
+      }
+    } catch (e) {
+      // 降级到本地默认价格
+    }
   },
 
   closePayment() {
@@ -502,6 +512,7 @@ Page({
     }
 
     try {
+      // create 接口已内置积分门控（检查+扣减），直接调用
       const result = await request({
         url: API_ENDPOINTS.REPORT_CREATE,
         method: 'POST',
@@ -513,6 +524,11 @@ Page({
           lang: 'zh',
         },
       });
+
+      // 处理积分不足
+      if (handleInsufficientCredits(this, result)) {
+        return;
+      }
 
       if (result && result.success !== false) {
         this.closePayment();
@@ -538,6 +554,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (err) {
+      if (handleInsufficientCredits(this, err)) return;
       logger.error('[Monthly] Create task failed:', err);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
@@ -2102,5 +2119,7 @@ Page({
       health: '健康指数'
     };
     return map[type] || '详情';
-  }
+  },
+
+  ...creditsModalMethods,
 });
