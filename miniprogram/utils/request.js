@@ -516,7 +516,9 @@ const _emitFromFullJson = (res, handlers) => {
  * @param {function} [options.onError] - 错误回调 (error) => void
  * @returns {{ abort: function }} 可调用 abort() 取消请求
  */
-const requestStream = (options) => {
+const requestStream = (options) => _requestStreamInternal(options, 0);
+
+const _requestStreamInternal = (options, _retryCount) => {
   const {
     url,
     method = 'POST',
@@ -530,18 +532,26 @@ const requestStream = (options) => {
     onError,
   } = options || {};
 
+  const retryCount = _retryCount || 0;
   const baseUrl = getBaseUrl();
   const timeoutMs = Number.isFinite(options?.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
   let buffer = '';
   let aborted = false;
   let byteRemainder = null; // UTF-8 多字节字符跨 chunk 时的残留字节
 
+  // handle 对象：外部持有此引用调用 abort()，重试时内部替换 _inner
+  const handle = { _inner: null };
+  handle.abort = () => {
+    aborted = true;
+    if (handle._inner && handle._inner.abort) handle._inner.abort();
+  };
+
   // 只要客户端支持 chunked，就优先走原生 wx.request 流式。
-  // callContainer 不支持 chunked，会导致流式退化为“长时间等待整包返回”。
+  // callContainer 不支持 chunked，会导致流式退化为”长时间等待整包返回”。
   const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
 
   if (!canChunked) {
-    // 降级：改打非 stream 端点，并确保最终一定触发 onDone，避免页面长期卡在“生成中”
+    // 降级：改打非 stream 端点，走 request() 已有 401 逻辑
     const fallbackUrl = _downgradeStreamUrl(url);
     request({ url: fallbackUrl, method, data, headers, skipAuth, dedupe: false, timeout: timeoutMs })
       .then((res) => {
@@ -557,11 +567,7 @@ const requestStream = (options) => {
       .catch((err) => {
         if (!aborted && onError) onError(err);
       });
-    return {
-      abort: () => {
-        aborted = true;
-      },
-    };
+    return handle;
   }
 
   const requestTask = wx.request({
@@ -574,6 +580,38 @@ const requestStream = (options) => {
     timeout: timeoutMs,
     success: (res) => {
       if (aborted) return;
+      // 401 自动刷新 token 并重试（最多 1 次，15s 超时保护）
+      if (res.statusCode === 401 && !skipAuth && retryCount < 1) {
+        let authTimedOut = false;
+        const authTimer = setTimeout(() => {
+          authTimedOut = true;
+          if (!aborted && onError) {
+            const err = new Error('Authentication refresh timeout');
+            err.statusCode = 401;
+            onError(err);
+          }
+        }, 15000);
+        _ensureAuth()
+          .then(() => {
+            clearTimeout(authTimer);
+            if (aborted || authTimedOut) return;
+            const retryHandle = _requestStreamInternal(options, retryCount + 1);
+            handle._inner = retryHandle;
+            if (aborted) retryHandle.abort();
+          })
+          .catch((authErr) => {
+            clearTimeout(authTimer);
+            if (authTimedOut) return;
+            logger.warn('[requestStream] auth refresh failed:', authErr);
+            if (!aborted && onError) {
+              const err = new Error(authErr.message || 'Authentication failed');
+              err.statusCode = 401;
+              err.cause = authErr;
+              onError(err);
+            }
+          });
+        return;
+      }
       // 非 2xx 状态码（如 403 配额不足）需要触发 onError，否则页面永远卡在 loading
       if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300) && onError) {
         const errData = typeof res.data === 'string' ? (() => { try { return JSON.parse(res.data); } catch(_) { return {}; } })() : (res.data || {});
@@ -587,6 +625,8 @@ const requestStream = (options) => {
       if (!aborted && onError) onError(err);
     },
   });
+
+  handle._inner = requestTask;
 
   requestTask.onChunkReceived((res) => {
     if (aborted) return;
@@ -642,12 +682,7 @@ const requestStream = (options) => {
     }
   });
 
-  return {
-    abort: () => {
-      aborted = true;
-      if (requestTask && requestTask.abort) requestTask.abort();
-    },
-  };
+  return handle;
 };
 
 module.exports = {

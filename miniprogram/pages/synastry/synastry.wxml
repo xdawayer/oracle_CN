@@ -17,6 +17,11 @@
       </view>
     </view>
 
+    <!-- 自档案为空提醒 -->
+    <view class="hint-card ink-border" wx:if="{{selfProfileEmpty}}">
+      <text class="hint-text">你的出生资料尚未填写，请前往「我的」页面完善出生日期和出生城市后再发起分析。</text>
+    </view>
+
     <!-- Form Card -->
     <view class="card form-card">
       
@@ -593,7 +598,7 @@
   <view class="deep-overlay" wx:if="{{showDeepOverlay}}">
     <view class="deep-overlay-header" style="padding-top: {{statusBarHeight + 8}}px;">
       <view class="deep-back-btn" bindtap="closeDeepOverlay">
-        <text class="deep-back-arrow">&lt;</text>
+        <text class="deep-back-arrow">{{backArrow}}</text>
         <text>返回</text>
       </view>
       <text class="deep-overlay-title" wx:if="{{deepOverlayData}}">{{deepOverlayData.title}}</text>

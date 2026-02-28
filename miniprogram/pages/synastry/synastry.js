@@ -6,6 +6,7 @@ const logger = require('../../utils/logger');
 
 const SELF_PROFILE_ID = 'self_profile';
 const CITY_SEARCH_DEBOUNCE = 300;
+const _isTimeoutError = (err) => err && ((err.errMsg || '').includes('timeout'));
 
 Page({
   data: {
@@ -83,6 +84,11 @@ Page({
     deepOverlayData: null,
     deepOverlayLoading: false,
 
+    // 返回箭头（避免 WXML 中 &lt; 转义显示问题）
+    backArrow: '\u2039',
+    // 自档案为空提示
+    selfProfileEmpty: false,
+
     // 城市搜索相关
     birthCitySuggestions: [],
     currentCitySuggestions: [],
@@ -106,6 +112,13 @@ Page({
     this.loadProfiles();
   },
 
+  onShow() {
+    // 仅在输入界面刷新档案，结果页面不需要重复刷新
+    if (this.data.step === 1) {
+      this.loadProfiles();
+    }
+  },
+
   loadProfiles() {
     const profiles = storage.get('synastry_profiles', []);
     const userProfile = storage.get('user_profile') || {};
@@ -119,7 +132,10 @@ Page({
       mergedProfiles = [mergedSelf, ...mergedProfiles];
     }
 
-    this.setData({ profiles: mergedProfiles });
+    // 检测自档案是否缺少关键信息
+    const selfProfileEmpty = selfProfile ? (!selfProfile.birthDate || !selfProfile.birthCity) : true;
+
+    this.setData({ profiles: mergedProfiles, selfProfileEmpty });
     storage.set('synastry_profiles', mergedProfiles);
 
     if (!this.data.nameA && selfProfile) {
@@ -206,6 +222,8 @@ Page({
           const newProfiles = this.data.profiles.filter(p => p.id !== id);
           this.setData({ profiles: newProfiles });
           storage.set('synastry_profiles', newProfiles);
+          // 重新计算 selfProfileEmpty 状态
+          this.loadProfiles();
         }
       }
     });
@@ -390,6 +408,8 @@ Page({
 
     this.setData({ profiles: newProfiles, managerMode: 'list' });
     storage.set('synastry_profiles', newProfiles);
+    // 重新计算 selfProfileEmpty 状态
+    this.loadProfiles();
   },
 
   onInputA(e) {
@@ -1204,7 +1224,7 @@ Page({
       // 并行发起 /technical（快，~50ms）和 /full（慢，含 AI）
       let technicalRes = null;
       const technicalPromise = technicalQuery
-        ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 15000 }).catch(err => {
+        ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 20000 }).catch(err => {
             logger.warn('[Synastry] /technical failed:', err);
             return null;
           })
@@ -1414,7 +1434,7 @@ Page({
         return;
       }
 
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000 });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
 
       // 更新缓存
       this.setData({
@@ -1426,7 +1446,8 @@ Page({
       // 继续预加载下一个
       this.preloadNextTab();
     } catch (err) {
-      logger.error(`[Synastry] Preload ${nextTab} failed:`, err);
+      const isTimeout = _isTimeoutError(err);
+      logger.error(`[Synastry] Preload ${nextTab} failed${isTimeout ? ' (timeout)' : ''}:`, err);
       this.setData({
         [`tabLoadStatus.${nextTab}`]: 'error',
         preloadingTab: null
@@ -1489,7 +1510,7 @@ Page({
         return;
       }
 
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000 });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
       const { text, cards } = this.formatTabContent(tabId, res.content || {});
       this.setData({
         [`tabContents.${tabId}`]: res.content || {},
@@ -1498,9 +1519,10 @@ Page({
         currentSectionCards: cards
       });
     } catch (err) {
+      const isTimeout = _isTimeoutError(err);
       logger.error('[Synastry] switchTab error:', err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      wx.showToast({ title: isTimeout ? '加载超时，请重试' : '加载失败，请重试', icon: 'none' });
     }
   },
 
@@ -1537,7 +1559,7 @@ Page({
     if (!technicalQuery) return;
     this.setData({ chartRetrying: true });
     try {
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 15000 });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 20000 });
       if (res) {
         const allChartData = this.prepareAllChartData(res);
         this.setData({ ...allChartData, chartRetrying: false });

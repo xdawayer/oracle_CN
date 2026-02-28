@@ -81,6 +81,19 @@
   line-height: 1;
 }
 
+/* 自档案为空提醒卡片 */
+.hint-card {
+  background: var(--paper-200);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-left: 4rpx solid #c4a07c;
+}
+
+.hint-text {
+  font-size: 24rpx;
+  color: var(--ink-medium);
+  line-height: 1.7;
+}
+
 /* Form Styles */
 .form-card {
   display: flex;
