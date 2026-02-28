@@ -600,6 +600,15 @@
   text-align: center;
   color: var(--ink-light);
 }
+.retry-btn {
+  display: inline-block;
+  margin-top: 16rpx;
+  padding: 12rpx 40rpx;
+  font-size: 28rpx;
+  color: #9F7645;
+  border: 1rpx solid #9F7645;
+  border-radius: 32rpx;
+}
 
 /* Modal Overlay */
 .modal-overlay {

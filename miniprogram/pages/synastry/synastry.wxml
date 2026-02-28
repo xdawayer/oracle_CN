@@ -242,6 +242,15 @@
         </view>
       </view>
 
+      <!-- 图表数据加载失败提示（natal 页面无图表数据时显示） -->
+      <view class="card ink-border empty-state" wx:if="{{(activeTab === 'natal_a' && chartDataA.positions.length === 0) || (activeTab === 'natal_b' && chartDataB.positions.length === 0)}}">
+        <text>图表数据加载失败</text>
+        <view class="retry-btn" bindtap="retryChartData" wx:if="{{!chartRetrying}}">
+          <text>重新加载</text>
+        </view>
+        <text wx:if="{{chartRetrying}}" class="loading-hint">加载中…</text>
+      </view>
+
       <!-- 对比盘 A-B -->
       <view class="card ink-border chart-card" wx:if="{{activeTab === 'syn_ab' && synastryChartAB.innerPositions.length > 0 && !showDeepOverlay}}">
         <text class="section-title font-ancient">对比图谱</text>
@@ -274,6 +283,15 @@
           ></astro-chart>
         </view>
         <text class="chart-desc">内环：{{nameB}} | 外环：{{nameA}}</text>
+      </view>
+
+      <!-- 图表数据加载失败提示（对比盘/组合盘无数据时显示） -->
+      <view class="card ink-border empty-state" wx:if="{{(activeTab === 'syn_ab' && synastryChartAB.innerPositions.length === 0) || (activeTab === 'syn_ba' && synastryChartBA.innerPositions.length === 0) || (activeTab === 'composite' && compositeChart.positions.length === 0)}}">
+        <text>图表数据加载失败</text>
+        <view class="retry-btn" bindtap="retryChartData" wx:if="{{!chartRetrying}}">
+          <text>重新加载</text>
+        </view>
+        <text wx:if="{{chartRetrying}}" class="loading-hint">加载中…</text>
       </view>
 
       <!-- 组合分析 -->
@@ -414,7 +432,7 @@
         <text class="body-text">{{currentSectionText}}</text>
       </view>
       <!-- AI 内容加载中 -->
-      <view class="card loading-state" wx:elif="{{tabLoadStatus[activeTab] === 'loading' || loading}}">
+      <view class="card loading-state" wx:elif="{{tabLoadStatus[activeTab] === 'loading'}}">
         <view class="loading-dots">
           <text class="dot dot1">·</text>
           <text class="dot dot2">·</text>
@@ -422,7 +440,13 @@
         </view>
         <text class="loading-hint">正在生成分析内容…</text>
       </view>
-      <view class="card empty-state" wx:elif="{{!loading && currentSectionCards.length === 0}}">
+      <view class="card empty-state" wx:elif="{{!loading && currentSectionCards.length === 0 && tabLoadStatus[activeTab] === 'error'}}">
+        <text>加载失败，请重试</text>
+        <view class="retry-btn" bindtap="retryTab">
+          <text>重新加载</text>
+        </view>
+      </view>
+      <view class="card empty-state" wx:elif="{{!loading && currentSectionCards.length === 0 && tabLoadStatus[activeTab] !== 'loading'}}">
         <text>暂无数据</text>
       </view>
     </scroll-view>

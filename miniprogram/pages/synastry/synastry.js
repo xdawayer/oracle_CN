@@ -76,6 +76,8 @@ Page({
     synastryChartBA: { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },  // 对比盘 B-A
     compositeChart: { positions: [], aspects: [], houseCusps: [] },   // 组合分析
 
+    // 图表重试状态
+    chartRetrying: false,
     // 深度解读 overlay
     showDeepOverlay: false,
     deepOverlayData: null,
@@ -1194,14 +1196,15 @@ Page({
         currentSectionTitle: '',
         currentSectionCards: [],
         tabLoadStatus,
-        preloadQueue: ['natal_a', 'natal_b', 'syn_ab', 'syn_ba', 'composite'],
-        preloadingTab: null
+        preloadQueue: ['natal_a', 'natal_b'],
+        preloadingTab: null,
+        chartRetrying: false
       });
 
       // 并行发起 /technical（快，~50ms）和 /full（慢，含 AI）
       let technicalRes = null;
       const technicalPromise = technicalQuery
-        ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}` }).catch(err => {
+        ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 15000 }).catch(err => {
             logger.warn('[Synastry] /technical failed:', err);
             return null;
           })
@@ -1411,7 +1414,7 @@ Page({
         return;
       }
 
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000 });
 
       // 更新缓存
       this.setData({
@@ -1428,8 +1431,8 @@ Page({
         [`tabLoadStatus.${nextTab}`]: 'error',
         preloadingTab: null
       });
-      // 继续预加载下一个（失败后稍等再试）
-      setTimeout(() => this.preloadNextTab(), 200);
+      // 跳过失败的 tab，继续预加载下一个
+      this.preloadNextTab();
     }
   },
 
@@ -1467,7 +1470,7 @@ Page({
 
     // 正在后台预加载中，等待完成
     if (loadStatus === 'loading' && this.data.preloadingTab === tabId) {
-      this.setData({ activeTab: tabId, loading: true, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [] });
+      this.setData({ activeTab: tabId, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [] });
       // 轮询等待预加载完成
       this.waitForPreload(tabId);
       return;
@@ -1476,18 +1479,17 @@ Page({
     // 优先加载此 tab
     this.prioritizeTab(tabId);
 
-    // 主动加载
-    this.setData({ activeTab: tabId, loading: true, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [] });
+    // 主动加载（不使用全屏 loading，仅在 tab 内部显示加载状态）
+    this.setData({ activeTab: tabId, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [], [`tabLoadStatus.${tabId}`]: 'loading' });
     try {
       const query = this.buildSynastryQuery(tabId);
       if (!query) {
         wx.showToast({ title: '档案信息不完整', icon: 'none' });
-        this.setData({ loading: false });
+        this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
         return;
       }
 
-      this.setData({ [`tabLoadStatus.${tabId}`]: 'loading' });
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000 });
       const { text, cards } = this.formatTabContent(tabId, res.content || {});
       this.setData({
         [`tabContents.${tabId}`]: res.content || {},
@@ -1499,8 +1501,6 @@ Page({
       logger.error('[Synastry] switchTab error:', err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
       wx.showToast({ title: '加载失败，请重试', icon: 'none' });
-    } finally {
-      this.setData({ loading: false });
     }
   },
 
@@ -1512,24 +1512,52 @@ Page({
       const cached = this.data.tabContents[tabId];
       if (cached) {
         const { text, cards } = this.formatTabContent(tabId, cached);
-        this.setData({ loading: false, currentSectionText: text, currentSectionCards: cards });
+        this.setData({ currentSectionText: text, currentSectionCards: cards });
         return;
       }
       const status = this.data.tabLoadStatus[tabId];
       if (status === 'error') {
-        this.setData({ loading: false });
         wx.showToast({ title: '加载失败，请重试', icon: 'none' });
         return;
       }
       retries++;
       if (retries >= MAX_RETRIES) {
-        this.setData({ loading: false, [`tabLoadStatus.${tabId}`]: 'error' });
+        this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
         wx.showToast({ title: '加载超时，请重试', icon: 'none' });
         return;
       }
       setTimeout(check, 200);
     };
     check();
+  },
+
+  // 重试加载图表数据（/technical 端点）
+  async retryChartData() {
+    const technicalQuery = this.buildTechnicalQuery();
+    if (!technicalQuery) return;
+    this.setData({ chartRetrying: true });
+    try {
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 15000 });
+      if (res) {
+        const allChartData = this.prepareAllChartData(res);
+        this.setData({ ...allChartData, chartRetrying: false });
+      } else {
+        this.setData({ chartRetrying: false });
+        wx.showToast({ title: '图表加载失败', icon: 'none' });
+      }
+    } catch (err) {
+      logger.error('[Synastry] retryChartData failed:', err);
+      this.setData({ chartRetrying: false });
+      wx.showToast({ title: '图表加载失败', icon: 'none' });
+    }
+  },
+
+  // 重试加载失败的 tab（从 UI 按钮触发）
+  retryTab() {
+    const tabId = this.data.activeTab;
+    if (!tabId || tabId === 'overview') return;
+    // 模拟 switchTab 事件
+    this.switchTab({ currentTarget: { dataset: { id: tabId } } });
   },
 
   // ========== 深度解读 overlay ==========
@@ -1651,6 +1679,7 @@ Page({
       preloadQueue: [],
       preloadingTab: null,
       tabLoadStatus: {},
+      chartRetrying: false,
       // 清空深度解读
       showDeepOverlay: false,
       deepOverlayData: null,
