@@ -1494,7 +1494,7 @@ Page({
     const detailData = detail || {};
 
     const buildSections = (...items) => items.filter(item => item && item.text);
-    const safeText = (val) => (val ? String(val).trim() : '');
+    const safeText = (val) => (val ? String(val).trim().replace(/\*{1,3}(.+?)\*{1,3}/g, '$1') : '');
     const listFrom = (arr) => Array.isArray(arr) ? arr.filter(Boolean).map(String) : [];
 
     if (['career', 'wealth', 'love', 'health'].includes(type)) {
@@ -1614,6 +1614,7 @@ Page({
     const rawTitle = data.title || titleBase;
     const reportTitle = this.normalizeReportTitle(rawTitle, type, titleBase);
     const sections = [];
+    const stripMd = (s) => String(s).replace(/\*{1,3}(.+?)\*{1,3}/g, '$1');
     const addSection = (title, text, list, cardColor) => {
       if (!title) return;
       const hasText = text && String(text).trim();
@@ -1621,8 +1622,8 @@ Page({
       if (!hasText && !hasList) return;
       sections.push({
         title,
-        text: hasText ? String(text).trim() : '',
-        list: hasList ? list : [],
+        text: hasText ? stripMd(String(text).trim()) : '',
+        list: hasList ? list.map(stripMd) : [],
         cardColor: cardColor || 'default'
       });
     };
