@@ -228,6 +228,7 @@
             houseCusps="{{chartDataA.houseCusps}}"
             width="350"
             height="350"
+            disableTap="{{true}}"
           ></astro-chart>
         </view>
       </view>
@@ -243,6 +244,7 @@
             houseCusps="{{chartDataB.houseCusps}}"
             width="350"
             height="350"
+            disableTap="{{true}}"
           ></astro-chart>
         </view>
       </view>
@@ -268,6 +270,7 @@
             houseCusps="{{synastryChartAB.houseCusps}}"
             width="350"
             height="350"
+            disableTap="{{true}}"
           ></astro-chart>
         </view>
         <text class="chart-desc">内环：{{nameA}} | 外环：{{nameB}}</text>
@@ -285,6 +288,7 @@
             houseCusps="{{synastryChartBA.houseCusps}}"
             width="350"
             height="350"
+            disableTap="{{true}}"
           ></astro-chart>
         </view>
         <text class="chart-desc">内环：{{nameB}} | 外环：{{nameA}}</text>
@@ -310,6 +314,7 @@
             houseCusps="{{compositeChart.houseCusps}}"
             width="350"
             height="350"
+            disableTap="{{true}}"
           ></astro-chart>
         </view>
         <text class="chart-desc">{{nameA}} + {{nameB}} 的组合</text>

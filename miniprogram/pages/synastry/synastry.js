@@ -67,7 +67,6 @@ Page({
 
     // 懒加载状态
     preloadQueue: [],       // 预加载队列
-    preloadingTab: null,    // 正在预加载的 tab
     tabLoadStatus: {},      // 各 tab 加载状态: 'pending' | 'loading' | 'loaded' | 'error'
 
     // 图谱数据 - 分别存储不同类型的图谱
@@ -1206,6 +1205,7 @@ Page({
         composite: 'pending'
       };
 
+      this._preloadStarted = false;
       this.setData({
         resultReady: true,
         step: 2,
@@ -1217,7 +1217,6 @@ Page({
         currentSectionCards: [],
         tabLoadStatus,
         preloadQueue: ['natal_a', 'natal_b'],
-        preloadingTab: null,
         chartRetrying: false
       });
 
@@ -1403,68 +1402,63 @@ Page({
 
   // 启动后台预加载
   startPreloading() {
-    if (this.data.preloadingTab) return; // 已有预加载任务
-    this.preloadNextTab();
+    if (this._preloadStarted) return;
+    this._preloadStarted = true;
+    this.preloadAllTabs();
   },
 
-  // 预加载下一个 tab
-  async preloadNextTab() {
+  // 并行预加载所有 pending 的 tab
+  preloadAllTabs() {
     const { preloadQueue, tabContents, tabLoadStatus } = this.data;
 
-    // 找到下一个需要预加载的 tab
-    const nextTab = preloadQueue.find(tab =>
+    // 找出所有需要预加载的 tab
+    const pendingTabs = preloadQueue.filter(tab =>
       !tabContents[tab] && tabLoadStatus[tab] === 'pending'
     );
 
-    if (!nextTab) {
-      this.setData({ preloadingTab: null });
-      return;
-    }
+    if (pendingTabs.length === 0) return;
 
-    this.setData({
-      preloadingTab: nextTab,
-      [`tabLoadStatus.${nextTab}`]: 'loading'
+    // 全部标记为 loading
+    const statusUpdate = {};
+    pendingTabs.forEach(tab => {
+      statusUpdate[`tabLoadStatus.${tab}`] = 'loading';
     });
+    this.setData(statusUpdate);
 
+    // 并行发起所有请求
+    pendingTabs.forEach(tab => {
+      this.preloadSingleTab(tab);
+    });
+  },
+
+  async preloadSingleTab(tabId) {
     try {
-      const query = this.buildSynastryQuery(nextTab);
+      const query = this.buildSynastryQuery(tabId);
       if (!query) {
-        this.setData({ [`tabLoadStatus.${nextTab}`]: 'error' });
-        this.preloadNextTab();
+        this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
         return;
       }
 
       const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
 
-      // 更新缓存
-      this.setData({
-        [`tabContents.${nextTab}`]: res.content || {},
-        [`tabLoadStatus.${nextTab}`]: 'loaded',
-        preloadingTab: null
-      });
+      // 单次 setData 原子更新，避免 switchTab 读到不一致状态
+      const update = {
+        [`tabContents.${tabId}`]: res.content || {},
+        [`tabLoadStatus.${tabId}`]: 'loaded'
+      };
 
-      // 继续预加载下一个
-      this.preloadNextTab();
+      // 如果用户正好在等这个 tab，一并刷新显示
+      if (this.data.activeTab === tabId) {
+        const title = this.data.resultTabs.find(t => t.id === tabId)?.label || '';
+        const { text, cards } = this.formatTabContent(tabId, res.content || {});
+        Object.assign(update, { currentSectionText: text, currentSectionTitle: title, currentSectionCards: cards });
+      }
+
+      this.setData(update);
     } catch (err) {
       const isTimeout = _isTimeoutError(err);
-      logger.error(`[Synastry] Preload ${nextTab} failed${isTimeout ? ' (timeout)' : ''}:`, err);
-      this.setData({
-        [`tabLoadStatus.${nextTab}`]: 'error',
-        preloadingTab: null
-      });
-      // 跳过失败的 tab，继续预加载下一个
-      this.preloadNextTab();
-    }
-  },
-
-  // 优先加载指定 tab（用户点击时）
-  prioritizeTab(tabId) {
-    const { preloadQueue, tabLoadStatus } = this.data;
-
-    // 如果该 tab 还在队列中且未开始加载，移到队首
-    if (tabLoadStatus[tabId] === 'pending') {
-      const newQueue = [tabId, ...preloadQueue.filter(t => t !== tabId)];
-      this.setData({ preloadQueue: newQueue });
+      logger.error(`[Synastry] Preload ${tabId} failed${isTimeout ? ' (timeout)' : ''}:`, err);
+      this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
     }
   },
 
@@ -1490,15 +1484,12 @@ Page({
     const loadStatus = this.data.tabLoadStatus[tabId];
 
     // 正在后台预加载中，等待完成
-    if (loadStatus === 'loading' && this.data.preloadingTab === tabId) {
+    if (loadStatus === 'loading') {
       this.setData({ activeTab: tabId, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [] });
       // 轮询等待预加载完成
       this.waitForPreload(tabId);
       return;
     }
-
-    // 优先加载此 tab
-    this.prioritizeTab(tabId);
 
     // 主动加载（不使用全屏 loading，仅在 tab 内部显示加载状态）
     this.setData({ activeTab: tabId, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [], [`tabLoadStatus.${tabId}`]: 'loading' });
@@ -1624,9 +1615,10 @@ Page({
           : this.data.chartDataB
       };
 
-      const res = await request({
+      const requestDeep = () => request({
         url: API_ENDPOINTS.DETAIL,
         method: 'POST',
+        timeout: 60000,
         data: {
           type: 'deep',
           context: 'synastry',
@@ -1637,13 +1629,23 @@ Page({
         }
       });
 
+      // 首次请求失败时延迟 1.5s 后重试一次（避免加剧服务端过载）
+      let res;
+      try {
+        res = await requestDeep();
+      } catch (firstErr) {
+        logger.warn('[Synastry] Deep overlay first attempt failed, retrying in 1.5s:', firstErr);
+        await new Promise(r => setTimeout(r, 1500));
+        res = await requestDeep();
+      }
+
       const reportData = this.buildDeepReportData(title, res.content);
       this.deepContentCache[cacheKey] = reportData;
       this.setData({ deepOverlayData: reportData, deepOverlayLoading: false });
     } catch (err) {
       logger.error('[Synastry] Deep overlay failed:', err);
-      this.setData({ deepOverlayLoading: false });
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      this.setData({ deepOverlayLoading: false, showDeepOverlay: false });
+      wx.showToast({ title: '服务暂时不可用，请稍后重试', icon: 'none' });
     }
   },
 
@@ -1688,6 +1690,7 @@ Page({
 
   reset() {
     this.deepContentCache = {};
+    this._preloadStarted = false;
     this.setData({
       step: 1,
       resultReady: false,
@@ -1699,7 +1702,6 @@ Page({
       currentSectionCards: [],
       // 清空懒加载状态
       preloadQueue: [],
-      preloadingTab: null,
       tabLoadStatus: {},
       chartRetrying: false,
       // 清空深度解读

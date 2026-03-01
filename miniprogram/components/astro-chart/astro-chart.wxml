@@ -1,23 +1,31 @@
 <!-- 图谱组件模板 -->
 <view class="astro-chart-container" style="width: {{width}}px; height: {{height}}px;">
+  <!-- disableTap 模式：canvas 转图片后显示图片，隐藏 canvas -->
+  <image
+    wx:if="{{chartImageSrc}}"
+    class="astro-chart-image"
+    src="{{chartImageSrc}}"
+    style="width: {{width}}px; height: {{height}}px;"
+    mode="aspectFit"
+  ></image>
   <canvas
     type="2d"
     id="astro-chart-canvas"
     class="astro-chart-canvas"
-    style="width: {{width}}px; height: {{height}}px;"
+    style="width: {{width}}px; height: {{height}}px;{{chartImageSrc ? ' position: fixed; left: -9999px; top: -9999px;' : ''}}"
     bindtap="onCanvasTap"
   ></canvas>
 
   <!-- 遮罩层（用于点击关闭） -->
   <cover-view
-    wx:if="{{selectedPlanet && !useExternalDetail}}"
+    wx:if="{{selectedPlanet && !useExternalDetail && !disableTap}}"
     class="planet-detail-mask"
     bindtap="closePlanetDetail"
   ></cover-view>
 
   <!-- 行星详情卡片（居中显示） -->
   <cover-view
-    wx:if="{{selectedPlanet && !useExternalDetail}}"
+    wx:if="{{selectedPlanet && !useExternalDetail && !disableTap}}"
     class="planet-detail-card"
     catchtap="stopPropagation"
   >

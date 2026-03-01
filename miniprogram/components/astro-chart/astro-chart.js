@@ -81,12 +81,18 @@ Component({
       type: Boolean,
       value: false
     },
+    // 是否禁用画布点击交互（同时启用 canvas 转图片，解决原生组件浮层问题）
+    disableTap: {
+      type: Boolean,
+      value: false
+    },
   },
 
   data: {
     selectedPlanet: null,
     detailCardX: 0,
     detailCardY: 0,
+    chartImageSrc: '',
   },
 
   lifetimes: {
@@ -463,6 +469,28 @@ Component({
         // 单盘
         this.drawPlanetInfo(ctx, cx, cy, baseRadius, innerDisplayPlanets, rotation, layout, false);
       }
+
+      // disableTap 模式下，将 canvas 转为图片以避免原生组件浮层问题
+      if (this.data.disableTap && this.canvas) {
+        this.convertToImage();
+      }
+    },
+
+    /**
+     * 将 canvas 转为临时图片（解决 canvas 原生组件在滚动时浮于上层的问题）
+     */
+    convertToImage() {
+      const canvas = this.canvas;
+      if (!canvas) return;
+      wx.canvasToTempFilePath({
+        canvas,
+        success: (res) => {
+          this.setData({ chartImageSrc: res.tempFilePath });
+        },
+        fail: (err) => {
+          logger.warn('[Chart] canvas to image failed:', err);
+        }
+      }, this);
     },
 
     /**
@@ -892,6 +920,7 @@ Component({
      * 处理画布点击事件
      */
     onCanvasTap(e) {
+      if (this.data.disableTap) return;
       if (!this.clickAreas) {
         logger.log('[Canvas Tap] No click areas defined');
         return;

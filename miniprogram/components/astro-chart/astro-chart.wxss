@@ -8,6 +8,10 @@
   display: block;
 }
 
+.astro-chart-image {
+  display: block;
+}
+
 /* 半透明遮罩层（用于点击关闭，同时降低背景干扰） */
 .planet-detail-mask {
   position: fixed;
