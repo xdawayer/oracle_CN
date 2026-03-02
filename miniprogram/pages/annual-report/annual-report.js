@@ -293,6 +293,7 @@ Page({
         url: '/api/annual-task/status',
         method: 'GET',
         data: { birth: JSON.stringify(birth) },
+        timeout: 120000,
       });
 
       if (!statusResult || !statusResult.exists) {
@@ -415,6 +416,7 @@ Page({
           url: '/api/annual-task/status',
           method: 'GET',
           data: { birth: JSON.stringify(birth) },
+          timeout: 120000,
         });
 
         if (statusResult && statusResult.exists) {

@@ -618,13 +618,21 @@ const _requestStreamInternal = (options, _retryCount) => {
           });
         return;
       }
-      // 非 2xx 状态码（如 403 配额不足）需要触发 onError，否则页面永远卡在 loading
-      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300) && onError) {
-        const errData = typeof res.data === 'string' ? (() => { try { return JSON.parse(res.data); } catch(_) { return {}; } })() : (res.data || {});
-        const err = new Error(errData.error || `HTTP ${res.statusCode}`);
-        err.statusCode = res.statusCode;
-        err.data = errData;
-        onError(err);
+      // 非 2xx 状态码处理
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+        // 5xx 服务端错误且尚无数据输出时，降级到非 stream 端点重试
+        if (res.statusCode >= 500 && !hasEmitted) {
+          logger.warn(`[requestStream] HTTP ${res.statusCode}, fallback to non-stream`);
+          _fallbackToNonStream();
+          return;
+        }
+        if (onError) {
+          const errData = typeof res.data === 'string' ? (() => { try { return JSON.parse(res.data); } catch(_) { return {}; } })() : (res.data || {});
+          const err = new Error(errData.error || `HTTP ${res.statusCode}`);
+          err.statusCode = res.statusCode;
+          err.data = errData;
+          onError(err);
+        }
       }
     },
     fail: (err) => {
