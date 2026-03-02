@@ -22,16 +22,14 @@
     </view>
     <view class="chart-box" style="height: {{chartSize}}px;">
       <astro-chart
-        wx:if="{{!selectedPlanet && !showDetailReport && !showPayment && !isZoomed}}"
+        wx:if="{{!showDetailReport && !showPayment && !isZoomed}}"
         type="natal"
         positions="{{chartPositions}}"
         aspects="{{chartAspects}}"
         houseCusps="{{chartHouseCusps}}"
         width="{{chartSize}}"
         height="{{chartSize}}"
-        useExternalDetail="{{true}}"
-        bind:planetdetail="onPlanetDetail"
-        bind:planetdetailclose="closePlanetDetail"
+        disableTap="{{true}}"
       ></astro-chart>
     </view>
   </view>
@@ -440,13 +438,13 @@
         </view>
        <view class="fs-content">
           <astro-chart
-            wx:if="{{!selectedPlanet}}"
             type="natal"
             positions="{{chartPositions}}"
             aspects="{{chartAspects}}"
             houseCusps="{{chartHouseCusps}}"
             width="{{fullChartSize}}"
             height="{{fullChartSize}}"
+            disableTap="{{true}}"
           ></astro-chart>
        </view>
      </view>

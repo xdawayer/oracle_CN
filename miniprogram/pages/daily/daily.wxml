@@ -151,7 +151,7 @@
             <view class="legend-item"><view class="dot aspect-opposition"></view><text>冲</text></view>
           </view>
           
-          <view class="chart-wrapper ink-chart" wx:if="{{transitChartData.innerPositions.length > 0 && !showReport && !selectedPlanet}}">
+          <view class="chart-wrapper ink-chart" wx:if="{{transitChartData.innerPositions.length > 0 && !showReport}}">
             <astro-chart
               type="transit"
               positions="{{transitChartData.innerPositions}}"
@@ -160,9 +160,7 @@
               houseCusps="{{transitChartData.houseCusps}}"
               width="350"
               height="350"
-              useExternalDetail="{{true}}"
-              bind:planetdetail="onPlanetDetail"
-              bind:planetdetailclose="closePlanetDetail"
+              disableTap="{{true}}"
             ></astro-chart>
           </view>
           <text class="chart-desc">内环：个人图谱 | 外环：今日周期</text>

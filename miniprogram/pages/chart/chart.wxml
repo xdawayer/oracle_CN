@@ -131,6 +131,7 @@
               houseCusps="{{chartHouseCusps}}"
               width="{{chartSize}}"
               height="{{chartSize}}"
+              disableTap="{{true}}"
             ></astro-chart>
           </view>
           <text class="chart-desc" wx:if="{{chartDesc}}">{{chartDesc}}</text>
