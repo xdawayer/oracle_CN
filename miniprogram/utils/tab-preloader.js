@@ -9,6 +9,7 @@ const DISCOVERY_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
 const PRELOAD_RETRY_BASE_MS = 2000;
 const PRELOAD_RETRY_MAX_MS = 30000;
 const PRELOAD_TIMEOUT_MS = 15000;
+const PRELOAD_AI_TIMEOUT_MS = 60000;
 const PRELOAD_CONCURRENCY = 2;
 
 const createDeferredError = (tabId) => {
@@ -184,7 +185,7 @@ const createTabPreloader = () => {
 
     const fullCacheKey = buildDailyFullCacheKey(profile, dateStr);
     if (fullCacheKey && !storage.get(fullCacheKey) && !storage.get(fullCacheKey + '_pending')) {
-      const fullRes = await request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
+      const fullRes = await request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: PRELOAD_AI_TIMEOUT_MS });
       if (fullRes) {
         storage.set(fullCacheKey, fullRes);
       }

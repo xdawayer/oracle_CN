@@ -61,10 +61,6 @@
         <text class="menu-item-label">编辑出生资料</text>
         <text class="menu-item-chevron">></text>
       </view>
-      <view class="menu-list-item" bindtap="goToProfile">
-        <text class="menu-item-label">个人资料</text>
-        <text class="menu-item-chevron">></text>
-      </view>
       <view class="menu-list-item" bindtap="goToOrders">
         <text class="menu-item-label">订单管理</text>
         <text class="menu-item-chevron">></text>

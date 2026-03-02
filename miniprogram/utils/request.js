@@ -551,8 +551,8 @@ const _requestStreamInternal = (options, _retryCount) => {
   // callContainer 不支持 chunked，会导致流式退化为”长时间等待整包返回”。
   const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
 
-  if (!canChunked) {
-    // 降级：改打非 stream 端点，走 request() 已有 401 逻辑
+  // 降级到非 stream 端点，走 request()（含 callContainer / 401 重试逻辑）
+  const _fallbackToNonStream = () => {
     const fallbackUrl = _downgradeStreamUrl(url);
     request({ url: fallbackUrl, method, data, headers, skipAuth, dedupe: false, timeout: timeoutMs })
       .then((res) => {
@@ -568,6 +568,10 @@ const _requestStreamInternal = (options, _retryCount) => {
       .catch((err) => {
         if (!aborted && onError) onError(err);
       });
+  };
+
+  if (!canChunked) {
+    _fallbackToNonStream();
     return handle;
   }
 
@@ -623,7 +627,10 @@ const _requestStreamInternal = (options, _retryCount) => {
       }
     },
     fail: (err) => {
-      if (!aborted && onError) onError(err);
+      if (aborted) return;
+      // wx.request 失败（域名白名单、网络异常等），降级到非 stream 端点走 callContainer
+      logger.warn('[requestStream] chunked request failed, fallback to non-stream:', err.errMsg || err);
+      _fallbackToNonStream();
     },
   });
 
