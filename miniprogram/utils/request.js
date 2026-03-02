@@ -81,7 +81,8 @@ const _directRequest = (options, resolve, reject) => {
   });
 };
 
-const CLOUD_TIMEOUT_MS = 12000; // 云托管最多等 12 秒（留够冷启动时间），超时即降级
+const CLOUD_TIMEOUT_MS = 12000; // 云托管默认最多等 12 秒（留够冷启动时间），超时即降级
+const CLOUD_TIMEOUT_MAX_MS = 60000; // 长耗时请求（如 AI 生成）云托管最多等 60 秒
 
 const wxRequest = (options) => new Promise((resolve, reject) => {
   if (_useCloud()) {
@@ -101,8 +102,10 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
       _directRequest(options, resolve, reject);
     };
 
-    // 云调用超时保护
-    const timer = setTimeout(() => fallback('timeout'), CLOUD_TIMEOUT_MS);
+    // 云调用超时保护：根据请求 timeout 自适应，长耗时请求给予更多时间
+    const reqTimeout = Number.isFinite(options.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
+    const cloudTimeout = Math.max(CLOUD_TIMEOUT_MS, Math.min(Math.floor(reqTimeout / 2), CLOUD_TIMEOUT_MAX_MS));
+    const timer = setTimeout(() => fallback('timeout'), cloudTimeout);
 
     wx.cloud.callContainer({
       config: { env: CLOUD_HOSTING_ENV },

@@ -417,6 +417,13 @@ Page({
     }, 2000);
   },
 
+  onReady() {
+    // 页面初次渲染完成后，如果雷达图尚未绘制（canvas 之前可能未就绪），补画一次
+    if (!this._radarDrawn && this.data.radarScores && this.data.radarScores.length === 12) {
+      this.drawRadarChart('radarChart', this.data.radarSize);
+    }
+  },
+
   onShow() {
     const app = getApp();
     if (app && typeof app.notifyTabActivated === 'function') {
@@ -1054,9 +1061,10 @@ Page({
       .fields({ node: true, size: true })
       .exec((res) => {
         if (!res[0] || !res[0].node) {
-          // Canvas 未就绪，延迟重试
-          if (retryCount < 3) {
-            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), 100);
+          // Canvas 未就绪，延迟重试（递增延迟，最多 8 次，覆盖约 2s）
+          if (retryCount < 8) {
+            const delay = Math.min(100 + retryCount * 50, 400);
+            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), delay);
           }
           return;
         }
@@ -1068,11 +1076,13 @@ Page({
         let height = res[0].height || size || 300;
         // 尺寸为 0 时延迟重试
         if (width <= 0 || height <= 0) {
-          if (retryCount < 3) {
-            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), 100);
+          if (retryCount < 8) {
+            const delay = Math.min(100 + retryCount * 50, 400);
+            setTimeout(() => this.drawRadarChart(canvasId, size, retryCount + 1), delay);
           }
           return;
         }
+        this._radarDrawn = true;
         canvas.width = width * dpr;
         canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
