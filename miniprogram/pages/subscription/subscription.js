@@ -29,8 +29,8 @@ Page({
     isVip: false,
     vipExpireDate: '',
     selectedPlan: 'yearly',
-    selectedPrice: '168',
-    firstStatus: { monthly: true, quarterly: true, yearly: true },
+    selectedPrice: '198',
+    firstStatus: { monthly: false, quarterly: false, yearly: false },
     agreedTerms: false,
     paying: false,
     benefits: [
@@ -66,7 +66,7 @@ Page({
     try {
       const res = await request({ url: '/api/user/subscription' });
       if (res) {
-        const firstStatus = res.firstStatus || { monthly: true, quarterly: true, yearly: true };
+        const firstStatus = res.firstStatus || { monthly: false, quarterly: false, yearly: false };
         this.setData({
           isVip: res.isVip || false,
           vipExpireDate: res.vipExpireDate || '',
@@ -168,6 +168,8 @@ Page({
         data: {
           orderType: 'subscription',
           plan: plan,
+          isFirst: this.data.firstStatus[plan],
+          totalFee: this.data.firstStatus[plan] ? planConfig.firstTotalFee : planConfig.renewTotalFee,
         },
       });
 
