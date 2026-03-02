@@ -1718,7 +1718,7 @@ Page({
       lang: 'zh',
       chartData,
     };
-    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000 });
+    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000, retry: 1 });
     const content = result?.content ?? null;
     if (cacheKey) {
       storage.set(cacheKey, { content });
@@ -2237,6 +2237,7 @@ Page({
     wx.showLoading({ title: '加载解读...' });
     try {
       const content = await this.fetchDetailContent(type, chartData, cacheKey);
+      wx.hideLoading();
       const reportData = this.buildDetailReportData(title, subtitle, content, type);
       if (!reportData) {
         wx.showToast({ title: '暂无解读内容', icon: 'none' });
@@ -2248,10 +2249,9 @@ Page({
         navTitle: reportData.title || '太阳解读'
       });
     } catch (err) {
+      wx.hideLoading();
       logger.error('Fetch self detail failed', err);
       wx.showToast({ title: '内容加载失败，请稍后重试', icon: 'none' });
-    } finally {
-      wx.hideLoading();
     }
   },
 

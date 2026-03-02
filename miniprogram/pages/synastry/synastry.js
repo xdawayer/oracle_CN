@@ -7,6 +7,17 @@ const logger = require('../../utils/logger');
 const SELF_PROFILE_ID = 'self_profile';
 const CITY_SEARCH_DEBOUNCE = 300;
 const _isTimeoutError = (err) => err && ((err.errMsg || '').includes('timeout'));
+const _strip = (s) => typeof s === 'string' ? s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '') : s;
+const _clean = (obj) => {
+  if (!obj || typeof obj !== 'object') return _strip(obj);
+  if (Array.isArray(obj)) return obj.map(_clean);
+  const out = {};
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    out[k] = typeof v === 'string' ? _strip(v) : (typeof v === 'object' && v !== null) ? _clean(v) : v;
+  }
+  return out;
+};
 
 Page({
   data: {
@@ -1259,7 +1270,7 @@ Page({
                 const statusUpdate = {};
 
                 if (evt.moduleId === 'overview') {
-                  const overviewContent = evt.content || {};
+                  const overviewContent = _clean(evt.content || {});
                   const overviewData = this.parseOverview(overviewContent);
                   tabContents.overview = overviewContent;
                   statusUpdate['tabLoadStatus.overview'] = overviewContent ? 'loaded' : 'error';
@@ -1267,12 +1278,12 @@ Page({
                   streamState.overview = overviewContent;
                   if (overviewContent) streamSuccess = true;
                 } else if (evt.moduleId === 'coreDynamics') {
-                  tabContents.coreDynamics = evt.content || {};
+                  tabContents.coreDynamics = _clean(evt.content || {});
                   statusUpdate['tabLoadStatus.coreDynamics'] = evt.content ? 'loaded' : 'error';
                   this.setData(Object.assign({ tabContents }, statusUpdate));
                   streamState.coreDynamics = evt.content;
                 } else if (evt.moduleId === 'highlights') {
-                  tabContents.highlights = evt.content || {};
+                  tabContents.highlights = _clean(evt.content || {});
                   statusUpdate['tabLoadStatus.highlights'] = evt.content ? 'loaded' : 'error';
                   this.setData(Object.assign({ tabContents }, statusUpdate));
                   streamState.highlights = evt.content;
@@ -1379,7 +1390,8 @@ Page({
 
     try {
       const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
-      const overviewData = this.parseOverview(res.content || {});
+      res.content = _clean(res.content || {});
+      const overviewData = this.parseOverview(res.content);
 
       // 如果技术数据之前为空，用 AI 返回的 technical 数据补充图谱
       let chartUpdate = {};
@@ -1440,17 +1452,18 @@ Page({
       }
 
       const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
+      const cleaned = _clean(res.content || {});
 
       // 单次 setData 原子更新，避免 switchTab 读到不一致状态
       const update = {
-        [`tabContents.${tabId}`]: res.content || {},
+        [`tabContents.${tabId}`]: cleaned,
         [`tabLoadStatus.${tabId}`]: 'loaded'
       };
 
       // 如果用户正好在等这个 tab，一并刷新显示
       if (this.data.activeTab === tabId) {
         const title = this.data.resultTabs.find(t => t.id === tabId)?.label || '';
-        const { text, cards } = this.formatTabContent(tabId, res.content || {});
+        const { text, cards } = this.formatTabContent(tabId, cleaned);
         Object.assign(update, { currentSectionText: text, currentSectionTitle: title, currentSectionCards: cards });
       }
 
@@ -1502,9 +1515,10 @@ Page({
       }
 
       const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
-      const { text, cards } = this.formatTabContent(tabId, res.content || {});
+      const cleaned = _clean(res.content || {});
+      const { text, cards } = this.formatTabContent(tabId, cleaned);
       this.setData({
-        [`tabContents.${tabId}`]: res.content || {},
+        [`tabContents.${tabId}`]: cleaned,
         [`tabLoadStatus.${tabId}`]: 'loaded',
         currentSectionText: text,
         currentSectionCards: cards
@@ -1639,7 +1653,7 @@ Page({
         res = await requestDeep();
       }
 
-      const reportData = this.buildDeepReportData(title, res.content);
+      const reportData = this.buildDeepReportData(title, _clean(res.content));
       this.deepContentCache[cacheKey] = reportData;
       this.setData({ deepOverlayData: reportData, deepOverlayLoading: false });
     } catch (err) {

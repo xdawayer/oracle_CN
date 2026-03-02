@@ -114,12 +114,13 @@ Page({
     this._destroyed = true;
   },
 
-  // 轮询订单状态（最多30秒）
+  // 轮询订单状态：渐进式间隔（首次 1s，逐步递增）
   // 使用 POST /api/wxpay/query-order 主动向微信查询，
   // 避免仅依赖回调导致订阅未激活
+  _pollIntervals: [1000, 2000, 3000, 4000, 5000, 5000],
   pollOrderStatus(orderId, onSuccess, retries = 0) {
     if (this._destroyed) return;
-    if (retries >= 6) {
+    if (retries >= this._pollIntervals.length) {
       onSuccess && onSuccess();
       return;
     }
@@ -140,7 +141,7 @@ Page({
         }
       } catch (e) { /* ignore */ }
       this.pollOrderStatus(orderId, onSuccess, retries + 1);
-    }, 5000);
+    }, this._pollIntervals[retries]);
   },
 
   goToVipAgreement() {

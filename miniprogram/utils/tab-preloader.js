@@ -8,6 +8,8 @@ const USER_INTERACTION_PAUSE_MS = 1500;
 const DISCOVERY_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
 const PRELOAD_RETRY_BASE_MS = 2000;
 const PRELOAD_RETRY_MAX_MS = 30000;
+const PRELOAD_TIMEOUT_MS = 15000;
+const PRELOAD_CONCURRENCY = 2;
 
 const createDeferredError = (tabId) => {
   const error = new Error('preload deferred');
@@ -111,8 +113,8 @@ const createTabPreloader = () => {
     queue: [...TAB_ORDER],
     done: new Set(),
     profileFingerprint: '',
-    currentTab: null,
-    deferCurrentTab: false,
+    activeTabs: new Set(),
+    deferredTabs: new Set(),
     retryMeta: {},
     retryTimer: null,
   };
@@ -150,7 +152,7 @@ const createTabPreloader = () => {
 
     const query = buildNatalQuery(profile);
     if (!query) return;
-    const result = await request({ url: `${API_ENDPOINTS.NATAL_CHART}?${query}`, method: 'GET', timeout: 120000 });
+    const result = await request({ url: `${API_ENDPOINTS.NATAL_CHART}?${query}`, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
     if (result && result.chart) {
       storage.set(cacheKey, result);
     }
@@ -168,7 +170,7 @@ const createTabPreloader = () => {
     const transitCacheKey = buildDailyTransitCacheKey(profile, dateStr);
 
     if (transitCacheKey && !storage.get(transitCacheKey)) {
-      const transitRes = await request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`, method: 'GET', timeout: 120000 });
+      const transitRes = await request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
       if (transitRes) {
         storage.set(transitCacheKey, transitRes);
       }
@@ -182,7 +184,7 @@ const createTabPreloader = () => {
 
     const fullCacheKey = buildDailyFullCacheKey(profile, dateStr);
     if (fullCacheKey && !storage.get(fullCacheKey) && !storage.get(fullCacheKey + '_pending')) {
-      const fullRes = await request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: 120000 });
+      const fullRes = await request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
       if (fullRes) {
         storage.set(fullCacheKey, fullRes);
       }
@@ -225,7 +227,7 @@ const createTabPreloader = () => {
           url: API_ENDPOINTS.REPORT_STATUS,
           method: 'GET',
           data: { reportType, birth: JSON.stringify(birth) },
-          timeout: 120000,
+          timeout: PRELOAD_TIMEOUT_MS,
         }).then((result) => ({ reportType, result }))
       )
     );
@@ -255,7 +257,7 @@ const createTabPreloader = () => {
     const token = storage.get('access_token');
     if (!token) return;
 
-    const result = await request({ url: API_ENDPOINTS.USER_PROFILE, method: 'GET', timeout: 120000 });
+    const result = await request({ url: API_ENDPOINTS.USER_PROFILE, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
     if (result) {
       updateStoredUserProfile(result);
     }
@@ -290,7 +292,7 @@ const createTabPreloader = () => {
     return !!(meta && meta.nextAt > Date.now());
   };
 
-  const pickNextTab = () => state.queue.find((tab) => !state.done.has(tab) && !isRetryCooling(tab));
+  const pickNextTab = (exclude) => state.queue.find((tab) => !state.done.has(tab) && !isRetryCooling(tab) && !(exclude && exclude.has(tab)));
 
   const scheduleRetryRun = () => {
     if (state.retryTimer) return;
@@ -311,6 +313,24 @@ const createTabPreloader = () => {
     }, delay);
   };
 
+  const processTab = async (tabId, profile) => {
+    const task = taskMap[tabId];
+    if (!task) {
+      state.done.add(tabId);
+      return 'skipped';
+    }
+    try {
+      await task(profile, {
+        shouldDefer: () => state.paused || state.deferredTabs.has(tabId),
+        tabId,
+      });
+      return 'success';
+    } catch (error) {
+      if (error && error.code === 'PRELOAD_DEFERRED') return 'deferred';
+      throw error;
+    }
+  };
+
   const run = async () => {
     if (state.running || !state.homeReady || state.paused) return;
     if (state.retryTimer) {
@@ -327,51 +347,55 @@ const createTabPreloader = () => {
         const currentProfile = ensureProfileContext();
         if (!currentProfile) break;
 
-        const nextTab = pickNextTab();
-        if (!nextTab) {
+        // 选取最多 PRELOAD_CONCURRENCY 个 Tab 并行预加载
+        const batch = [];
+        const picked = new Set();
+        for (let i = 0; i < PRELOAD_CONCURRENCY; i++) {
+          const tab = pickNextTab(picked);
+          if (!tab) break;
+          picked.add(tab);
+          batch.push(tab);
+        }
+
+        if (batch.length === 0) {
           scheduleRetryRun();
           break;
         }
 
-        const task = taskMap[nextTab];
-        if (!task) {
-          state.done.add(nextTab);
-          continue;
-        }
+        batch.forEach((tab) => state.activeTabs.add(tab));
 
-        state.currentTab = nextTab;
-        state.deferCurrentTab = false;
-        let taskSucceeded = true;
-        let taskDeferred = false;
-        try {
-          await task(currentProfile, {
-            shouldDefer: () => state.paused || state.deferCurrentTab,
-            tabId: nextTab,
-          });
-        } catch (error) {
-          if (error && error.code === 'PRELOAD_DEFERRED') {
-            taskDeferred = true;
+        const results = await Promise.allSettled(
+          batch.map((tabId) => processTab(tabId, currentProfile).then(
+            (status) => ({ tabId, status }),
+            (error) => ({ tabId, status: 'failed', error })
+          ))
+        );
+
+        state.activeTabs.clear();
+
+        for (const entry of results) {
+          const { tabId, status, error } = entry.status === 'fulfilled' ? entry.value : entry.reason || {};
+          if (!tabId) continue;
+          if (status === 'success' || status === 'skipped') {
+            clearRetry(tabId);
+            state.done.add(tabId);
+          } else if (status === 'deferred') {
+            logger.log('[tab-preload] task deferred by user interaction:', tabId);
+            state.deferredTabs.delete(tabId);
           } else {
-            taskSucceeded = false;
-            const retryDelay = markRetry(nextTab);
-            logger.warn('[tab-preload] task failed:', nextTab, error?.statusCode || error?.message || error, `retry in ${retryDelay}ms`);
+            const retryDelay = markRetry(tabId);
+            logger.warn('[tab-preload] task failed:', tabId, error?.statusCode || error?.message || error, `retry in ${retryDelay}ms`);
           }
         }
 
-        if (taskDeferred || (state.deferCurrentTab && state.currentTab === nextTab)) {
-          logger.log('[tab-preload] task deferred by user interaction:', nextTab);
-        } else if (taskSucceeded) {
-          clearRetry(nextTab);
-          state.done.add(nextTab);
-        } else {
+        if (!state.queue.some((t) => !state.done.has(t) && !isRetryCooling(t))) {
           scheduleRetryRun();
+          break;
         }
-        state.currentTab = null;
-        state.deferCurrentTab = false;
       }
     } finally {
-      state.currentTab = null;
-      state.deferCurrentTab = false;
+      state.activeTabs.clear();
+      state.deferredTabs.clear();
       state.running = false;
     }
   };
@@ -385,12 +409,12 @@ const createTabPreloader = () => {
 
     notifyTabActivated(tabId) {
       state.paused = true;
-      if (state.currentTab && state.currentTab !== tabId && !state.done.has(state.currentTab)) {
-        state.deferCurrentTab = true;
-        state.queue = [
-          ...state.queue.filter((item) => item !== state.currentTab),
-          state.currentTab,
-        ];
+      // 标记所有正在进行的非目标 Tab 为延迟
+      for (const activeTab of state.activeTabs) {
+        if (activeTab !== tabId && !state.done.has(activeTab)) {
+          state.deferredTabs.add(activeTab);
+          state.queue = [...state.queue.filter((item) => item !== activeTab), activeTab];
+        }
       }
       if (tabId && state.queue.includes(tabId)) {
         state.queue = [tabId, ...state.queue.filter((item) => item !== tabId)];
@@ -398,6 +422,7 @@ const createTabPreloader = () => {
       if (state.resumeTimer) clearTimeout(state.resumeTimer);
       state.resumeTimer = setTimeout(() => {
         state.paused = false;
+        state.deferredTabs.clear();
         state.resumeTimer = null;
         run();
       }, USER_INTERACTION_PAUSE_MS);
@@ -407,8 +432,8 @@ const createTabPreloader = () => {
       resetForProfile('');
       state.homeReady = false;
       state.paused = false;
-      state.currentTab = null;
-      state.deferCurrentTab = false;
+      state.activeTabs.clear();
+      state.deferredTabs.clear();
       if (state.resumeTimer) {
         clearTimeout(state.resumeTimer);
         state.resumeTimer = null;

@@ -16,9 +16,9 @@
     <text class="header-desc">深入解析你的核心人格与心理维度</text>
   </view>
 
-  <view class="card-base section ink-border" wx:if="{{!auditMode}}">
+  <view class="card-base section ink-border">
     <view class="section-header">
-      <text class="section-title font-ancient">性格图谱总览</text>
+      <text class="section-title font-ancient">性格全景分析</text>
     </view>
     <view class="chart-box" style="height: {{chartSize}}px;">
       <astro-chart
@@ -432,10 +432,10 @@
     </view>
   </view>
 
-  <view class="modal-mask" wx:if="{{isZoomed && !auditMode}}" style="background: var(--space-950);">
+  <view class="modal-mask" wx:if="{{isZoomed}}" style="background: var(--space-950);">
      <view class="full-screen-container">
        <view class="fs-header">
-          <text class="section-title">图谱详情</text>
+          <text class="section-title">性格详情</text>
            <view class="close-btn" bindtap="toggleZoom" style="position: static;">X</view>
         </view>
        <view class="fs-content">

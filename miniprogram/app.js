@@ -34,10 +34,10 @@ App({
     }
 
     // Load Noto Serif SC (思源宋体) for main body text
-    // Using direct woff2 font file URL for wx.loadFontFace compatibility
+    // 使用国内 CDN 镜像（gstatic.loli.net），避免 fonts.gstatic.com 在大陆不稳定
     wx.loadFontFace({
       family: 'SourceHanSerifSC',
-      source: 'url("https://fonts.gstatic.com/s/notoserifsc/v22/H4c8BXePl9DZ0Xe7gG9cyOj7mm63SzZBEtERe7U.woff2")',
+      source: 'url("https://gstatic.loli.net/s/notoserifsc/v22/H4c8BXePl9DZ0Xe7gG9cyOj7mm63SzZBEtERe7U.woff2")',
       scopes: ['webview', 'native'],
       success: res => logger.log('Noto Serif SC font loaded:', res.status),
       fail: err => logger.warn('Noto Serif SC font load failed, using system fallback:', err)
@@ -46,7 +46,7 @@ App({
     // Load decorative ancient font for titles
     wx.loadFontFace({
       family: 'AncientFont',
-      source: 'url("https://fonts.gstatic.com/s/zhimangxing/v10/m8JXjf9Y4K992R_Sj0BfP_3vYfC1rM-R.woff2")',
+      source: 'url("https://gstatic.loli.net/s/zhimangxing/v10/m8JXjf9Y4K992R_Sj0BfP_3vYfC1rM-R.woff2")',
       scopes: ['webview', 'native'],
       success: res => logger.log('Ancient font loaded:', res.status),
       fail: err => logger.warn('Ancient font load failed:', err)

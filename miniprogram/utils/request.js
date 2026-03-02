@@ -4,7 +4,8 @@ const logger = require('./logger');
 const DEFAULT_BASE_URL = 'https://express-wb6g-225568-8-1404386472.sh.run.tcloudbase.com';
 // 本地开发时使用本地后端，扫码真机预览需使用云托管地址
 const DEFAULT_DEV_BASE_URL = DEFAULT_BASE_URL; // 原值 'http://127.0.0.1:3001'，改为使用云托管地址
-const DEFAULT_TIMEOUT_MS = 120000;
+const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_STREAM_TIMEOUT_MS = 120000;
 
 // ---- 微信云托管 callContainer 配置（绕过域名白名单限制）----
 const CLOUD_HOSTING_ENV = 'prod-6gnh6drs7858f443';
@@ -12,7 +13,7 @@ const CLOUD_HOSTING_SERVICE = 'express-wb6g';
 
 let _cloudReady = false;
 let _cloudFailedUntil = 0; // 云托管失败后冷却到此时间戳，期间跳过 cloud
-const CLOUD_COOLDOWN_MS = 60000; // 失败后冷却 60 秒再重试 cloud
+const CLOUD_COOLDOWN_MS = 30000; // 失败后冷却 30 秒再重试 cloud
 const _useCloud = () => {
   // 本地开发时跳过云托管，直接走 wx.request 打 localhost
   if (getEnvVersion() === 'develop') return false;
@@ -80,7 +81,7 @@ const _directRequest = (options, resolve, reject) => {
   });
 };
 
-const CLOUD_TIMEOUT_MS = 8000; // 云托管最多等 8 秒（留够冷启动时间），超时即降级
+const CLOUD_TIMEOUT_MS = 12000; // 云托管最多等 12 秒（留够冷启动时间），超时即降级
 
 const wxRequest = (options) => new Promise((resolve, reject) => {
   if (_useCloud()) {
@@ -96,7 +97,7 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
       settled = true;
       // 进入冷却期，期间跳过 cloud；冷却结束后自动重试
       _cloudFailedUntil = Date.now() + CLOUD_COOLDOWN_MS;
-      logger.warn('[request] callContainer ' + reason + ', fallback to wx.request (cooldown 60s)');
+      logger.warn('[request] callContainer ' + reason + ', fallback to wx.request (cooldown 30s)');
       _directRequest(options, resolve, reject);
     };
 
@@ -534,7 +535,7 @@ const _requestStreamInternal = (options, _retryCount) => {
 
   const retryCount = _retryCount || 0;
   const baseUrl = getBaseUrl();
-  const timeoutMs = Number.isFinite(options?.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
+  const timeoutMs = Number.isFinite(options?.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_STREAM_TIMEOUT_MS;
   let buffer = '';
   let aborted = false;
   let byteRemainder = null; // UTF-8 多字节字符跨 chunk 时的残留字节
