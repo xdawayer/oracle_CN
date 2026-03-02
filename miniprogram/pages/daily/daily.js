@@ -1470,7 +1470,7 @@ Page({
     try {
       const payload = this.buildDetailPayload(type, dateStr);
       if (!payload) return null;
-      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload });
+      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 60000 });
       const content = result?.content || null;
       if (content && cacheKey) {
         storage.set(cacheKey, { content });
@@ -1481,6 +1481,7 @@ Page({
       return content;
     } catch (e) {
       logger.error('Fetch daily detail failed', e);
+      wx.hideLoading();
       wx.showToast({ title: '解读加载失败', icon: 'none' });
       return null;
     }

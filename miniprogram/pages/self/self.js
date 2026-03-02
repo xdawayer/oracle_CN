@@ -410,8 +410,11 @@ Page({
 
     this.loadUserProfile();
     this.fetchNatalChart();
-    this.checkAnnualReportAccess();
-    this.checkNatalReportAccess();
+    // 延迟检查报告权限，避免与星盘请求抢占网络带宽
+    setTimeout(() => {
+      this.checkAnnualReportAccess();
+      this.checkNatalReportAccess();
+    }, 2000);
   },
 
   onShow() {
@@ -420,9 +423,11 @@ Page({
       app.notifyTabActivated('self');
     }
 
-    // 每次页面显示时检查报告权限（可能在其他页面购买了）
-    this.checkAnnualReportAccess();
-    this.checkNatalReportAccess();
+    // 延迟检查报告权限（可能在其他页面购买了），避免抢占网络
+    setTimeout(() => {
+      this.checkAnnualReportAccess();
+      this.checkNatalReportAccess();
+    }, 1000);
   },
 
   /** 检查年度报告任务状态 */
