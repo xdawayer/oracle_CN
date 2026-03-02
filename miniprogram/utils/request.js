@@ -538,6 +538,7 @@ const _requestStreamInternal = (options, _retryCount) => {
   const timeoutMs = Number.isFinite(options?.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_STREAM_TIMEOUT_MS;
   let buffer = '';
   let aborted = false;
+  let hasEmitted = false; // 是否已向上层输出过数据（防止部分输出后降级导致重复）
   let byteRemainder = null; // UTF-8 多字节字符跨 chunk 时的残留字节
 
   // handle 对象：外部持有此引用调用 abort()，重试时内部替换 _inner
@@ -628,6 +629,11 @@ const _requestStreamInternal = (options, _retryCount) => {
     },
     fail: (err) => {
       if (aborted) return;
+      if (hasEmitted) {
+        // 已有部分数据输出，降级会导致重复，直接报错
+        if (onError) onError(err);
+        return;
+      }
       // wx.request 失败（域名白名单、网络异常等），降级到非 stream 端点走 callContainer
       logger.warn('[requestStream] chunked request failed, fallback to non-stream:', err.errMsg || err);
       _fallbackToNonStream();
@@ -674,10 +680,13 @@ const _requestStreamInternal = (options, _retryCount) => {
       try {
         const parsed = JSON.parse(payload);
         if (parsed.type === 'meta' && onMeta) {
+          hasEmitted = true;
           onMeta(parsed);
         } else if (parsed.type === 'chunk' && onChunk) {
+          hasEmitted = true;
           onChunk(parsed.text);
         } else if (parsed.type === 'module') {
+          hasEmitted = true;
           if (onModule) onModule(parsed);
         } else if (parsed.type === 'done') {
           if (onDone) onDone(parsed);
