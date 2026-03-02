@@ -77,7 +77,6 @@ export interface EntitlementsV2 {
   };
 
   credits: number;
-  discount: number;
 }
 
 export type FeatureType =
@@ -303,7 +302,6 @@ class EntitlementServiceV2 {
           cbtStats: false,
         },
         credits: 0,
-        discount: SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT,
       };
 
     if (!isDatabaseConfigured()) {

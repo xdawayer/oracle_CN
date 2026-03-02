@@ -114,12 +114,7 @@
         </view>
       </view>
 
-      <view class="cost-hint">
-        <text class="hint-icon">!</text>
-        <text>需消耗 30 积分 (会员免费)</text>
-      </view>
-
-      <button 
+      <button
         class="submit-btn {{(!nameA || !nameB || loading) ? 'disabled' : ''}}" 
         bindtap="handleAnalyze"
         disabled="{{!nameA || !nameB || loading}}"

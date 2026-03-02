@@ -4,7 +4,6 @@ import { authMiddleware, requireAuth } from './auth.js';
 import reportService, { ReportType } from '../services/reportService.js';
 import userService from '../services/userService.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
-import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 import { REPORT_PRICES } from './report.js';
 
 const router = Router();
@@ -74,16 +73,11 @@ router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Reque
 
     const hasAccess = await reportService.hasReportAccess(req.userId!, reportType);
     const existingReport = await reportService.getReportByType(req.userId!, reportType);
-    const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
     // 优先使用中国市场定价，回退到 Stripe 定价
-    const basePrice = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
-    if (!basePrice) {
+    const price = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
+    if (!price) {
       return res.status(400).json({ error: 'Report pricing unavailable' });
     }
-    const discount = entitlements.isSubscriber
-      ? (entitlements.discount || SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT)
-      : 0;
-    const price = discount > 0 ? Math.ceil(basePrice * (1 - discount)) : basePrice;
 
     res.json({
       hasAccess,
@@ -171,11 +165,7 @@ router.post('/purchase', authMiddleware, requireAuth, async (req: Request, res: 
     }
 
     const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
-    const basePrice = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
-    const discount = entitlements.isSubscriber
-      ? (entitlements.discount || SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT)
-      : 0;
-    const price = discount > 0 ? Math.ceil(basePrice * (1 - discount)) : basePrice;
+    const price = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
 
     if (entitlements.credits < price) {
       return res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });

@@ -21,16 +21,15 @@ import { WEALTH_TOPIC_CONFIG } from '../services/wealth-topic-task.js';
 import type { BirthInput, Language } from '../types/api.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import reportService from '../services/reportService.js';
-import { SUBSCRIPTION_BENEFITS } from '../config/auth.js';
 
 /** 中国市场报告定价（积分，1 积分 = ¥0.1） */
 export const REPORT_PRICES: Record<string, number> = {
-  'monthly':       60,   // ¥6
-  'annual':        200,  // ¥20
-  'natal-report':  150,  // ¥15
-  'love-topic':    150,  // ¥15
-  'career-topic':  150,  // ¥15
-  'wealth-topic':  150,  // ¥15
+  'monthly':       200,  // ¥20
+  'annual':        300,  // ¥30
+  'natal-report':  200,  // ¥20
+  'love-topic':    200,  // ¥20
+  'career-topic':  200,  // ¥20
+  'wealth-topic':  200,  // ¥20
 };
 
 /** 开发模式默认用户 ID（仅 development 环境生效） */
@@ -103,17 +102,13 @@ reportRouter.post('/create', authMiddleware, async (req: Request, res: Response)
   }
 
   try {
-    // 积分检查门控：查询价格 → VIP 折扣 → 已购检查 → 余额检查 → 扣减
-    const basePrice = REPORT_PRICES[reportType];
-    if (basePrice && basePrice > 0) {
+    // 积分检查门控：查询价格 → 已购检查 → 余额检查 → 扣减
+    const price = REPORT_PRICES[reportType];
+    if (price && price > 0) {
       // 检查是否已购买（已购直接跳过扣费）
       const hasAccess = await reportService.hasReportAccess(userId, reportType as Parameters<typeof reportService.hasReportAccess>[1]);
       if (!hasAccess) {
         const entitlements = await entitlementServiceV2.getEntitlements(userId);
-        const discount = entitlements.isSubscriber
-          ? (entitlements.discount || SUBSCRIPTION_BENEFITS.REPORT_DISCOUNT)
-          : 0;
-        const price = discount > 0 ? Math.ceil(basePrice * (1 - discount)) : basePrice;
 
         if (entitlements.credits < price) {
           res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });

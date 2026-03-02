@@ -55,7 +55,7 @@ Page({
         { title: '季度详解', desc: '四季节奏与关键时间点' },
         { title: '成长建议', desc: '个性化发展与提升建议' },
       ],
-      price: 500,
+      price: 300,
       note: '约 8000-10000 字深度解读，永久保存',
     },
     isLoadingForecast: true,

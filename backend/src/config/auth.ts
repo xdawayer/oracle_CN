@@ -67,9 +67,6 @@ export const SUBSCRIPTION_BENEFITS = {
   UNLIMITED_DAILY: true,             // 今日运势详情免费
   CBT_STATS_FREE: true,              // CBT 统计解读免费
 
-  // 报告折扣
-  REPORT_DISCOUNT: 0.2,              // 8 折 (20% off)
-
   // 订阅赠送积分（已废弃，使用 SUBSCRIPTION_BONUS_BY_PLAN）
   SUBSCRIPTION_BONUS_CREDITS: 500,   // @deprecated
 
