@@ -4,9 +4,21 @@ const logger = require('../../utils/logger');
 const avatarBehavior = require('../../behaviors/avatar');
 
 const PLANS = {
-  monthly: { price: '9.9', totalFee: 990, label: '月度会员' },
-  yearly: { price: '128', totalFee: 12800, label: '年度会员' },
-  quarterly: { price: '45', totalFee: 4500, label: '季度会员' },
+  monthly: {
+    firstPrice: '9.9', firstTotalFee: 990,
+    renewPrice: '18', renewTotalFee: 1800,
+    label: '月度会员',
+  },
+  quarterly: {
+    firstPrice: '30', firstTotalFee: 3000,
+    renewPrice: '45', renewTotalFee: 4500,
+    label: '季度会员',
+  },
+  yearly: {
+    firstPrice: '168', firstTotalFee: 16800,
+    renewPrice: '198', renewTotalFee: 19800,
+    label: '年度会员',
+  },
 };
 
 Page({
@@ -17,15 +29,16 @@ Page({
     isVip: false,
     vipExpireDate: '',
     selectedPlan: 'yearly',
-    selectedPrice: '128',
+    selectedPrice: '168',
+    firstStatus: { monthly: true, quarterly: true, yearly: true },
     agreedTerms: false,
     paying: false,
     benefits: [
-      { icon: '∞', title: '无限次深度解读', desc: '不消耗积分，随时查看' },
-      { icon: '★', title: '订阅赠积分', desc: '月卡赠100积分，季卡赠350，年卡赠1500' },
+      { icon: '∞', title: 'AI 问答无限制', desc: '不限次数，随时提问' },
+      { icon: '♡', title: '合盘分析无限制', desc: '不限次数，多对象分析' },
       { icon: '心', title: 'AI 深度心理分析', desc: '结合个人特质的深度分析' },
       { icon: '☆', title: '实时周期分析', desc: '掌握每日洞察指南' },
-      { icon: '♡', title: '高级关系分析', desc: '多维度关系互动深度解析' },
+      { icon: '★', title: '高级关系分析', desc: '多维度关系互动深度解析' },
       { icon: '盾', title: '专属隐私保护', desc: '数据加密，仅你可见' },
     ],
   },
@@ -53,10 +66,13 @@ Page({
     try {
       const res = await request({ url: '/api/user/subscription' });
       if (res) {
+        const firstStatus = res.firstStatus || { monthly: true, quarterly: true, yearly: true };
         this.setData({
           isVip: res.isVip || false,
           vipExpireDate: res.vipExpireDate || '',
+          firstStatus,
         });
+        this._updateSelectedPrice();
         // 同步到本地缓存
         const profile = storage.get('user_profile') || {};
         profile.isVip = res.isVip;
@@ -71,15 +87,27 @@ Page({
   onSelectPlan(e) {
     const plan = e.currentTarget.dataset.plan;
     if (PLANS[plan]) {
+      const isFirst = this.data.firstStatus[plan];
+      const config = PLANS[plan];
       this.setData({
         selectedPlan: plan,
-        selectedPrice: PLANS[plan].price,
+        selectedPrice: isFirst ? config.firstPrice : config.renewPrice,
       });
     }
   },
 
   onToggleTerms() {
     this.setData({ agreedTerms: !this.data.agreedTerms });
+  },
+
+  _updateSelectedPrice() {
+    const plan = this.data.selectedPlan;
+    const config = PLANS[plan];
+    if (!config) return;
+    const isFirst = this.data.firstStatus[plan];
+    this.setData({
+      selectedPrice: isFirst ? config.firstPrice : config.renewPrice,
+    });
   },
 
   onUnload() {

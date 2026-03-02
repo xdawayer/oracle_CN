@@ -16,7 +16,7 @@ const TOPIC_REPORT_META = {
       { title: '情感成长指南', desc: '亲密关系中的课题与蜕变方向' },
       { title: '感情趋势预测', desc: '未来一年的恋爱关键节点' },
     ],
-    price: 150,
+    price: 200,
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'career-topic': {
@@ -28,7 +28,7 @@ const TOPIC_REPORT_META = {
       { title: '使命与发展路径', desc: '使命感指引的人生事业蓝图' },
       { title: '事业趋势预测', desc: '未来一年的职场关键机遇' },
     ],
-    price: 150,
+    price: 200,
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'wealth-topic': {
@@ -40,7 +40,7 @@ const TOPIC_REPORT_META = {
       { title: '理财盲点洞察', desc: '性格中隐藏的财务风险信号' },
       { title: '财运趋势预测', desc: '未来一年的财富关键节点' },
     ],
-    price: 150,
+    price: 200,
     note: '约 5000-8000 字深度解读，永久保存',
   },
 };

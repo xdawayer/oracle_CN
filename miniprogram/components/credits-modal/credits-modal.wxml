@@ -22,12 +22,6 @@
       </view>
     </view>
 
-    <!-- VIP 引导 -->
-    <view class="vip-banner" bindtap="onGoVip">
-      <text class="vip-banner-text">开通 VIP 享 8 折报告优惠 + 赠积分</text>
-      <text class="vip-banner-arrow">→</text>
-    </view>
-
     <!-- 按钮 -->
     <view class="modal-footer">
       <view class="btn-outline credits-btn" bindtap="onCancel">取消</view>

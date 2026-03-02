@@ -7,7 +7,7 @@ const { API_ENDPOINTS } = require('../../services/api');
 const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
 const { isDev } = logger;
-const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
+
 
 /**
  * 递归清理对象中所有字符串的 Markdown 标记（**、*、#等）
@@ -126,7 +126,6 @@ Page({
       { label: '全部', start: 0, end: 100 }
     ],
 
-    ...creditsModalData,
   },
 
   onLoad() {
@@ -147,8 +146,12 @@ Page({
         this.checkUnlockStatus();
       });
     } else {
-      // 使用默认数据生成预览
+      // 使用默认数据生成预览（K线免费开放，无资料也直接解锁）
       this.generateLocalKLineData();
+      this.setData({
+        isUnlocked: true,
+        expandedSections: { overview: true, past: true, present: true, future: true, milestone: true, letter: true },
+      });
     }
   },
 
@@ -157,18 +160,11 @@ Page({
    */
   async checkUnlockStatus() {
     if (this.data.devMode) return;
-    try {
-      const status = await request({ url: '/api/kline/unlock-status' });
-      if (status && status.unlocked) {
-        this.setData({
-          isUnlocked: true,
-          isSubscriber: status.method === 'vip',
-          expandedSections: { overview: true, past: true, present: true, future: true, milestone: true, letter: true },
-        });
-      }
-    } catch (err) {
-      // 静默失败
-    }
+    // K 线现在免费开放，直接设为解锁
+    this.setData({
+      isUnlocked: true,
+      expandedSections: { overview: true, past: true, present: true, future: true, milestone: true, letter: true },
+    });
   },
 
   onShow() {
@@ -457,24 +453,6 @@ Page({
         timeout: 120000
       });
 
-      if (res && res.requiresPayment && !this.data.devMode) {
-        // 需要付费
-        this.setData({ yearReportLoading: false });
-        wx.showModal({
-          title: '需要订阅',
-          content: '年度深度报告为订阅会员专享内容，订阅后可查看所有年度报告。',
-          confirmText: '了解VIP',
-          cancelText: '关闭',
-          success: (modalRes) => {
-            if (modalRes.confirm) {
-              this.closeYearDetail();
-              wx.navigateTo({ url: '/pages/me/me' });
-            }
-          }
-        });
-        return;
-      }
-
       if (res && res.report) {
         this.setData({
           selectedYearReport: stripMarkdown(res.report),
@@ -506,11 +484,6 @@ Page({
         url: `${API_ENDPOINTS.KLINE_LIFE_SCROLL}?${params}`,
         timeout: 180000
       });
-
-      if (res && res.requiresPayment) {
-        this.setData({ lifeScrollLoading: false });
-        return;
-      }
 
       if (res && res.report) {
         this.setData({
@@ -610,55 +583,13 @@ Page({
       return;
     }
 
-    // 检查用户登录状态
     if (!this.data.userInfo) {
       wx.showToast({ title: '请先完善出生信息', icon: 'none' });
       return;
     }
 
-    // 1. 先检查解锁状态（VIP 或 已购买）
-    try {
-      const status = await request({ url: '/api/kline/unlock-status' });
-      if (status && status.unlocked) {
-        this.setData({ isUnlocked: true, expandedSections: allExpanded });
-        return;
-      }
-
-      // 2. 非 VIP 且未购买，提供两个选择
-      wx.showModal({
-        title: '解锁完整报告',
-        content: '消耗 300 积分解锁完整报告，或开通 VIP 免费查看所有报告',
-        confirmText: '积分解锁',
-        cancelText: '开通VIP',
-        success: async (modalRes) => {
-          if (modalRes.confirm) {
-            // 积分购买
-            wx.showLoading({ title: '处理中...' });
-            try {
-              const result = await request({
-                url: '/api/kline/unlock',
-                method: 'POST',
-              });
-              wx.hideLoading();
-
-              if (result && result.success) {
-                this.setData({ isUnlocked: true, expandedSections: allExpanded });
-                wx.showToast({ title: '已解锁', icon: 'success' });
-              } else if (!handleInsufficientCredits(this, result)) {
-                wx.showToast({ title: result?.error || '解锁失败', icon: 'none' });
-              }
-            } catch (err) {
-              wx.hideLoading();
-              wx.showToast({ title: '网络错误', icon: 'none' });
-            }
-          } else if (modalRes.cancel) {
-            wx.navigateTo({ url: '/pages/me/me' });
-          }
-        },
-      });
-    } catch (err) {
-      wx.showToast({ title: '网络错误', icon: 'none' });
-    }
+    // 直接解锁，不再需要付费
+    this.setData({ isUnlocked: true, expandedSections: allExpanded });
   },
 
   /**
@@ -667,8 +598,6 @@ Page({
   onBack() {
     wx.navigateBack();
   },
-
-  ...creditsModalMethods,
 
   /**
    * 阻止冒泡

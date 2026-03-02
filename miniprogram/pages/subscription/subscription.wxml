@@ -14,12 +14,13 @@
   <!-- 套餐选择 -->
   <view class="plans-section">
     <view class="plan-card ink-border {{selectedPlan === 'monthly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="monthly">
-      <view class="plan-badge">特惠</view>
+      <view class="plan-badge" wx:if="{{firstStatus.monthly}}">首次特惠</view>
       <text class="plan-name">月度会员</text>
       <view class="plan-price-row">
         <text class="plan-currency">¥</text>
-        <text class="plan-price font-ancient">9.9</text>
+        <text class="plan-price font-ancient">{{firstStatus.monthly ? '9.9' : '18'}}</text>
       </view>
+      <text class="plan-original-price" wx:if="{{firstStatus.monthly}}">续费 ¥18/月</text>
     </view>
 
     <view class="plan-card ink-border {{selectedPlan === 'yearly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="yearly">
@@ -27,16 +28,19 @@
       <text class="plan-name">年度会员</text>
       <view class="plan-price-row">
         <text class="plan-currency">¥</text>
-        <text class="plan-price font-ancient">128</text>
+        <text class="plan-price font-ancient">{{firstStatus.yearly ? '168' : '198'}}</text>
       </view>
+      <text class="plan-original-price" wx:if="{{firstStatus.yearly}}">续费 ¥198/年</text>
     </view>
 
     <view class="plan-card ink-border {{selectedPlan === 'quarterly' ? 'selected' : ''}}" bindtap="onSelectPlan" data-plan="quarterly">
+      <view class="plan-badge" wx:if="{{firstStatus.quarterly}}">首次特惠</view>
       <text class="plan-name">季度会员</text>
       <view class="plan-price-row">
         <text class="plan-currency">¥</text>
-        <text class="plan-price font-ancient">45</text>
+        <text class="plan-price font-ancient">{{firstStatus.quarterly ? '30' : '45'}}</text>
       </view>
+      <text class="plan-original-price" wx:if="{{firstStatus.quarterly}}">续费 ¥45/季</text>
     </view>
   </view>
 

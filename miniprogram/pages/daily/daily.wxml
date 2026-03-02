@@ -541,7 +541,7 @@
     <view class="time-section card">
       <text class="card-title">时间窗口</text>
       <view class="time-timeline">
-        <view class="time-slot" wx:for="{{['上午','午间','晚上']}}" wx:key="*this">
+        <view class="time-slot" wx:for="{{['上午','下午','晚上']}}" wx:key="*this">
           <view class="time-line">
             <view class="time-dot" style="background: var(--ink-wash-2)"></view>
             <view class="time-connector" wx:if="{{index < 2}}"></view>

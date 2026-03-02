@@ -9,7 +9,7 @@
             <text class="app-title font-ancient">AI 问答</text>
             <view class="quota-badge" wx:if="{{quotaLoaded}}">
               <text class="quota-text" wx:if="{{askTotalLeft > 0}}">本周剩余 {{askTotalLeft}} 次</text>
-              <text class="quota-text quota-empty" wx:else>本周次数已用完 · {{askCost}}积分/次</text>
+              <text class="quota-text quota-empty" wx:else>本周次数已用完</text>
             </view>
           </view>
           <text class="app-subtitle">INSIGHT REPORT</text>
@@ -170,6 +170,4 @@
     </scroll-view>
   </view>
 
-  <!-- 积分不足弹窗 -->
-  <credits-modal show="{{showCreditsModal}}" price="{{creditsModalPrice}}" balance="{{creditsModalBalance}}" bind:cancel="onCreditsModalCancel" bind:recharge="onCreditsModalRecharge" />
 </view>

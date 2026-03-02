@@ -3,11 +3,11 @@ const storage = require('../../utils/storage');
 const logger = require('../../utils/logger');
 const { RECHARGE_TIERS } = require('../../utils/credits');
 
-const BADGES = { 200: '推荐', 1200: '尊享' };
+const BADGES = { 500: '推荐', 5000: '尊享' };
 const PACKAGES = RECHARGE_TIERS.map((amount) => ({
   amount,
   price: amount * 10,               // 1 RMB = 10 积分，单位：分
-  priceText: (amount / 10).toFixed(2),
+  priceText: (amount / 10).toFixed(0),
   ...(BADGES[amount] ? { badge: BADGES[amount] } : {}),
 }));
 
@@ -15,8 +15,8 @@ Page({
   data: {
     points: 0,
     packages: PACKAGES,
-    selectedIndex: 2, // 默认选中 200 积分
-    selectedPriceText: '20.00',
+    selectedIndex: 2, // 默认选中 500 积分（¥50）
+    selectedPriceText: '50',
     agreedTerms: false,
     paying: false,
     isFirstRecharge: false,

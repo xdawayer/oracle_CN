@@ -385,7 +385,16 @@ const wxpayService = {
       if (!plan || !(plan in VIP_PLANS)) return null;
       const planConfig = VIP_PLANS[plan];
       description = `星智 ${planConfig.label}`;
-      fee = planConfig.price;
+      // 根据用户历史判断首次/续费价格
+      let isFirstPurchase = true;
+      if (isDatabaseConfigured()) {
+        const pastOrders = await query<{ id: string }>(
+          'SELECT id FROM wxpay_orders WHERE user_id = ? AND order_type = ? AND plan = ? AND status = ? LIMIT 1',
+          [userId, 'subscription', plan, 'paid']
+        );
+        isFirstPurchase = !pastOrders || pastOrders.length === 0;
+      }
+      fee = isFirstPurchase ? planConfig.firstPrice : planConfig.renewPrice;
       orderId = generateOrderId('VIP');
     } else if (orderType === 'points') {
       if (!amount || !totalFee) return null;

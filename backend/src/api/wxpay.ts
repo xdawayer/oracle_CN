@@ -390,8 +390,8 @@ async function handlePointsRecharge(userId: string, pointsAmount: number, totalF
         [userId, 'gm_credit', orderId]
       );
       if (!pastRecharges || pastRecharges.length === 0) {
-        // 首充：amount ≤ 100 翻倍，amount > 100 赠 50%
-        const bonusAmount = pointsAmount <= 100 ? pointsAmount : Math.floor(pointsAmount * 0.5);
+        // 首充：统一翻倍（与前端「首充双倍」文案一致）
+        const bonusAmount = pointsAmount;
         if (bonusAmount > 0) {
           await insert('purchase_records', {
             user_id: userId,

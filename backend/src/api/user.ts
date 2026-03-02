@@ -242,10 +242,23 @@ router.get('/subscription', authMiddleware, requireAuth, async (req: Request, re
       const subscription = await subscriptionService.getSubscription(req.userId!);
       const isVip = !!(subscription && (subscription.status === 'active' || subscription.status === 'trialing'));
 
+      // 查询各 plan 的历史购买记录，用于首次/续费定价
+      const paidPlans = await query<{ plan: string }>(
+        'SELECT DISTINCT plan FROM wxpay_orders WHERE user_id = ? AND order_type = ? AND status = ?',
+        [req.userId!, 'subscription', 'paid']
+      );
+      const paidPlanSet = new Set(paidPlans.map(r => r.plan));
+      const firstStatus = {
+        monthly: !paidPlanSet.has('monthly'),
+        quarterly: !paidPlanSet.has('quarterly'),
+        yearly: !paidPlanSet.has('yearly'),
+      };
+
       res.json({
         isVip,
         vipExpireDate: subscription?.current_period_end || '',
         plan: subscription?.plan || '',
+        firstStatus,
       });
     } else {
       const profile = devProfiles.get(req.userId!) || {};

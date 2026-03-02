@@ -296,7 +296,7 @@ const REPORT_PAYMENT_META = {
       { title: '季度详解', desc: '四季节奏与关键时间点' },
       { title: '成长建议', desc: '个性化发展与提升建议' },
     ],
-    price: 200,
+    price: 300,
     note: '约 8000-10000 字深度解读，永久保存',
   },
   'natal-report': {
@@ -308,7 +308,7 @@ const REPORT_PAYMENT_META = {
       { title: '内在动力解读', desc: '内在动力与潜在张力的深度剖析' },
       { title: '成长建议', desc: '基于分析的个性化发展方向' },
     ],
-    price: 150,
+    price: 200,
     note: '约 5000-8000 字深度解读，永久保存',
   },
 };

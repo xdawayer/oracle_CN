@@ -81,6 +81,12 @@
         <text class="menu-item-label">隐私政策</text>
         <text class="menu-item-chevron">></text>
       </view>
+      <view class="menu-list-item feedback-item">
+        <button class="feedback-btn" open-type="feedback">
+          <text class="menu-item-label">意见反馈</text>
+          <text class="menu-item-chevron">></text>
+        </button>
+      </view>
       <view class="menu-list-item logout-item" bindtap="handleLogout">
         <text class="menu-item-label">退出登录</text>
         <text class="menu-item-chevron">></text>
@@ -93,7 +99,7 @@
 
     <!-- 备案信息 -->
     <view class="icp-footer">
-      <text class="icp-text">粤ICP2026015568号-1X</text>
+      <text class="icp-text">粤ICP备2026015568号-1X</text>
     </view>
   </view>
 </view>

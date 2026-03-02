@@ -481,7 +481,7 @@ Page({
         { title: '关键时间点', desc: '本月重要节点与应对建议' },
         { title: '行动指南', desc: '本月个人提升与成长方向' },
       ],
-      price: 60,
+      price: 200,
       note: '约 3000-5000 字深度解读，永久保存',
     };
     this.setData({ showPayment: true, paymentMeta });
@@ -1161,7 +1161,7 @@ Page({
         description: timeWindows.morning || ''
       },
       {
-        period: '午间',
+        period: '下午',
         time: '12:00-18:00',
         mood: this.normalizeEnergyLabel(timeWindows.midday_mood || '平稳'),
         description: timeWindows.midday || ''

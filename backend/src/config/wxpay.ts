@@ -21,20 +21,21 @@ export const isWxPayConfigured = (): boolean => {
   return !!(WECHAT_APPID && WECHAT_MCH_ID && WECHAT_API_KEY_V3 && WECHAT_PRIVATE_KEY);
 };
 
-// VIP 订阅定价（单位：分）
+// VIP 订阅定价（单位：分）— 首次/续费分档
 export const VIP_PLANS = {
-  monthly: { price: 990, days: 30, label: '连续包月' },
-  quarterly: { price: 4500, days: 90, label: '季度会员' },
-  yearly: { price: 12800, days: 365, label: '年度会员' },
+  monthly: { firstPrice: 990, renewPrice: 1800, days: 30, label: '月度会员' },
+  quarterly: { firstPrice: 3000, renewPrice: 4500, days: 90, label: '季度会员' },
+  yearly: { firstPrice: 16800, renewPrice: 19800, days: 365, label: '年度会员' },
 } as const;
 
 // 积分充值档位（单位：分）— 1 RMB = 10 积分
 export const POINTS_PACKAGES = [
-  { amount: 60,   price: 600   },  // ¥6   — 入门
-  { amount: 100,  price: 1000  },  // ¥10  — 实惠
-  { amount: 200,  price: 2000  },  // ¥20  — 推荐
-  { amount: 500,  price: 5000  },  // ¥50  — 超值
-  { amount: 1200, price: 10000 },  // ¥100 — 尊享
+  { amount: 100,  price: 1000  },  // ¥10
+  { amount: 300,  price: 3000  },  // ¥30
+  { amount: 500,  price: 5000  },  // ¥50  — 推荐
+  { amount: 1000, price: 10000 },  // ¥100
+  { amount: 2000, price: 20000 },  // ¥200
+  { amount: 5000, price: 50000 },  // ¥500 — 尊享
 ] as const;
 
 // 生成随机字符串

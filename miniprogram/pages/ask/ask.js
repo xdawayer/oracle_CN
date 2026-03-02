@@ -3,7 +3,6 @@ const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
-const { creditsModalData, creditsModalMethods } = require('../../utils/credits');
 
 const GOALS = [
   { id: 'career', label: '事业发展与财富' },
@@ -87,10 +86,9 @@ Page({
     currentGoalLabel: '事业发展与财富',
     currentSuggestions: SUGGESTED_QUESTIONS['career'],
 
-    // 配额信息（askCost 需与后端 PRICING.ASK_SINGLE 保持一致）
+    // 配额信息
     askTotalLeft: 0,
     credits: 0,
-    askCost: 50,
     quotaLoaded: false,
 
     // 全屏报告状态
@@ -104,7 +102,6 @@ Page({
     reportChartData: null,
     reportTransitData: null,
 
-    ...creditsModalData,
   },
 
   onLoad(options) {
@@ -203,30 +200,21 @@ Page({
       }
     }
 
-    const { askTotalLeft, credits, askCost, quotaLoaded } = this.data;
+    const { askTotalLeft, quotaLoaded } = this.data;
 
-    // 配额已加载且本周次数用完
+    // 配额已加载且本周次数用完 → 引导订阅
     if (quotaLoaded && askTotalLeft <= 0) {
-      if (credits >= askCost) {
-        // 有足够积分，弹窗确认
-        wx.showModal({
-          title: '本周免费次数已用完',
-          content: `是否消耗 ${askCost} 积分进行提问？（当前积分: ${credits}）`,
-          confirmText: '确认消耗',
-          cancelText: '取消',
-          success: (res) => {
-            if (res.confirm) {
-              this.sendMessage(text);
-            }
-          },
-        });
-      } else {
-        this.setData({
-          showCreditsModal: true,
-          creditsModalPrice: askCost,
-          creditsModalBalance: credits,
-        });
-      }
+      wx.showModal({
+        title: '本周免费次数已用完',
+        content: '开通会员可享 AI 问答无限次使用',
+        confirmText: '了解会员',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({ url: '/pages/subscription/subscription' });
+          }
+        },
+      });
       return;
     }
 
@@ -306,12 +294,22 @@ Page({
       },
       onError: (err) => {
         logger.error('Ask Stream Error:', err);
-        // 403 配额不足（后端已检查积分，走到这里说明次数和积分均不足）
+        // 403 配额不足
         if (err && err.statusCode === 403) {
           this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
           this._streamTask = null;
           this._fetchQuota();
-          wx.showToast({ title: '本周提问次数已用完', icon: 'none', duration: 2500 });
+          wx.showModal({
+            title: '提问次数已用完',
+            content: '开通会员可享 AI 问答无限次使用',
+            confirmText: '了解会员',
+            cancelText: '关闭',
+            success: (res) => {
+              if (res.confirm) {
+                wx.navigateTo({ url: '/pages/subscription/subscription' });
+              }
+            },
+          });
           return;
         }
         // 如果流式未获得任何内容，降级为非流式请求
@@ -432,5 +430,4 @@ Page({
     });
   },
 
-  ...creditsModalMethods,
 });

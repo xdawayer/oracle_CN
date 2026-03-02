@@ -180,6 +180,30 @@
   color: var(--danger);
 }
 
+/* 意见反馈按钮（重置 button 默认样式） */
+.feedback-item {
+  padding: 0;
+}
+
+.feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-lg);
+  margin: 0;
+  background: transparent;
+  border: none;
+  line-height: inherit;
+  font-size: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+.feedback-btn::after {
+  display: none;
+}
+
 /* 备案信息 */
 .icp-footer {
   text-align: center;
