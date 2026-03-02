@@ -334,8 +334,8 @@ Page({
         data: { reportType, birth: birthData, lang: 'zh' },
       });
 
-      // 处理积分不足
-      if (handleInsufficientCredits(this, result)) {
+      // 处理积分不足：同时关闭支付弹窗
+      if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
         return;
       }
 
@@ -368,7 +368,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
-      if (handleInsufficientCredits(this, error)) return;
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
       logger.error(`Create ${reportType} task error:`, error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

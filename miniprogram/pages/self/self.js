@@ -1233,7 +1233,7 @@ Page({
 
         if (!payResult || !payResult.success) {
           const errorMsg = payResult?.error || '支付失败';
-          if (!handleInsufficientCredits(this, payResult)) {
+          if (!handleInsufficientCredits(this, payResult, { showPayment: false, paymentLoading: false })) {
             wx.showToast({ title: errorMsg, icon: 'none' });
           }
           return;
@@ -1247,7 +1247,7 @@ Page({
         await this._createNatalTask(birthData);
       }
     } catch (error) {
-      if (handleInsufficientCredits(this, error)) return;
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
       logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

@@ -11,12 +11,14 @@ const RECHARGE_TIERS = [100, 300, 500, 1000, 2000, 5000];
  *   2. 异常路径：result 为 RequestError（statusCode=403, data 含错误详情）
  * @param {Object} page - 页面实例 (this)
  * @param {Object|Error} result - 后端返回的结果或 RequestError
+ * @param {Object} [extraData] - 额外需要合并的 setData（如关闭支付弹窗）
  * @returns {boolean} 是否为积分不足错误
  */
-function handleInsufficientCredits(page, result) {
+function handleInsufficientCredits(page, result, extraData) {
   const data = (result instanceof Error && result.data) ? result.data : result;
   if (data && data.error === 'Insufficient credits') {
     page.setData({
+      ...extraData,
       showCreditsModal: true,
       creditsModalPrice: data.price || 0,
       creditsModalBalance: data.balance || 0,

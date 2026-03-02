@@ -826,7 +826,7 @@ Page({
 
         if (!payResult || !payResult.success) {
           const errorMsg = payResult?.error || '支付失败';
-          if (!handleInsufficientCredits(this, payResult)) {
+          if (!handleInsufficientCredits(this, payResult, { showPayment: false, paymentLoading: false })) {
             wx.showToast({ title: errorMsg, icon: 'none' });
           }
           return;
