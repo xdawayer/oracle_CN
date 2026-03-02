@@ -1,3 +1,8 @@
+/* 覆盖公共 modal-overlay 层级，确保积分弹窗在支付弹窗之上 */
+.modal-overlay {
+  z-index: 1300;
+}
+
 .credits-modal-card {
   width: 620rpx;
 }

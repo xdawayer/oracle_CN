@@ -525,8 +525,9 @@ Page({
         },
       });
 
-      // 处理积分不足
+      // 处理积分不足：先关闭支付弹窗，再显示积分不足弹窗
       if (handleInsufficientCredits(this, result)) {
+        this.closePayment();
         return;
       }
 
@@ -554,7 +555,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (err) {
-      if (handleInsufficientCredits(this, err)) return;
+      if (handleInsufficientCredits(this, err)) { this.closePayment(); return; }
       logger.error('[Monthly] Create task failed:', err);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
