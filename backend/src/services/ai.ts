@@ -219,7 +219,6 @@ function getTemperatureForPrompt(promptId: string): number {
 
 // 使用 reasoning 模型的 promptId
 const REASONING_PROMPTS = [
-  'oracle-answer',
   // 流年报告使用 reasoning 模型
   'annual-overview',
   'annual-career',

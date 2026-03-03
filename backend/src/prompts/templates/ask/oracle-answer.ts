@@ -1,7 +1,7 @@
 /**
- * Oracle 深度问答 Prompt（reasoning 模型版）
+ * Oracle 深度问答 Prompt
  *
- * 使用 reasoning 模型提供更深层的分析
+ * 使用 deepseek-chat 模型提供深层分析（原 reasoning 模型已切换以提升响应速度）
  * 输出格式与 ask-answer 完全一致，保持前端兼容
  */
 
@@ -15,7 +15,7 @@ export const oracleAnswerPrompt: PromptTemplate = {
     version: '1.0',
     module: 'ask',
     priority: 'P0',
-    description: 'Oracle深度问答（reasoning模型）',
+    description: 'Oracle深度问答',
     lastUpdated: '2026-02-13',
   },
 

@@ -597,6 +597,8 @@ Page({
         url: API_ENDPOINTS.CBT_ANALYSIS,
         method: 'POST',
         timeout: 120000,
+        retry: 1,
+        dedupe: false,
         data: {
           birth: {
             date: userProfile.birthDate,
@@ -648,7 +650,9 @@ Page({
       }
 
     } catch (error) {
-      logger.error('Analysis Error:', error);
+      const errInfo = error ? (error.message || error.errMsg || String(error)) : 'unknown';
+      const statusCode = error && error.statusCode;
+      logger.error('CBT Analysis Error:', errInfo, 'statusCode:', statusCode);
       this.setData({
         reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，记录已保存。' }] },
       });
