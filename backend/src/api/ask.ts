@@ -24,13 +24,6 @@ const getChartType = (category?: string): AskChartType => {
 
 // POST /api/ask - 问答
 askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
-  let clientDisconnected = false;
-  req.on('close', () => {
-    if (!res.writableEnded) {
-      clientDisconnected = true;
-      console.warn('[Ask] Client disconnected before response was sent');
-    }
-  });
   try {
     const requestStart = performance.now();
     const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = req.body as AskRequest & { mode?: string };
@@ -73,12 +66,6 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
     const totalMs = performance.now() - requestStart;
     res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
-    const totalMsFinal = performance.now() - requestStart;
-    if (clientDisconnected) {
-      console.warn(`[Ask] Client already disconnected after ${totalMsFinal.toFixed(0)}ms, skipping consume and response`);
-      return;
-    }
-
     const consumed = await entitlementServiceV2.consumeFeature(
       req.userId || null,
       'ask',
@@ -92,7 +79,7 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`[Ask] Sending response: totalMs=${totalMsFinal.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
+    console.log(`[Ask] Sending response: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
     res.json({
       lang: content.lang,
       content: content.content,

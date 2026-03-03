@@ -56,13 +56,6 @@ async function parseBirthInput(body: Record<string, unknown>): Promise<BirthInpu
 
 // POST /api/cbt/analysis - 情绪日记分析
 cbtRouter.post('/analysis', async (req, res) => {
-  let clientDisconnected = false;
-  req.on('close', () => {
-    if (!res.writableEnded) {
-      clientDisconnected = true;
-      console.warn('[CBT] Client disconnected before response was sent');
-    }
-  });
   try {
     const requestStart = performance.now();
     const langInput = (req.body as Record<string, unknown>).lang;
@@ -117,10 +110,6 @@ cbtRouter.post('/analysis', async (req, res) => {
     const totalMs = performance.now() - requestStart;
     res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
-    if (clientDisconnected) {
-      console.warn(`[CBT] Client already disconnected after ${totalMs.toFixed(0)}ms, response not sent`);
-      return;
-    }
     console.log(`[CBT] Sending response: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(result.content).length}`);
     res.json({ lang: result.lang, content: result.content } as CBTAnalysisResponse);
   } catch (error) {

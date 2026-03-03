@@ -110,8 +110,9 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
     };
 
     // 云调用超时保护：根据请求 timeout 自适应，长耗时请求给予更多时间
+    // 注意：cloudTimeout 不能小于 reqTimeout，否则前端会先于后端超时，导致"后端成功但前端已 reject"
     const reqTimeout = Number.isFinite(options.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
-    const cloudTimeout = Math.max(CLOUD_TIMEOUT_MS, Math.min(Math.floor(reqTimeout * 0.9), CLOUD_TIMEOUT_MAX_MS));
+    const cloudTimeout = Math.max(CLOUD_TIMEOUT_MS, Math.min(reqTimeout, CLOUD_TIMEOUT_MAX_MS));
     const timer = setTimeout(() => fallback('timeout', false), cloudTimeout);
 
     wx.cloud.callContainer({
