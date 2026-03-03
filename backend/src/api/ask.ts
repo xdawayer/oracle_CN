@@ -73,6 +73,12 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
     const totalMs = performance.now() - requestStart;
     res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
+    const totalMsFinal = performance.now() - requestStart;
+    if (clientDisconnected) {
+      console.warn(`[Ask] Client already disconnected after ${totalMsFinal.toFixed(0)}ms, skipping consume and response`);
+      return;
+    }
+
     const consumed = await entitlementServiceV2.consumeFeature(
       req.userId || null,
       'ask',
@@ -86,11 +92,6 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
-    const totalMsFinal = performance.now() - requestStart;
-    if (clientDisconnected) {
-      console.warn(`[Ask] Client already disconnected after ${totalMsFinal.toFixed(0)}ms, response not sent`);
-      return;
-    }
     console.log(`[Ask] Sending response: totalMs=${totalMsFinal.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
     res.json({
       lang: content.lang,

@@ -4,7 +4,7 @@
 // 一旦我被更新，务必更新我的开头注释，以及所属的文件夹的md。
 
 import { getPrompt, buildCacheKey } from '../prompts/index.js';
-import { replaceSensitiveWords, checkTextSecurity, containsHighRiskContent, containsPoliticalOrReligiousContent } from './content-security.js';
+import { replaceSensitiveWords, checkTextSecurity, containsHighRiskContent, containsNonMentalHighRiskContent } from './content-security.js';
 import { hashInput, CACHE_TTL } from '../cache/strategy.js';
 import { cacheService } from '../cache/redis.js';
 import type { AIContentMeta, LocalizedContent, Language } from '../types/api.js';
@@ -468,9 +468,10 @@ function normalizeLocalizedContent<T>(value: unknown, fallbackLang: Language): L
       const lang = (langValue === 'zh' || langValue === 'en') ? (langValue as Language) : fallbackLang;
       return { lang, content: record.content as T };
     }
-    // content 是 string 但同时有 sections → AI 额外加了 content 字段，取整个 record 作为内容
+    // content 是 string 但同时有 sections → AI 额外加了 content 字段，剥离 lang/content 只保留业务字段
     if ('sections' in record) {
-      return { lang: fallbackLang, content: record as T };
+      const { lang: _l, content: _c, ...rest } = record;
+      return { lang: fallbackLang, content: rest as T };
     }
     // content 是 string 且无 sections → 按原逻辑
     const langValue = typeof record.lang === 'string' ? record.lang : fallbackLang;
@@ -761,7 +762,7 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
     const jsonContentStr = JSON.stringify(result.content);
     if (COUNSELING_SAFE_PROMPTS.has(options.promptId)) {
       // 心理健康类内容只检测政治/宗教敏感词，不检测自杀/自残等心理健康关键词
-      if (containsPoliticalOrReligiousContent(jsonContentStr)) {
+      if (containsNonMentalHighRiskContent(jsonContentStr)) {
         console.warn(`[AI] JSON content filtered for ${options.promptId} (political/religious content detected)`);
         throw new AIUnavailableError('content_filtered', 'Content filtered by security check');
       }

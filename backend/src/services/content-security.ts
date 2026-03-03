@@ -59,10 +59,18 @@ const RELIGIOUS_RISK_WORDS = [
   '法轮大法', '真善忍', '转法轮', '李洪志', '传教',
 ];
 
+// 心理健康相关关键词（CBT/问答等心理健康类 prompt 允许出现）
+const MENTAL_HEALTH_KEYWORDS = ['自杀', '自残', '暴力'];
+
 // 高风险关键词（出现则需要整体审查）
 const HIGH_RISK_KEYWORDS = [
-  '自杀', '自残', '暴力', '色情', '赌博',
+  ...MENTAL_HEALTH_KEYWORDS, '色情', '赌博',
   '毒品', '反动', '邪教', '传销',
+];
+
+// 非心理健康的高风险关键词（心理健康类 prompt 仍需检测这些）
+const NON_MENTAL_HIGH_RISK_KEYWORDS = [
+  '色情', '赌博', '毒品', '反动', '邪教', '传销',
 ];
 
 /**
@@ -86,10 +94,13 @@ export function containsHighRiskContent(content: string): boolean {
 }
 
 /**
- * 仅检测政治/宗教敏感内容（用于心理健康类 prompt，跳过自杀/自残等心理健康关键词）
+ * 心理健康类 prompt 的内容安全检测：跳过自杀/自残/暴力（心理健康讨论中正常出现），
+ * 但仍检测色情/赌博/毒品等非心理健康高风险词 + 政治/宗教敏感词。
+ * 注意：仅用于 COUNSELING_SAFE_PROMPTS 白名单中的 promptId，扩展前需评估安全影响。
  */
-export function containsPoliticalOrReligiousContent(content: string): boolean {
-  return POLITICAL_KEYWORDS.some(keyword => content.includes(keyword))
+export function containsNonMentalHighRiskContent(content: string): boolean {
+  return NON_MENTAL_HIGH_RISK_KEYWORDS.some(keyword => content.includes(keyword))
+    || POLITICAL_KEYWORDS.some(keyword => content.includes(keyword))
     || RELIGIOUS_RISK_WORDS.some(keyword => content.includes(keyword));
 }
 
