@@ -56,14 +56,14 @@ async function processAskTask(
     // AI 成功后再消耗配额
     const consumed = await entitlementServiceV2.consumeFeature(userId, 'ask', deviceFingerprint);
     if (!consumed) {
-      failTask(taskId, 'Failed to consume feature', 403);
+      await failTask(taskId, 'Failed to consume feature', 403);
       return;
     }
 
     const totalMs = performance.now() - requestStart;
     console.log(`[Ask] Task ${taskId} completed: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
 
-    completeTask(taskId, {
+    await completeTask(taskId, {
       lang: content.lang,
       content: content.content,
       meta,
@@ -74,11 +74,11 @@ async function processAskTask(
   } catch (error) {
     if (error instanceof AIUnavailableError) {
       console.warn(`[Ask] Task ${taskId} AIUnavailableError: ${error.reason}`);
-      failTask(taskId, 'AI unavailable', 503);
+      await failTask(taskId, 'AI unavailable', 503);
       return;
     }
     console.error(`[Ask] Task ${taskId} error: ${(error as Error).message}`);
-    failTask(taskId, (error as Error).message, 500);
+    await failTask(taskId, (error as Error).message, 500);
   }
 }
 
@@ -104,11 +104,11 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
     }
 
     // Create task and start background processing
-    const taskId = createTask();
+    const taskId = await createTask();
     processAskTask(taskId, req.body, req.userId || null, deviceFingerprint)
-      .catch(err => {
+      .catch(async (err) => {
         console.error(`[Ask] Unhandled task error ${taskId}:`, err);
-        failTask(taskId, 'Internal error', 500);
+        await failTask(taskId, 'Internal error', 500);
       });
 
     console.log(`[Ask] Task ${taskId} created for user ${req.userId || 'anon'}`);
@@ -120,8 +120,8 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
 });
 
 // GET /api/ask/result/:taskId - 轮询任务结果
-askRouter.get('/result/:taskId', (req, res) => {
-  const task = getTask(req.params.taskId);
+askRouter.get('/result/:taskId', async (req, res) => {
+  const task = await getTask(req.params.taskId);
   if (!task) {
     return res.status(404).json({ error: 'Task not found or expired' });
   }

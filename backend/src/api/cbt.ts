@@ -93,26 +93,26 @@ async function processCbtAnalysisTask(taskId: string, body: Record<string, unkno
 
     const totalMs = performance.now() - requestStart;
     console.log(`[CBT] Task ${taskId} completed: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(result.content).length}`);
-    completeTask(taskId, { lang: result.lang, content: result.content } as unknown as Record<string, unknown>);
+    await completeTask(taskId, { lang: result.lang, content: result.content } as unknown as Record<string, unknown>);
   } catch (error) {
     if (error instanceof AIUnavailableError) {
       console.warn(`[CBT] Task ${taskId} AIUnavailableError: ${error.reason}`);
-      failTask(taskId, 'AI unavailable', 503);
+      await failTask(taskId, 'AI unavailable', 503);
       return;
     }
     console.error(`[CBT] Task ${taskId} error: ${(error as Error).message}`);
-    failTask(taskId, (error as Error).message, 500);
+    await failTask(taskId, (error as Error).message, 500);
   }
 }
 
 // POST /api/cbt/analysis - 提交情绪日记分析任务（立即返回 taskId）
 cbtRouter.post('/analysis', async (req, res) => {
   try {
-    const taskId = createTask();
+    const taskId = await createTask();
     processCbtAnalysisTask(taskId, req.body as Record<string, unknown>)
-      .catch(err => {
+      .catch(async (err) => {
         console.error(`[CBT] Unhandled task error ${taskId}:`, err);
-        failTask(taskId, 'Internal error', 500);
+        await failTask(taskId, 'Internal error', 500);
       });
     console.log(`[CBT] Analysis task ${taskId} created`);
     res.json({ taskId, status: 'pending' });
@@ -123,8 +123,8 @@ cbtRouter.post('/analysis', async (req, res) => {
 });
 
 // GET /api/cbt/analysis/result/:taskId - 轮询分析结果
-cbtRouter.get('/analysis/result/:taskId', (req, res) => {
-  const task = getTask(req.params.taskId);
+cbtRouter.get('/analysis/result/:taskId', async (req, res) => {
+  const task = await getTask(req.params.taskId);
   if (!task) {
     return res.status(404).json({ error: 'Task not found or expired' });
   }

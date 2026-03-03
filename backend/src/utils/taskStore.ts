@@ -1,7 +1,9 @@
-// 轻量级内存任务存储，用于 Ask/CBT 异步任务模式。
-// 每个任务有 10 分钟 TTL，自动清理。
+// Redis 任务存储，用于 Ask/CBT 异步任务模式。
+// 使用 cacheService（Redis + 内存 fallback），支持多实例部署。
+// 每个任务有 10 分钟 TTL，由 Redis/缓存自动过期。
 
 import { randomUUID } from 'crypto';
+import { cacheService } from '../cache/redis.js';
 
 interface TaskEntry {
   status: 'pending' | 'completed' | 'failed';
@@ -11,48 +13,38 @@ interface TaskEntry {
   createdAt: number;
 }
 
-const tasks = new Map<string, TaskEntry>();
+const TASK_TTL_SECONDS = 10 * 60; // 10 minutes
+const KEY_PREFIX = 'task:';
 
-const TASK_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-export function createTask(): string {
+export async function createTask(): Promise<string> {
   const taskId = randomUUID();
-  tasks.set(taskId, { status: 'pending', createdAt: Date.now() });
+  await cacheService.set<TaskEntry>(
+    KEY_PREFIX + taskId,
+    { status: 'pending', createdAt: Date.now() },
+    TASK_TTL_SECONDS,
+  );
   return taskId;
 }
 
-export function completeTask(taskId: string, result: Record<string, unknown>): void {
-  const task = tasks.get(taskId);
+export async function completeTask(taskId: string, result: Record<string, unknown>): Promise<void> {
+  const task = await cacheService.get<TaskEntry>(KEY_PREFIX + taskId);
   if (task) {
     task.status = 'completed';
     task.result = result;
+    await cacheService.set<TaskEntry>(KEY_PREFIX + taskId, task, TASK_TTL_SECONDS);
   }
 }
 
-export function failTask(taskId: string, error: string, statusCode?: number): void {
-  const task = tasks.get(taskId);
+export async function failTask(taskId: string, error: string, statusCode?: number): Promise<void> {
+  const task = await cacheService.get<TaskEntry>(KEY_PREFIX + taskId);
   if (task) {
     task.status = 'failed';
     task.error = error;
     task.statusCode = statusCode;
+    await cacheService.set<TaskEntry>(KEY_PREFIX + taskId, task, TASK_TTL_SECONDS);
   }
 }
 
-export function getTask(taskId: string): TaskEntry | undefined {
-  return tasks.get(taskId);
+export async function getTask(taskId: string): Promise<TaskEntry | null> {
+  return cacheService.get<TaskEntry>(KEY_PREFIX + taskId);
 }
-
-export function deleteTask(taskId: string): void {
-  tasks.delete(taskId);
-}
-
-// Auto-cleanup expired tasks
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, task] of tasks) {
-    if (now - task.createdAt > TASK_TTL_MS) {
-      tasks.delete(id);
-    }
-  }
-}, CLEANUP_INTERVAL_MS);
