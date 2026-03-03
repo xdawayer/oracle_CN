@@ -268,30 +268,27 @@ Page({
     }
 
     try {
-      const res = await request({
+      // Step 1: 提交任务（快速返回 taskId）
+      const submitRes = await request({
         url: API_ENDPOINTS.ASK,
         method: 'POST',
         data: requestData,
-        timeout: 120000,
-        retry: 1,
+        timeout: 15000,
         dedupe: false,
       });
 
-      // 诊断日志：记录原始响应类型和关键字段
-      logger.info('[Ask] raw res type:', typeof res, 'keys:', res ? Object.keys(res) : 'null');
-      if (res && res.content) {
-        logger.info('[Ask] content type:', typeof res.content, 'hasSection:', !!(res.content && res.content.sections));
-        this.setData({
-          reportData: this._parseReport(res.content),
-          reportChartData: res.chart || null,
-          reportTransitData: res.transits || null,
-          reportLoading: false,
-          isLoading: false,
-        });
-        this._fetchQuota();
+      logger.info('[Ask] submit res:', JSON.stringify(submitRes).substring(0, 200));
+
+      if (submitRes && submitRes.taskId) {
+        // Step 2: 异步模式 - 轮询结果
+        const result = await this._pollAskResult(submitRes.taskId);
+        this._handleAskResult(result);
+      } else if (submitRes && submitRes.content) {
+        // 向后兼容：同步响应
+        this._handleAskResult(submitRes);
       } else {
-        logger.error('[Ask] No content! res:', JSON.stringify(res).substring(0, 500));
-        throw new Error('No content received');
+        logger.error('[Ask] Unexpected response:', JSON.stringify(submitRes).substring(0, 500));
+        throw new Error('No taskId or content received');
       }
     } catch (err) {
       const errInfo = err ? (err.message || err.errMsg || String(err)) : 'unknown';
@@ -314,7 +311,6 @@ Page({
         });
         return;
       }
-      // 显示更具体的错误信息辅助诊断
       const toastMsg = statusCode === 503
         ? '星象解读暂时维护中，请稍后再试'
         : statusCode
@@ -322,6 +318,56 @@ Page({
           : (errInfo.indexOf('timeout') !== -1 ? '请求超时，请稍后再试' : '分析服务中断，请稍后再试');
       wx.showToast({ title: toastMsg, icon: 'none', duration: 3000 });
       this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
+    }
+  },
+
+  // 轮询 Ask 任务结果
+  async _pollAskResult(taskId) {
+    const MAX_ATTEMPTS = 60;  // 最多 60 次 × 2s = 120s
+    const POLL_INTERVAL = 2000;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      if (!this.data.isLoading) throw new Error('cancelled');
+      try {
+        const res = await request({
+          url: API_ENDPOINTS.ASK_RESULT + '/' + taskId,
+          method: 'GET',
+          timeout: 10000,
+        });
+        if (res && res.status === 'completed') return res;
+        if (res && res.status === 'failed') {
+          const err = new Error(res.error || 'AI analysis failed');
+          err.statusCode = res.statusCode;
+          throw err;
+        }
+        // status === 'pending' → continue polling
+      } catch (pollErr) {
+        // 404 = task expired/not found
+        if (pollErr && pollErr.statusCode === 404) throw pollErr;
+        // 非 pending 错误（如 503/500）直接抛出
+        if (pollErr && pollErr.statusCode && pollErr.statusCode !== 200) throw pollErr;
+        // 网络波动，继续重试
+        logger.warn('[Ask] poll error (attempt ' + i + '):', pollErr && pollErr.message);
+      }
+    }
+    throw new Error('timeout');
+  },
+
+  // 处理 Ask 结果
+  _handleAskResult(res) {
+    if (res && res.content) {
+      logger.info('[Ask] content type:', typeof res.content, 'hasSection:', !!(res.content && res.content.sections));
+      this.setData({
+        reportData: this._parseReport(res.content),
+        reportChartData: res.chart || null,
+        reportTransitData: res.transits || null,
+        reportLoading: false,
+        isLoading: false,
+      });
+      this._fetchQuota();
+    } else {
+      logger.error('[Ask] No content in result:', JSON.stringify(res).substring(0, 500));
+      throw new Error('No content received');
     }
   },
 

@@ -12,6 +12,7 @@ const API_ENDPOINTS = {
   DAILY_DETAIL: '/api/daily/detail',
   DAILY_TRANSIT: '/api/daily/transit',
   ASK: '/api/ask',
+  ASK_RESULT: '/api/ask/result',  // GET /api/ask/result/:taskId
   SYNASTRY: '/api/synastry',
   SYNASTRY_OVERVIEW_SECTION: '/api/synastry/overview-section',
   SYNASTRY_TECHNICAL: '/api/synastry/technical',
@@ -19,6 +20,7 @@ const API_ENDPOINTS = {
   SYNTHETICA_GENERATE: '/api/synthetica/generate',
   CYCLE_LIST: '/api/cycle/list',
   CBT_ANALYSIS: '/api/cbt/analysis',
+  CBT_ANALYSIS_RESULT: '/api/cbt/analysis/result',  // GET /api/cbt/analysis/result/:taskId
   CBT_RECORDS: '/api/cbt/records',
   CBT_AGGREGATE_ANALYSIS: '/api/cbt/aggregate-analysis',
   WIKI_HOME: '/api/wiki/home',

@@ -593,11 +593,11 @@ Page({
         return;
       }
 
-      const res = await request({
+      // Step 1: 提交分析任务（快速返回 taskId）
+      const submitRes = await request({
         url: API_ENDPOINTS.CBT_ANALYSIS,
         method: 'POST',
-        timeout: 120000,
-        retry: 1,
+        timeout: 15000,
         dedupe: false,
         data: {
           birth: {
@@ -624,8 +624,15 @@ Page({
         }
       });
 
+      logger.info('[CBT] submit res:', JSON.stringify(submitRes).substring(0, 200));
+
+      // Step 2: 异步模式 - 轮询结果
+      let res = submitRes;
+      if (submitRes && submitRes.taskId) {
+        res = await this._pollCbtResult(submitRes.taskId);
+      }
+
       if (res && res.content) {
-        // res.content 可能是字符串或已解析的对象
         let parsed = null;
         if (typeof res.content === 'string') {
           parsed = parseAIResponse(res.content);
@@ -637,7 +644,6 @@ Page({
           this.setData({ reportData: parsed });
           storage.set(`cbt_report_${dateKey}`, { reportData: parsed, recordSummary });
         } else {
-          // 降级：包装为单 section
           const text = stripMarkdown(typeof res.content === 'string' ? res.content : JSON.stringify(res.content)).trim();
           const fallbackReport = { sections: [{ type: 'mood_echo', title: 'AI 解读', content: text }] };
           this.setData({ reportData: fallbackReport });
@@ -668,6 +674,34 @@ Page({
       // 无论 AI 是否成功，都保存心情记录
       this.saveRecord(moodsPayload, sceneConfig, sleepConfig, bodyPayload, dateKey);
     }
+  },
+
+  // 轮询 CBT 分析任务结果
+  async _pollCbtResult(taskId) {
+    const MAX_ATTEMPTS = 60;
+    const POLL_INTERVAL = 2000;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      if (!this.data.analyzing) throw new Error('cancelled');
+      try {
+        const res = await request({
+          url: API_ENDPOINTS.CBT_ANALYSIS_RESULT + '/' + taskId,
+          method: 'GET',
+          timeout: 10000,
+        });
+        if (res && res.status === 'completed') return res;
+        if (res && res.status === 'failed') {
+          const err = new Error(res.error || 'AI analysis failed');
+          err.statusCode = res.statusCode;
+          throw err;
+        }
+      } catch (pollErr) {
+        if (pollErr && pollErr.statusCode === 404) throw pollErr;
+        if (pollErr && pollErr.statusCode && pollErr.statusCode !== 200) throw pollErr;
+        logger.warn('[CBT] poll error (attempt ' + i + '):', pollErr && pollErr.message);
+      }
+    }
+    throw new Error('timeout');
   },
 
   async saveRecord(moodsPayload, sceneConfig, sleepConfig, bodyPayload, dateKey) {

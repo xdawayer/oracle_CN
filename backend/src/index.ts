@@ -107,7 +107,7 @@ app.use('/api/user', userRouter);      // 用户资料
 app.use('/api/log', logRouter);       // 错误日志上报
 
 // Health check（含构建版本，用于验证部署是否生效）
-const BUILD_VERSION = '20260304c';
+const BUILD_VERSION = '20260304d';
 app.get('/health', (_, res) => res.json({ status: 'ok', build: BUILD_VERSION }));
 
 // POST echo 测试端点（验证 callContainer POST 链路是否正常）

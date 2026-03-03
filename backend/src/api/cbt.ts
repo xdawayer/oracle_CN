@@ -4,7 +4,7 @@
 
 import { Router } from 'express';
 import { performance } from 'perf_hooks';
-import type { BirthInput, CBTAnalysisResponse, Language } from '../types/api.js';
+import type { BirthInput, Language } from '../types/api.js';
 import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService } from '../services/ephemeris.js';
 import { AIUnavailableError, generateAIContent } from '../services/ai.js';
 import { generateParallel } from '../services/parallel-generator.js';
@@ -12,6 +12,7 @@ import { cacheService } from '../cache/redis.js';
 import { resolveLocation } from '../services/geocoding.js';
 import { calculateAge, getAgeGroup } from '../utils/age.js';
 import { sanitizeUserInput } from '../services/content-security.js';
+import { createTask, completeTask, failTask, getTask } from '../utils/taskStore.js';
 
 export const cbtRouter = Router();
 
@@ -54,30 +55,26 @@ async function parseBirthInput(body: Record<string, unknown>): Promise<BirthInpu
   };
 }
 
-// POST /api/cbt/analysis - 情绪日记分析
-cbtRouter.post('/analysis', async (req, res) => {
+// 后台处理 CBT AI 分析
+async function processCbtAnalysisTask(taskId: string, body: Record<string, unknown>) {
   try {
     const requestStart = performance.now();
-    const langInput = (req.body as Record<string, unknown>).lang;
+    const langInput = body.lang;
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
-    const birth = await parseBirthInput(req.body);
-    const { situation: rawSituation, moods, automaticThoughts, hotThought, evidenceFor, evidenceAgainst, balancedEntries, bodySignal, moodGroup, scene, sleep, bodyTags, note: rawNote } = req.body;
-    const situation = rawSituation ? sanitizeUserInput(rawSituation) : rawSituation;
-    const note = rawNote ? sanitizeUserInput(rawNote) : rawNote;
+    const birth = await parseBirthInput(body);
+    const { situation: rawSituation, moods, automaticThoughts, hotThought, evidenceFor, evidenceAgainst, balancedEntries, bodySignal, moodGroup, scene, sleep, bodyTags, note: rawNote } = body;
+    const situation = rawSituation ? sanitizeUserInput(rawSituation as string) : rawSituation;
+    const note = rawNote ? sanitizeUserInput(rawNote as string) : rawNote;
 
-    const coreStart = performance.now();
-    const now = new Date();
     const [chart, transits] = await Promise.all([
       ephemerisService.calculateNatalChart(birth),
-      ephemerisService.calculateTransits(birth, now),
+      ephemerisService.calculateTransits(birth, new Date()),
     ]);
-    const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
 
     const userAge = calculateAge(birth.date);
     const userAgeGroup = getAgeGroup(userAge);
-    const aiStart = performance.now();
     const result = await generateAIContent({
       promptId: 'cbt-analysis',
       context: {
@@ -87,40 +84,53 @@ cbtRouter.post('/analysis', async (req, res) => {
         userAgeGroup,
         userBirthDate: birth.date,
         cbt_record: {
-          // 新字段（心情日记 v2）
-          moodGroup,
-          moods,
-          scene,
-          sleep,
-          bodyTags,
-          note,
-          // 向后兼容旧字段
-          situation,
-          automaticThoughts,
-          hotThought,
-          evidenceFor,
-          evidenceAgainst,
-          balancedEntries,
-          bodySignal,
+          moodGroup, moods, scene, sleep, bodyTags, note,
+          situation, automaticThoughts, hotThought, evidenceFor, evidenceAgainst, balancedEntries, bodySignal,
         },
       },
       lang,
     });
-    const aiMs = performance.now() - aiStart;
-    const totalMs = performance.now() - requestStart;
-    res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
-    console.log(`[CBT] Sending response: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(result.content).length}`);
-    res.json({ lang: result.lang, content: result.content } as CBTAnalysisResponse);
+    const totalMs = performance.now() - requestStart;
+    console.log(`[CBT] Task ${taskId} completed: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(result.content).length}`);
+    completeTask(taskId, { lang: result.lang, content: result.content } as unknown as Record<string, unknown>);
   } catch (error) {
     if (error instanceof AIUnavailableError) {
-      console.warn(`[CBT] AIUnavailableError: ${error.reason}`);
-      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      console.warn(`[CBT] Task ${taskId} AIUnavailableError: ${error.reason}`);
+      failTask(taskId, 'AI unavailable', 503);
       return;
     }
-    console.error(`[CBT] Unexpected error: ${(error as Error).message}`);
+    console.error(`[CBT] Task ${taskId} error: ${(error as Error).message}`);
+    failTask(taskId, (error as Error).message, 500);
+  }
+}
+
+// POST /api/cbt/analysis - 提交情绪日记分析任务（立即返回 taskId）
+cbtRouter.post('/analysis', async (req, res) => {
+  try {
+    const taskId = createTask();
+    processCbtAnalysisTask(taskId, req.body as Record<string, unknown>);
+    console.log(`[CBT] Analysis task ${taskId} created`);
+    res.json({ taskId, status: 'pending' });
+  } catch (error) {
+    console.error(`[CBT] Submit error: ${(error as Error).message}`);
     res.status(500).json({ error: (error as Error).message });
   }
+});
+
+// GET /api/cbt/analysis/result/:taskId - 轮询分析结果
+cbtRouter.get('/analysis/result/:taskId', (req, res) => {
+  const task = getTask(req.params.taskId);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found or expired' });
+  }
+  if (task.status === 'pending') {
+    return res.json({ status: 'pending' });
+  }
+  if (task.status === 'failed') {
+    return res.status(task.statusCode || 500).json({ status: 'failed', error: task.error });
+  }
+  res.json({ status: 'completed', ...task.result });
 });
 
 // POST /api/cbt/aggregate-analysis - 情绪日记聚合分析 (月度/阶段性)

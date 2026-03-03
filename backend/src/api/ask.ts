@@ -1,48 +1,100 @@
-// INPUT: Ask API 路由（含权益校验与单语言输出）。
-// OUTPUT: 导出 ask 路由（含类别上下文、权益校验与 Server-Timing）。
+// INPUT: Ask API 路由（异步任务模式：POST 提交 → GET 轮询结果）。
+// OUTPUT: 导出 ask 路由（含权益校验、后台 AI 生成与轮询端点）。
 // POS: Ask 端点；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router } from 'express';
 import { performance } from 'perf_hooks';
-import type { AskRequest, AskResponse, AskChartType, Language } from '../types/api.js';
+import type { AskRequest, AskChartType, Language } from '../types/api.js';
 import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService } from '../services/ephemeris.js';
 import { AIUnavailableError, generateAIContentWithMeta } from '../services/ai.js';
 import { optionalAuthMiddleware } from './auth.js';
 import entitlementServiceV2 from '../services/entitlementServiceV2.js';
-import { PRICING } from '../config/auth.js';
 import { calculateAge, getAgeGroup } from '../utils/age.js';
 import { sanitizeUserInput } from '../services/content-security.js';
+import { createTask, completeTask, failTask, getTask } from '../utils/taskStore.js';
 
 export const askRouter = Router();
 
 // Determine chart type based on category
-// time_cycles questions need transit chart (includes natal + current transits)
 const getChartType = (category?: string): AskChartType => {
   if (category === 'time_cycles') return 'transit';
   return 'natal';
 };
 
-// POST /api/ask - 问答
-askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
+// 后台处理 Ask AI 生成
+async function processAskTask(
+  taskId: string,
+  body: AskRequest & { mode?: string; pairingContext?: unknown },
+  userId: string | null,
+  deviceFingerprint: string | undefined,
+) {
   try {
     const requestStart = performance.now();
-    const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = req.body as AskRequest & { mode?: string };
+    const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = body;
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
     const question = sanitizeUserInput(rawQuestion || '');
     const context = rawContext ? sanitizeUserInput(rawContext) : rawContext;
     const chartType = getChartType(category);
-    const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
     const promptId = mode === 'oracle' ? 'oracle-answer' : 'ask-answer';
 
-    // Parallelize access check with chart calculations
-    const coreStart = performance.now();
-    const [access, chart, transits] = await Promise.all([
-      entitlementServiceV2.checkAccess(req.userId || null, 'ask', undefined, deviceFingerprint),
+    const [chart, transits] = await Promise.all([
       ephemerisService.calculateNatalChart(birth),
       ephemerisService.calculateTransits(birth, new Date()),
     ]);
-    const coreMs = performance.now() - coreStart;
 
+    const chartSummary = buildCompactChartSummary(chart);
+    const transitSummary = buildCompactTransitSummary(transits);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    const { content, meta } = await generateAIContentWithMeta({
+      promptId,
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category, userAge, userAgeGroup, userBirthDate: birth.date },
+      lang,
+    });
+
+    // AI 成功后再消耗配额
+    const consumed = await entitlementServiceV2.consumeFeature(userId, 'ask', deviceFingerprint);
+    if (!consumed) {
+      failTask(taskId, 'Failed to consume feature', 403);
+      return;
+    }
+
+    const totalMs = performance.now() - requestStart;
+    console.log(`[Ask] Task ${taskId} completed: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
+
+    completeTask(taskId, {
+      lang: content.lang,
+      content: content.content,
+      meta,
+      chart,
+      transits,
+      chartType,
+    } as unknown as Record<string, unknown>);
+  } catch (error) {
+    if (error instanceof AIUnavailableError) {
+      console.warn(`[Ask] Task ${taskId} AIUnavailableError: ${error.reason}`);
+      failTask(taskId, 'AI unavailable', 503);
+      return;
+    }
+    console.error(`[Ask] Task ${taskId} error: ${(error as Error).message}`);
+    failTask(taskId, (error as Error).message, 500);
+  }
+}
+
+// POST /api/ask - 提交问答任务（立即返回 taskId）
+askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
+  try {
+    const { birth, question: rawQuestion } = req.body as AskRequest & { mode?: string };
+    const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+
+    // Quick validation
+    if (!birth || !rawQuestion) {
+      return res.status(400).json({ error: 'Missing required fields: birth, question' });
+    }
+
+    // Access check (fast, <1s)
+    const access = await entitlementServiceV2.checkAccess(req.userId || null, 'ask', undefined, deviceFingerprint);
     if (!access.canAccess) {
       return res.status(403).json({
         error: 'Feature not available',
@@ -51,51 +103,31 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
-    const chartSummary = buildCompactChartSummary(chart);
-    const transitSummary = buildCompactTransitSummary(transits);
-    const userAge = calculateAge(birth.date);
-    const userAgeGroup = getAgeGroup(userAge);
+    // Create task and start background processing
+    const taskId = createTask();
+    processAskTask(taskId, req.body, req.userId || null, deviceFingerprint);
 
-    const aiStart = performance.now();
-    const { content, meta } = await generateAIContentWithMeta({
-      promptId,
-      context: { chart_summary: chartSummary, transit_summary: transitSummary, question, context, category, userAge, userAgeGroup, userBirthDate: birth.date },
-      lang,
-    });
-    const aiMs = performance.now() - aiStart;
-    const totalMs = performance.now() - requestStart;
-    res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
-
-    const consumed = await entitlementServiceV2.consumeFeature(
-      req.userId || null,
-      'ask',
-      deviceFingerprint
-    );
-    if (!consumed) {
-      return res.status(403).json({
-        error: 'Failed to consume feature',
-        needPurchase: true,
-        price: PRICING.ASK_SINGLE,
-      });
-    }
-
-    console.log(`[Ask] Sending response: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
-    res.json({
-      lang: content.lang,
-      content: content.content,
-      meta,
-      chart,
-      transits,
-      chartType,
-    } as AskResponse);
+    console.log(`[Ask] Task ${taskId} created for user ${req.userId || 'anon'}`);
+    res.json({ taskId, status: 'pending' });
   } catch (error) {
-    if (error instanceof AIUnavailableError) {
-      console.warn(`[Ask] AIUnavailableError: ${error.reason}`);
-      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
-      return;
-    }
-    console.error(`[Ask] Unexpected error: ${(error as Error).message}`);
+    console.error(`[Ask] Submit error: ${(error as Error).message}`);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
+// GET /api/ask/result/:taskId - 轮询任务结果
+askRouter.get('/result/:taskId', (req, res) => {
+  const task = getTask(req.params.taskId);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found or expired' });
+  }
+  if (task.status === 'pending') {
+    return res.json({ status: 'pending' });
+  }
+  if (task.status === 'failed') {
+    const statusCode = task.statusCode || 500;
+    return res.status(statusCode).json({ status: 'failed', error: task.error });
+  }
+  // completed
+  res.json({ status: 'completed', ...task.result });
+});
