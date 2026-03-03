@@ -3,17 +3,6 @@ const auth = require('../../utils/auth');
 const { request } = require('../../utils/request');
 const avatarBehavior = require('../../behaviors/avatar');
 
-const NAME_CHARS = '星月云风雪晨夏秋瑶琳萱语梦溪岚霜璃羽翼灵芷蕊瑾璇沐澜清若曦妤熙彤昕婉悦涵筱宁恬雅柔芸茉苒忆安然初墨黛素尘烟';
-
-function generateRandomName() {
-  const len = 2 + Math.floor(Math.random() * 3);
-  let name = '';
-  for (let i = 0; i < len; i++) {
-    name += NAME_CHARS[Math.floor(Math.random() * NAME_CHARS.length)];
-  }
-  return name;
-}
-
 Page({
   behaviors: [avatarBehavior],
   data: {
@@ -21,7 +10,6 @@ Page({
     userProfile: {},
     avatarUrl: '',
     isLoggedIn: false,
-    authLoading: false,
     statusBarHeight: 20,
   },
 
@@ -103,42 +91,6 @@ Page({
     } catch (err) {
       // 静默失败，使用本地数据
     }
-  },
-
-  handleLogin() {
-    if (this.data.authLoading) return;
-    this.setData({ authLoading: true });
-    wx.getUserProfile({
-      desc: '用于完善个人资料与报告展示',
-      success: async (res) => {
-        try {
-          const data = await auth.login(res.userInfo);
-          const previousProfile = storage.get('user_profile') || {};
-          const mergedProfile = {
-            ...previousProfile,
-            name: ((data && data.user && data.user.name && data.user.name !== '微信用户') ? data.user.name : null) || (res.userInfo.nickName && res.userInfo.nickName !== '微信用户' ? res.userInfo.nickName : null) || previousProfile.name || generateRandomName(),
-          };
-          storage.set('user_profile', mergedProfile);
-          if (res.userInfo.avatarUrl) {
-            storage.set('user_avatar', res.userInfo.avatarUrl);
-            storage.set('wechat_avatar', res.userInfo.avatarUrl);
-          }
-          this.setData({
-            userProfile: mergedProfile,
-            avatarUrl: res.userInfo.avatarUrl || this.data.avatarUrl,
-            isLoggedIn: true,
-            authLoading: false,
-          });
-          wx.showToast({ title: '登录成功', icon: 'success' });
-        } catch (error) {
-          this.setData({ authLoading: false });
-          wx.showToast({ title: '登录失败', icon: 'none' });
-        }
-      },
-      fail: () => {
-        this.setData({ authLoading: false });
-      },
-    });
   },
 
   goToProfile() {

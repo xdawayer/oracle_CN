@@ -43,6 +43,8 @@ Page({
     showTimePicker: false,
     showAvatarPicker: false,
     avatarOptions: [],
+    showNameEditor: false,
+    editingName: '',
   },
 
   onLoad() {
@@ -136,6 +138,29 @@ Page({
     this.setData({ showAvatarPicker: true });
   },
 
+  onChooseWechatAvatar(e) {
+    const { avatarUrl } = e.detail;
+    if (!avatarUrl) return;
+
+    const savedPath = `${wx.env.USER_DATA_PATH}/wechat_avatar.jpg`;
+    try {
+      const fs = wx.getFileSystemManager();
+      // 先清理旧文件，避免 saveFileSync 因目标已存在而报错
+      try { fs.unlinkSync(savedPath); } catch (_) { /* ignore */ }
+      fs.saveFileSync(avatarUrl, savedPath);
+      storage.set('wechat_avatar', savedPath);
+      this.setData({ avatarUrl: savedPath, showAvatarPicker: false });
+    } catch (err) {
+      this.setData({ avatarUrl, showAvatarPicker: false });
+    }
+    this.checkChanges();
+
+    // 更新头像选项列表
+    const opts = this.data.avatarOptions.filter(item => item.label !== '微信');
+    opts.unshift({ url: this.data.avatarUrl, label: '微信' });
+    this.setData({ avatarOptions: opts });
+  },
+
   onSelectAvatar(e) {
     const url = e.currentTarget.dataset.url;
     this.setData({
@@ -170,18 +195,29 @@ Page({
   onNoop() {},
 
   onEditName() {
-    wx.showModal({
-      title: '修改昵称',
-      editable: true,
-      placeholderText: '请输入昵称',
-      content: this.data.name,
-      success: (res) => {
-        if (res.confirm && res.content) {
-          this.setData({ name: res.content.trim() });
-          this.checkChanges();
-        }
-      },
-    });
+    this.setData({ showNameEditor: true, editingName: this.data.name });
+  },
+
+  onNameInput(e) {
+    this.setData({ editingName: e.detail.value });
+  },
+
+  onNicknameReview() {
+    // 微信昵称审核回调，无需额外处理
+  },
+
+  onConfirmName() {
+    const name = (this.data.editingName || '').trim();
+    if (name) {
+      this.setData({ name, showNameEditor: false });
+      this.checkChanges();
+    } else {
+      this.setData({ showNameEditor: false });
+    }
+  },
+
+  onCloseNameEditor() {
+    this.setData({ showNameEditor: false });
   },
 
   onEditBirthDate() {
