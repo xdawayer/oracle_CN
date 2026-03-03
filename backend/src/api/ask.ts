@@ -24,6 +24,13 @@ const getChartType = (category?: string): AskChartType => {
 
 // POST /api/ask - 问答
 askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
+  let clientDisconnected = false;
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      clientDisconnected = true;
+      console.warn('[Ask] Client disconnected before response was sent');
+    }
+  });
   try {
     const requestStart = performance.now();
     const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = req.body as AskRequest & { mode?: string };
@@ -79,6 +86,12 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
+    const totalMsFinal = performance.now() - requestStart;
+    if (clientDisconnected) {
+      console.warn(`[Ask] Client already disconnected after ${totalMsFinal.toFixed(0)}ms, response not sent`);
+      return;
+    }
+    console.log(`[Ask] Sending response: totalMs=${totalMsFinal.toFixed(0)}, contentSize=${JSON.stringify(content.content).length}`);
     res.json({
       lang: content.lang,
       content: content.content,
@@ -89,9 +102,11 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
     } as AskResponse);
   } catch (error) {
     if (error instanceof AIUnavailableError) {
+      console.warn(`[Ask] AIUnavailableError: ${error.reason}`);
       res.status(503).json({ error: 'AI unavailable', reason: error.reason });
       return;
     }
+    console.error(`[Ask] Unexpected error: ${(error as Error).message}`);
     res.status(500).json({ error: (error as Error).message });
   }
 });
