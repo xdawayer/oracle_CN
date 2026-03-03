@@ -131,6 +131,8 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        // DEBUG: 显示 callContainer 响应状态
+        try { wx.showToast({ title: '[CC OK] ' + res.statusCode + ' ' + (typeof res.data) + ' ' + path.slice(0, 20), icon: 'none', duration: 5000 }); } catch (_e) {}
         resolve(res);
       },
       fail: (err) => {

@@ -2230,7 +2230,9 @@ Page({
     } catch (err) {
       wx.hideLoading();
       logger.error('Fetch self detail failed', err);
-      wx.showToast({ title: '内容加载失败，请稍后重试', icon: 'none' });
+      // DEBUG: 显示具体错误信息
+      const debugMsg = err ? (err.statusCode || '') + ' ' + (err.message || err.errMsg || '') : 'unknown';
+      wx.showToast({ title: '[ERR] ' + String(debugMsg).slice(0, 40), icon: 'none', duration: 5000 });
     }
   },
 
