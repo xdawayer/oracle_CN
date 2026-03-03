@@ -79,8 +79,10 @@
       </view>
       <view class="menu-list-item feedback-item">
         <button class="feedback-btn" open-type="feedback">
-          <text class="menu-item-label">意见反馈</text>
-          <text class="menu-item-chevron">></text>
+          <view class="feedback-btn-inner">
+            <text class="menu-item-label">意见反馈</text>
+            <text class="menu-item-chevron">></text>
+          </view>
         </button>
       </view>
       <view class="menu-list-item logout-item" bindtap="handleLogout">

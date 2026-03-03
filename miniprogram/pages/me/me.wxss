@@ -186,11 +186,9 @@
 }
 
 .feedback-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: block;
   width: 100%;
-  padding: var(--spacing-lg);
+  padding: 0;
   margin: 0;
   background: transparent;
   border: none;
@@ -204,6 +202,13 @@
 
 .feedback-btn::after {
   display: none;
+}
+
+.feedback-btn-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
 }
 
 /* 备案信息 */
