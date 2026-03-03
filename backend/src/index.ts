@@ -107,8 +107,25 @@ app.use('/api/user', userRouter);      // 用户资料
 app.use('/api/log', logRouter);       // 错误日志上报
 
 // Health check（含构建版本，用于验证部署是否生效）
-const BUILD_VERSION = '20260304b';
+const BUILD_VERSION = '20260304c';
 app.get('/health', (_, res) => res.json({ status: 'ok', build: BUILD_VERSION }));
+
+// POST echo 测试端点（验证 callContainer POST 链路是否正常）
+app.post('/api/echo', (req, res) => {
+  console.log(`[Echo] POST received, body keys: ${Object.keys(req.body || {}).join(',')}`);
+  res.json({
+    build: BUILD_VERSION,
+    method: req.method,
+    bodyKeys: Object.keys(req.body || {}),
+    // 模拟 Ask 响应格式
+    lang: 'zh',
+    content: {
+      sections: [
+        { type: 'deep_analysis', title: '测试解读', cards: [{ title: '诊断', content: '如果你看到这条消息，说明 callContainer POST 链路正常。build=' + BUILD_VERSION }] }
+      ]
+    },
+  });
+});
 
 // 启动时检查关键环境变量
 const checkEnvVars = () => {

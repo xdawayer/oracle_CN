@@ -277,7 +277,10 @@ Page({
         dedupe: false,
       });
 
+      // 诊断日志：记录原始响应类型和关键字段
+      logger.info('[Ask] raw res type:', typeof res, 'keys:', res ? Object.keys(res) : 'null');
       if (res && res.content) {
+        logger.info('[Ask] content type:', typeof res.content, 'hasSection:', !!(res.content && res.content.sections));
         this.setData({
           reportData: this._parseReport(res.content),
           reportChartData: res.chart || null,
@@ -287,6 +290,7 @@ Page({
         });
         this._fetchQuota();
       } else {
+        logger.error('[Ask] No content! res:', JSON.stringify(res).substring(0, 500));
         throw new Error('No content received');
       }
     } catch (err) {
@@ -384,6 +388,29 @@ Page({
         cards: [{ title: '', content: this._stripMarkdown(text) }]
       }]
     };
+  },
+
+  // 诊断：长按触发 echo 测试（验证 callContainer POST 是否正常）
+  async onDebugEcho() {
+    try {
+      const res = await request({
+        url: '/api/echo',
+        method: 'POST',
+        data: { test: true },
+        timeout: 15000,
+      });
+      wx.showModal({
+        title: 'Echo 诊断',
+        content: 'build=' + (res && res.build) + '\ncontent=' + (res && res.content ? 'YES' : 'NO') + '\nkeys=' + (res ? Object.keys(res).join(',') : 'null') + '\ntype=' + typeof res,
+        showCancel: false,
+      });
+    } catch (err) {
+      wx.showModal({
+        title: 'Echo 失败',
+        content: String(err && (err.message || err.errMsg) || err),
+        showCancel: false,
+      });
+    }
   },
 
   closeReport() {
