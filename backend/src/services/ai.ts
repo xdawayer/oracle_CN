@@ -27,7 +27,8 @@ const DEFAULT_MAX_TOKENS = 4096;
 
 const MAX_TOKENS_MAP: Record<string, number> = {
   // 高频文本与结构化输出：控制长尾时长
-  'ask-answer': 3072,
+  'ask-answer': 2048,
+  'oracle-answer': 3072,
   'daily-forecast': 1600,
   'daily-detail': 1600,
   'natal-overview': 1400,
@@ -45,6 +46,23 @@ const MAX_TOKENS_MAP: Record<string, number> = {
   'synthetica-analysis': 1400,
   'cycle-naming': 800,
   'daily-home-card': 400,
+  // 合盘：按实际输出量控制（避免默认 4096 拖长生成时间）
+  'synastry-overview': 1800,
+  'synastry-highlights': 1400,
+  'synastry-core-dynamics': 1200,
+  'synastry-growth-task': 1200,
+  'synastry-conflict-loop': 1200,
+  'synastry-dynamic': 1200,
+  'synastry-natal-a': 1400,
+  'synastry-natal-b': 1400,
+  'synastry-compare-ab': 1600,
+  'synastry-compare-ba': 1600,
+  'synastry-composite': 1600,
+  'synastry-practice-tools': 1200,
+  'synastry-relationship-timing': 1200,
+  'synastry-vibe-tags': 800,
+  'synastry-weather-forecast': 1200,
+  'synastry-action-plan': 1200,
   // K线年度报告
   'kline-year-core': 2000,
   'kline-year-dimensions': 4000,
@@ -322,6 +340,91 @@ export class AIUnavailableError extends Error {
   }
 }
 
+// ============================================================
+// AI 调用指标收集器（内存环形缓冲，供 /api/log/ai-metrics 查询）
+// ============================================================
+export interface AIMetricEntry {
+  ts: string;           // ISO 时间戳
+  promptId: string;
+  model: string;
+  maxTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  durationMs: number;
+  cached: boolean;
+  truncated: boolean;    // finish_reason === 'length'
+  status: 'ok' | 'error';
+  error?: string;        // 错误原因
+}
+
+const AI_METRICS_CAPACITY = 200;
+const _aiMetrics: AIMetricEntry[] = [];
+
+function recordAIMetric(entry: AIMetricEntry): void {
+  if (_aiMetrics.length >= AI_METRICS_CAPACITY) {
+    _aiMetrics.shift();
+  }
+  _aiMetrics.push(entry);
+}
+
+/** 获取最近 N 条 AI 调用指标（默认全部） */
+export function getAIMetrics(limit?: number): {
+  entries: AIMetricEntry[];
+  summary: {
+    total: number;
+    errors: number;
+    truncations: number;
+    avgDurationMs: number;
+    byPrompt: Record<string, { count: number; avgMs: number; errors: number; truncations: number }>;
+  };
+} {
+  const entries = limit && limit > 0 ? _aiMetrics.slice(-limit) : [..._aiMetrics];
+  const total = entries.length;
+  let errors = 0;
+  let truncations = 0;
+  let totalDuration = 0;
+  let nonCachedCount = 0;
+  const byPrompt: Record<string, { count: number; nonCachedMs: number; nonCachedCount: number; avgMs: number; errors: number; truncations: number }> = {};
+
+  for (const e of entries) {
+    if (e.status === 'error') errors++;
+    if (e.truncated) truncations++;
+
+    const p = byPrompt[e.promptId] || (byPrompt[e.promptId] = { count: 0, nonCachedMs: 0, nonCachedCount: 0, avgMs: 0, errors: 0, truncations: 0 });
+    p.count++;
+    if (!e.cached) {
+      totalDuration += e.durationMs;
+      nonCachedCount++;
+      p.nonCachedMs += e.durationMs;
+      p.nonCachedCount++;
+    }
+    if (e.status === 'error') p.errors++;
+    if (e.truncated) p.truncations++;
+  }
+
+  // 计算各 prompt 的平均耗时（仅统计非缓存调用），并移除内部字段
+  const byPromptClean: Record<string, { count: number; avgMs: number; errors: number; truncations: number }> = {};
+  for (const [id, p] of Object.entries(byPrompt)) {
+    byPromptClean[id] = {
+      count: p.count,
+      avgMs: p.nonCachedCount > 0 ? Math.round(p.nonCachedMs / p.nonCachedCount) : 0,
+      errors: p.errors,
+      truncations: p.truncations,
+    };
+  }
+
+  return {
+    entries,
+    summary: {
+      total,
+      errors,
+      truncations,
+      avgDurationMs: nonCachedCount > 0 ? Math.round(totalDuration / nonCachedCount) : 0,
+      byPrompt: byPromptClean,
+    },
+  };
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return fetch(url, options);
@@ -506,7 +609,13 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
   if (shouldUseCache) {
     const cached = await cacheService.get<LocalizedContent<T>>(cacheKey);
     if (cached) {
-      console.log(`[AI] Cache hit for ${options.promptId} in ${Date.now() - startTime}ms (model=${model}, maxTokens=${maxTokens})`);
+      const cacheMs = Date.now() - startTime;
+      console.log(`[AI] Cache hit for ${options.promptId} in ${cacheMs}ms (model=${model}, maxTokens=${maxTokens})`);
+      recordAIMetric({
+        ts: new Date().toISOString(), promptId: options.promptId, model, maxTokens,
+        promptTokens: 0, completionTokens: 0, durationMs: cacheMs,
+        cached: true, truncated: false, status: 'ok',
+      });
       return buildAIResult(cached, true);
     }
   }
@@ -520,6 +629,10 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
   }
 
   const baseUrl = getDeepSeekBaseUrl();
+
+  // 保存 API 返回的 token 用量，供 catch 块中的 metric 使用
+  let _usagePrompt = 0;
+  let _usageCompletion = 0;
 
   try {
     const timeoutMs = options.timeoutMs ?? AI_TIMEOUT_MS;
@@ -553,17 +666,30 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
 
     const data = await response.json();
     const usage = data.usage;
+    const finishReason = data.choices?.[0]?.finish_reason;
     const text = data.choices?.[0]?.message?.content;
     console.log(`[AI] Response text length: ${text?.length || 0} chars`);
     if (usage) {
+      _usagePrompt = usage.prompt_tokens ?? 0;
+      _usageCompletion = usage.completion_tokens ?? 0;
       console.log(`[AI] Usage prompt=${usage.prompt_tokens ?? 'n/a'} completion=${usage.completion_tokens ?? 'n/a'} total=${usage.total_tokens ?? 'n/a'}`);
+    }
+    if (finishReason === 'length') {
+      console.warn(`[AI] ⚠ ${options.promptId} truncated (finish_reason=length, maxTokens=${maxTokens}, completion=${usage?.completion_tokens ?? '?'})`);
     }
 
     if (!text) {
       throw new Error('No response from DeepSeek');
     }
 
-    console.log(`[AI] <<< Completed ${options.promptId} in ${Date.now() - startTime}ms`);
+    const elapsed = Date.now() - startTime;
+    const isTruncated = finishReason === 'length';
+    const metricBase = {
+      ts: new Date().toISOString(), promptId: options.promptId, model, maxTokens,
+      promptTokens: usage?.prompt_tokens ?? 0, completionTokens: usage?.completion_tokens ?? 0,
+      durationMs: elapsed, cached: false, truncated: isTruncated,
+    };
+    console.log(`[AI] <<< Completed ${options.promptId} in ${elapsed}ms`);
 
     if (RAW_TEXT_PROMPTS.has(options.promptId)) {
       const cleaned = replaceSensitiveWords(stripCodeFence(text));
@@ -574,6 +700,7 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
         console.warn(`[AI] Content filtered for ${options.promptId} (security check failed)`);
         const safeContent = '根据星象分析，当前阶段适合自我反思与内在成长。建议关注自身的身心健康，保持积极乐观的心态，在日常生活中寻找平衡与和谐。';
         const safeResult: LocalizedContent<T> = { lang, content: safeContent as T };
+        recordAIMetric({ ...metricBase, status: 'error', error: 'content_filtered' });
         return buildAIResult(safeResult);
       }
 
@@ -581,7 +708,8 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       if (shouldUseCache) {
         await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
       }
-      console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${Date.now() - startTime}`);
+      console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${elapsed}`);
+      recordAIMetric({ ...metricBase, status: 'ok' });
       return buildAIResult(result);
     }
 
@@ -620,14 +748,20 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       await cacheService.set(cacheKey, result, CACHE_TTL.AI_OUTPUT);
     }
 
-    console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${Date.now() - startTime}`);
+    console.log(`[AI] Result ${options.promptId} cached=false model=${model} maxTokens=${maxTokens} ms=${elapsed}`);
+    recordAIMetric({ ...metricBase, status: 'ok' });
     return buildAIResult(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : '';
     const reason = resolveMockReason(error);
-    const elapsed = Date.now() - startTime;
-    console.error(`[AI] !!! ${options.promptId} FAILED after ${elapsed}ms: ${message}`);
+    const errElapsed = Date.now() - startTime;
+    recordAIMetric({
+      ts: new Date().toISOString(), promptId: options.promptId, model, maxTokens,
+      promptTokens: _usagePrompt, completionTokens: _usageCompletion,
+      durationMs: errElapsed, cached: false, truncated: false, status: 'error', error: reason,
+    });
+    console.error(`[AI] !!! ${options.promptId} FAILED after ${errElapsed}ms: ${message}`);
     if (stack) console.error(`[AI] Stack: ${stack}`);
     if (!allowMock) {
       throw new AIUnavailableError(reason, message);

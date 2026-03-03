@@ -1,9 +1,11 @@
 /**
- * 错误日志 API 路由
- * 接收前端上报的错误日志
+ * 日志 API 路由
+ * - POST /error: 接收前端上报的错误日志
+ * - GET /ai-metrics: 查询最近 AI 调用指标（需 secret 或 GM 环境）
  */
 import { Router, Request, Response } from 'express';
 import { optionalAuthMiddleware } from './auth.js';
+import { getAIMetrics } from '../services/ai.js';
 
 const router = Router();
 
@@ -37,6 +39,28 @@ router.post('/error', (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to log error' });
   }
+});
+
+/**
+ * GET /api/log/ai-metrics?limit=50
+ * 查询最近 AI 调用指标（含汇总统计）
+ *
+ * 鉴权方式（满足任一即可）：
+ *   1. header x-gm-secret 与环境变量 GM_SECRET 匹配
+ *   2. NODE_ENV !== 'production'
+ */
+router.get('/ai-metrics', (req: Request, res: Response) => {
+  const gmSecret = process.env.GM_SECRET;
+  const isDevEnv = process.env.NODE_ENV !== 'production';
+  const secretOk = gmSecret && req.headers['x-gm-secret'] === gmSecret;
+
+  if (!isDevEnv && !secretOk) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const limit = Number(req.query.limit) || 0;
+  const data = getAIMetrics(limit);
+  res.json(data);
 });
 
 export default router;

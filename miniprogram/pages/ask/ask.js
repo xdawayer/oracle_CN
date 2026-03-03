@@ -273,6 +273,8 @@ Page({
         method: 'POST',
         data: requestData,
         timeout: 120000,
+        retry: 1,
+        dedupe: false,
       });
 
       if (res && res.content) {
