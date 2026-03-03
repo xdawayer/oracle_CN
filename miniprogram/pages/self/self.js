@@ -2213,26 +2213,34 @@ Page({
       return;
     }
     const cacheKey = this.getSelfDetailCacheKey(type, key);
-    wx.showLoading({ title: '加载解读...' });
-    try {
-      const content = await this.fetchDetailContent(type, chartData, cacheKey);
-      wx.hideLoading();
-      const reportData = this.buildDetailReportData(title, subtitle, content, type);
-      if (!reportData) {
-        wx.showToast({ title: '暂无解读内容', icon: 'none' });
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      wx.showLoading({ title: attempt === 1 ? '加载解读...' : 'AI 正在生成，请稍等...' });
+      try {
+        const content = await this.fetchDetailContent(type, chartData, cacheKey);
+        wx.hideLoading();
+        const reportData = this.buildDetailReportData(title, subtitle, content, type);
+        if (!reportData) {
+          wx.showToast({ title: '暂无解读内容', icon: 'none' });
+          return;
+        }
+        this.setData({
+          detailReportData: reportData,
+          showDetailReport: true,
+          navTitle: reportData.title || '太阳解读'
+        });
         return;
+      } catch (err) {
+        logger.error(`Fetch self detail attempt ${attempt}/${maxAttempts} failed`, err);
+        if (attempt < maxAttempts) {
+          // 后端可能仍在生成并缓存结果，等待后重试
+          wx.showLoading({ title: 'AI 正在生成，请稍等...' });
+          await new Promise(r => setTimeout(r, 15000));
+          continue;
+        }
+        wx.hideLoading();
+        wx.showToast({ title: '内容加载失败，请稍后重试', icon: 'none' });
       }
-      this.setData({
-        detailReportData: reportData,
-        showDetailReport: true,
-        navTitle: reportData.title || '太阳解读'
-      });
-    } catch (err) {
-      wx.hideLoading();
-      logger.error('Fetch self detail failed', err);
-      // DEBUG: 显示具体错误信息
-      const debugMsg = err ? (err.statusCode || '') + ' ' + (err.message || err.errMsg || '') : 'unknown';
-      wx.showToast({ title: '[ERR] ' + String(debugMsg).slice(0, 40), icon: 'none', duration: 5000 });
     }
   },
 
