@@ -741,6 +741,7 @@ Page({
 
       this.setData({
         status: LoadingState.LOADING,
+        errorMessage: '',
         isForecastPending: true,
         forecast: initForecast,
         overviewSummary: '',
@@ -1426,8 +1427,6 @@ Page({
       return content;
     } catch (e) {
       logger.error('Fetch daily detail failed', e);
-      wx.hideLoading();
-      wx.showToast({ title: '解读加载失败', icon: 'none' });
       return null;
     }
   },
