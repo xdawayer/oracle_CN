@@ -602,8 +602,8 @@ Component({
         // 主轴（ASC/IC/DSC/MC）使用更粗的线条
         const isAxis = i === 0 || i === 3 || i === 6 || i === 9;
 
-        ctx.strokeStyle = isAxis ? 'rgba(180, 180, 180, 0.7)' : 'rgba(128, 128, 128, 0.25)';
-        ctx.lineWidth = isAxis ? 1 : 0.5;
+        ctx.strokeStyle = isAxis ? 'rgba(160, 155, 145, 0.8)' : 'rgba(160, 155, 145, 0.4)';
+        ctx.lineWidth = isAxis ? 1.5 : 0.8;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
