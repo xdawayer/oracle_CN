@@ -1320,7 +1320,7 @@ Page({
     if (!query) return;
 
     try {
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}` });
+      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 120000 });
       res.content = _clean(res.content || {});
       const overviewData = this.parseOverview(res.content);
 
@@ -1563,7 +1563,7 @@ Page({
       const requestDeep = () => request({
         url: API_ENDPOINTS.DETAIL,
         method: 'POST',
-        timeout: 60000,
+        timeout: 120000,
         data: {
           type: 'deep',
           context: 'synastry',

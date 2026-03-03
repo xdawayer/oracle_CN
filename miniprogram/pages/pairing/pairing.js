@@ -67,6 +67,7 @@ Page({
   },
 
   onLoad() {
+    this._requestGen = 0;
   },
 
   bindSignAChange(e) {
@@ -147,80 +148,119 @@ Page({
     };
   },
 
-  handleMatch() {
-    if (this.data.loading) return;
-
+  async handleMatch() {
+    // 递增版本号，使旧请求的结果被忽略
+    const gen = ++this._requestGen;
     this.setData({ loading: true });
 
     const quickResult = this.calculateQuickResult();
 
-    // 立即切换到报告页面，显示快速预计算结果
-    this.setData({
-      step: 2,
-      loading: false,
-      aiLoading: true,
-      finalData: quickResult,
-      aiData: null
-    });
+    wx.showLoading({ title: 'AI 正在分析...' });
 
-    wx.setNavigationBarTitle({ title: '配对报告' });
-
-    // 异步请求 AI 深度分析
-    this.fetchAIAnalysis(quickResult);
-  },
-
-  async fetchAIAnalysis(quickResult) {
     try {
-      const res = await request({
-        url: API_ENDPOINTS.PAIRING,
-        method: 'POST',
-        data: {
-          signA: quickResult.signA.id,
-          signB: quickResult.signB.id,
-          animalA: quickResult.animalA.id,
-          animalB: quickResult.animalB.id
-        }
+      // 等待 AI 结果完成后再显示报告
+      const finalData = await this.fetchAIAnalysis(quickResult, gen);
+
+      // 已被更新的请求取代，丢弃本次结果
+      if (this._requestGen !== gen) return;
+
+      this.setData({
+        step: 2,
+        loading: false,
+        aiLoading: false,
+        finalData,
+        aiData: finalData !== quickResult ? finalData : null
       });
 
-      if (res && res.content) {
-        const aiContent = res.content;
-        // 用 AI 结果替换维度描述、分析文字和建议
-        // 以 quickResult 维度为基准合并，防止 AI 返回数量不一致
-        const aiDims = aiContent.dimensions || [];
-        const merged = {
-          ...quickResult,
-          score: aiContent.score || quickResult.score,
-          dimensions: quickResult.dimensions.map((qd, i) => {
-            const ad = aiDims[i];
-            return ad
-              ? { ...qd, score: ad.score || qd.score, desc: ad.desc || '' }
-              : qd;
-          }),
-          analysis: aiContent.analysis || '',
-          tips: aiContent.tips || []
-        };
-
-        this.setData({
-          finalData: merged,
-          aiData: aiContent,
-          aiLoading: false
-        });
-      } else {
-        this.setData({ aiLoading: false });
-      }
+      wx.setNavigationBarTitle({ title: '配对报告' });
     } catch (error) {
-      logger.error('Pairing AI Error:', error);
-      this.setData({ aiLoading: false });
+      logger.error('handleMatch error:', error);
+      if (this._requestGen !== gen) return;
+      this.setData({
+        step: 2,
+        loading: false,
+        aiLoading: false,
+        finalData: quickResult,
+        aiData: null
+      });
+      wx.showToast({ title: '分析失败，显示基础结果', icon: 'none' });
+    } finally {
+      wx.hideLoading();
     }
   },
 
+  async fetchAIAnalysis(quickResult, gen) {
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // 已被新请求取代，提前退出
+      if (this._requestGen !== gen) return quickResult;
+
+      if (attempt > 1) {
+        wx.showLoading({ title: 'AI 正在生成，请稍等...' });
+      }
+
+      try {
+        const res = await request({
+          url: API_ENDPOINTS.PAIRING,
+          method: 'POST',
+          data: {
+            signA: quickResult.signA.id,
+            signB: quickResult.signB.id,
+            animalA: quickResult.animalA.id,
+            animalB: quickResult.animalB.id
+          },
+          timeout: 120000,
+          dedupe: false
+        });
+
+        if (res && res.content) {
+          const aiContent = res.content;
+          const aiDims = aiContent.dimensions || [];
+          return {
+            ...quickResult,
+            score: aiContent.score || quickResult.score,
+            dimensions: quickResult.dimensions.map((qd, i) => {
+              const ad = aiDims[i];
+              return ad
+                ? { ...qd, score: ad.score || qd.score, desc: ad.desc || '' }
+                : qd;
+            }),
+            analysis: aiContent.analysis || '',
+            tips: aiContent.tips || []
+          };
+        }
+        // 服务端返回成功但 content 为空，记录日志
+        logger.warn('Pairing AI: empty content (attempt ' + attempt + ')', res);
+      } catch (error) {
+        logger.error('Pairing AI Error (attempt ' + attempt + '):', error);
+      }
+
+      if (attempt < maxAttempts) {
+        // 等待后重试，后端可能仍在生成并缓存结果
+        await new Promise(r => setTimeout(r, 15000));
+      }
+    }
+
+    // 过期请求静默返回，不弹 toast
+    if (this._requestGen !== gen) return quickResult;
+
+    // 所有重试失败，使用快速预计算结果兜底
+    wx.showToast({ title: 'AI 分析超时，显示基础结果', icon: 'none' });
+    return quickResult;
+  },
+
   goBack() {
+    // 递增版本号使进行中的请求结果被忽略，重置 loading 允许新请求
+    ++this._requestGen;
     this.setData({
       step: 1,
+      loading: false,
       finalData: null,
       aiData: null,
       aiLoading: false
     });
+    wx.hideLoading();
     wx.setNavigationBarTitle({ title: '性格速配' });
   },
 

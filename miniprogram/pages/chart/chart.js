@@ -453,7 +453,8 @@ Page({
         const query = this.buildDailyParams(personA, dateStr);
         const res = await request({
           url: `${API_ENDPOINTS.DAILY_FORECAST}?${query}`,
-          method: 'GET'
+          method: 'GET',
+          timeout: 120000
         });
         const natal = res?.natal || res?.chart || {};
         const transits = res?.transits || res?.transit || {};

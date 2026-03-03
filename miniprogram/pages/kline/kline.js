@@ -316,7 +316,8 @@ Page({
       const params = `birthDate=${encodeURIComponent(birthDate || '')}&birthTime=${encodeURIComponent(birthTime || '')}`;
 
       const res = await request({
-        url: `${API_ENDPOINTS.KLINE_GENERATE}?${params}`
+        url: `${API_ENDPOINTS.KLINE_GENERATE}?${params}`,
+        timeout: 120000
       });
 
       if (res && res.klineData) {

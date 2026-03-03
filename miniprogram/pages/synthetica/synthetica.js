@@ -186,6 +186,7 @@ Page({
       const res = await request({
         url: API_ENDPOINTS.SYNTHETICA_GENERATE,
         method: 'POST',
+        timeout: 120000,
         data: payload
       });
 

@@ -596,6 +596,7 @@ Page({
       const res = await request({
         url: API_ENDPOINTS.CBT_ANALYSIS,
         method: 'POST',
+        timeout: 120000,
         data: {
           birth: {
             date: userProfile.birthDate,
@@ -783,6 +784,7 @@ Page({
       const res = await request({
         url: API_ENDPOINTS.CBT_AGGREGATE_ANALYSIS,
         method: 'POST',
+        timeout: 120000,
         data: {
           birth: {
             date: userProfile.birthDate,
