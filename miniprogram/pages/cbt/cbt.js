@@ -692,13 +692,12 @@ Page({
         if (res && res.status === 'completed') return res;
         if (res && res.status === 'failed') {
           const err = new Error(res.error || 'AI analysis failed');
-          err.statusCode = res.statusCode;
+          err.statusCode = res.statusCode || 500;
           throw err;
         }
       } catch (pollErr) {
-        if (pollErr && pollErr.statusCode === 404) throw pollErr;
-        if (pollErr && pollErr.statusCode && pollErr.statusCode !== 200) throw pollErr;
-        logger.warn('[CBT] poll error (attempt ' + i + '):', pollErr && pollErr.message);
+        if (pollErr && pollErr.statusCode) throw pollErr;
+        logger.warn('[CBT] poll network error (attempt ' + i + '):', pollErr && pollErr.message);
       }
     }
     throw new Error('timeout');

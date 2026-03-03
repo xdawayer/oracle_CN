@@ -337,17 +337,15 @@ Page({
         if (res && res.status === 'completed') return res;
         if (res && res.status === 'failed') {
           const err = new Error(res.error || 'AI analysis failed');
-          err.statusCode = res.statusCode;
+          err.statusCode = res.statusCode || 500;
           throw err;
         }
         // status === 'pending' → continue polling
       } catch (pollErr) {
-        // 404 = task expired/not found
-        if (pollErr && pollErr.statusCode === 404) throw pollErr;
-        // 非 pending 错误（如 503/500）直接抛出
-        if (pollErr && pollErr.statusCode && pollErr.statusCode !== 200) throw pollErr;
-        // 网络波动，继续重试
-        logger.warn('[Ask] poll error (attempt ' + i + '):', pollErr && pollErr.message);
+        // 任务级失败（从 res.status==='failed' 构造的 err）或 404 → 直接抛出
+        if (pollErr && pollErr.statusCode) throw pollErr;
+        // 网络波动（无 statusCode）→ 继续重试
+        logger.warn('[Ask] poll network error (attempt ' + i + '):', pollErr && pollErr.message);
       }
     }
     throw new Error('timeout');

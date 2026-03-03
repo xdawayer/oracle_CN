@@ -109,7 +109,11 @@ async function processCbtAnalysisTask(taskId: string, body: Record<string, unkno
 cbtRouter.post('/analysis', async (req, res) => {
   try {
     const taskId = createTask();
-    processCbtAnalysisTask(taskId, req.body as Record<string, unknown>);
+    processCbtAnalysisTask(taskId, req.body as Record<string, unknown>)
+      .catch(err => {
+        console.error(`[CBT] Unhandled task error ${taskId}:`, err);
+        failTask(taskId, 'Internal error', 500);
+      });
     console.log(`[CBT] Analysis task ${taskId} created`);
     res.json({ taskId, status: 'pending' });
   } catch (error) {
@@ -128,7 +132,7 @@ cbtRouter.get('/analysis/result/:taskId', (req, res) => {
     return res.json({ status: 'pending' });
   }
   if (task.status === 'failed') {
-    return res.status(task.statusCode || 500).json({ status: 'failed', error: task.error });
+    return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
   }
   res.json({ status: 'completed', ...task.result });
 });

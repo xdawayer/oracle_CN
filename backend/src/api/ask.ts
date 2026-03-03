@@ -105,7 +105,11 @@ askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
 
     // Create task and start background processing
     const taskId = createTask();
-    processAskTask(taskId, req.body, req.userId || null, deviceFingerprint);
+    processAskTask(taskId, req.body, req.userId || null, deviceFingerprint)
+      .catch(err => {
+        console.error(`[Ask] Unhandled task error ${taskId}:`, err);
+        failTask(taskId, 'Internal error', 500);
+      });
 
     console.log(`[Ask] Task ${taskId} created for user ${req.userId || 'anon'}`);
     res.json({ taskId, status: 'pending' });
@@ -125,8 +129,8 @@ askRouter.get('/result/:taskId', (req, res) => {
     return res.json({ status: 'pending' });
   }
   if (task.status === 'failed') {
-    const statusCode = task.statusCode || 500;
-    return res.status(statusCode).json({ status: 'failed', error: task.error });
+    // 统一返回 HTTP 200，通过 body 传递任务级错误（避免 request 工具将其当作网络错误）
+    return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
   }
   // completed
   res.json({ status: 'completed', ...task.result });
