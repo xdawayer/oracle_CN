@@ -1,4 +1,4 @@
-const { request, requestStream } = require('../../utils/request');
+const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
@@ -229,23 +229,14 @@ Page({
 
   _monthlyPollTimer: null,
   _activeGenerateSeq: 0,
-  _activeStreamTask: null,
   _activeDetailSeq: 0,
 
   _isLatestGenerate(seq) {
     return seq === this._activeGenerateSeq;
   },
 
-  _stopActiveStream() {
-    if (this._activeStreamTask && typeof this._activeStreamTask.abort === 'function') {
-      this._activeStreamTask.abort();
-    }
-    this._activeStreamTask = null;
-  },
-
   _beginGenerateTask() {
     this._activeGenerateSeq += 1;
-    this._stopActiveStream();
     return this._activeGenerateSeq;
   },
 
@@ -812,62 +803,7 @@ Page({
             return null;
           });
 
-      const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
-      const streamState = { chart: null, forecast: null, detail: null };
-
-      const fullPromise = canChunked
-        ? new Promise((resolve) => {
-            const streamTask = requestStream({
-              url: `${API_ENDPOINTS.DAILY_FULL_STREAM}?${query}`,
-              method: 'GET',
-              onMeta: (meta) => {
-                if (!this._isLatestGenerate(generateSeq)) return;
-                if (meta && meta.chart && !this.data.transitReady) {
-                  const transitChartData = this.prepareTransitChartData(meta.chart);
-                  const technical = this.prepareTechnicalData(meta.chart.technical);
-                  const transits = meta.chart.transits?.positions || [];
-                  this.setData({
-                    transitReady: true,
-                    transits,
-                    transitChartData,
-                    technical
-                  });
-                  if (this.data.isForecastPending) {
-                    this.markTransitReadyView(dateStr, generateSeq);
-                  }
-                }
-                streamState.chart = meta?.chart || streamState.chart;
-                streamState.lucky = meta?.lucky || streamState.lucky;
-              },
-              onModule: (evt) => {
-                if (!this._isLatestGenerate(generateSeq)) return;
-                if (!evt || !evt.moduleId) return;
-                if (evt.moduleId === 'forecast') {
-                  streamState.forecast = evt.content || null;
-                } else if (evt.moduleId === 'detail') {
-                  streamState.detail = evt.content || null;
-                }
-                if (streamState.chart && streamState.forecast) {
-                  this.processFullData(streamState, dateStr, generateSeq);
-                }
-              },
-              onDone: () => {
-                if (this._isLatestGenerate(generateSeq)) {
-                  this._activeStreamTask = null;
-                }
-                resolve(streamState.chart && streamState.forecast ? streamState : null);
-              },
-              onError: (err) => {
-                if (this._isLatestGenerate(generateSeq)) {
-                  this._activeStreamTask = null;
-                }
-                logger.warn('[Daily] /full/stream failed:', err);
-                resolve(null);
-              },
-            });
-            this._activeStreamTask = streamTask;
-          })
-        : request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET' }).catch(err => {
+      const fullPromise = request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: 120000 }).catch(err => {
             logger.warn('[Daily] /full failed:', err);
             return null;
           });
@@ -947,9 +883,7 @@ Page({
       logger.error(e);
       this.setData({ status: LoadingState.ERROR, isForecastPending: false });
     } finally {
-      if (this._isLatestGenerate(generateSeq)) {
-        this._activeStreamTask = null;
-      }
+      // cleanup
     }
   },
 

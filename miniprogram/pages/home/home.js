@@ -1,4 +1,4 @@
-const { request, requestStream, getBaseUrl } = require('../../utils/request');
+const { request, getBaseUrl } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
@@ -93,11 +93,6 @@ Page({
       return;
     }
 
-    // streaming 正在进行中，不重复请求
-    if (this._activeStreamTask) {
-      return;
-    }
-
     const today = new Date().toISOString().slice(0, 10);
     const jobs = [];
 
@@ -139,14 +134,10 @@ Page({
       clearTimeout(this._statusPollTimer);
       this._statusPollTimer = null;
     }
-    if (this._activeStreamTask) {
-      this._activeStreamTask.abort();
-      this._activeStreamTask = null;
-    }
   },
 
   onPullDownRefresh() {
-    // 下拉刷新：skipCache（_beginForecastTask 内部会 abort 旧 stream）
+    // 下拉刷新：skipCache
     Promise.all([
       this.fetchDailyForecast(true),
       this.initRecommendations()
@@ -318,14 +309,9 @@ Page({
     return params.join('&');
   },
 
-  /** 序列号自增 + abort 旧 streaming 任务 + 清理残留 pending */
+  /** 序列号自增 + 清理残留 pending */
   _beginForecastTask() {
     this._forecastSeq = (this._forecastSeq || 0) + 1;
-    if (this._activeStreamTask) {
-      this._activeStreamTask.abort();
-      this._activeStreamTask = null;
-    }
-    // abort 后旧 stream 的 onDone/onError 不会触发，主动清理 pending 标记
     if (this.userProfile) {
       const today = new Date().toISOString().slice(0, 10);
       const key = buildDailyFullCacheKey(this.userProfile, today);
@@ -433,7 +419,7 @@ Page({
       }
     }
 
-    // 缓存未命中 → streaming 请求
+    // 缓存未命中 → 请求 /daily/full
     const query = this.buildDailyParams(today);
     if (!query) {
       this.setData({ isLoadingForecast: false });
@@ -445,60 +431,31 @@ Page({
       storage.set(fullCacheKey + '_pending', true);
     }
 
-    const streamState = { chart: null, forecast: null, detail: null, lucky: null };
+    try {
+      const res = await request({
+        url: `${API_ENDPOINTS.DAILY_FULL}?${query}`,
+        method: 'GET',
+        timeout: 120000,
+      });
 
-    const streamTask = requestStream({
-      url: `${API_ENDPOINTS.DAILY_FULL_STREAM}?${query}`,
-      method: 'GET',
-      timeout: 120000,
-      onMeta: (meta) => {
-        if (!this._isLatestForecast(seq)) return;
-        streamState.chart = meta?.chart || streamState.chart;
-        streamState.lucky = meta?.lucky || streamState.lucky;
-      },
-      onModule: (evt) => {
-        if (!this._isLatestForecast(seq)) return;
-        if (!evt || !evt.moduleId) return;
-        if (evt.moduleId === 'forecast') {
-          streamState.forecast = evt.content || null;
-          // forecast 到达后即可更新卡片（不等 detail）
-          if (streamState.forecast) {
-            this._renderCardFromFullResult(streamState, today);
-          }
-        } else if (evt.moduleId === 'detail') {
-          streamState.detail = evt.content || null;
-        }
-      },
-      onDone: () => {
-        if (!this._isLatestForecast(seq)) return;
-        this._activeStreamTask = null;
+      if (!this._isLatestForecast(seq)) return;
 
-        // 写缓存：chart + forecast 都存在才算完整
-        if (fullCacheKey && streamState.chart && streamState.forecast) {
-          storage.set(fullCacheKey, streamState);
-        }
+      if (res && res.forecast) {
+        // 写缓存
         if (fullCacheKey) {
+          storage.set(fullCacheKey, res);
           storage.remove(fullCacheKey + '_pending');
         }
-
-        // 确保最终渲染
-        if (streamState.forecast) {
-          this._renderCardFromFullResult(streamState, today);
-        } else {
-          this._handleForecastError(new Error('AI 未返回有效内容'));
-        }
-      },
-      onError: (err) => {
-        if (!this._isLatestForecast(seq)) return;
-        this._activeStreamTask = null;
-        if (fullCacheKey) {
-          storage.remove(fullCacheKey + '_pending');
-        }
-        this._handleForecastError(err);
-      },
-    });
-
-    this._activeStreamTask = streamTask;
+        this._renderCardFromFullResult(res, today);
+      } else {
+        if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
+        this._handleForecastError(new Error('AI 未返回有效内容'));
+      }
+    } catch (err) {
+      if (!this._isLatestForecast(seq)) return;
+      if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
+      this._handleForecastError(err);
+    }
   },
 
   async initRecommendations() {

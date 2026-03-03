@@ -1,4 +1,4 @@
-const { request, requestStream } = require('../../utils/request');
+const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const auth = require('../../utils/auth');
 const { API_ENDPOINTS } = require('../../services/api');
@@ -267,65 +267,48 @@ Page({
       requestData.pairingContext = this.pairingContext;
     }
 
-    // 使用流式请求，完成后解析 JSON 渲染结构化报告
-    let streamText = '';
+    try {
+      const res = await request({
+        url: API_ENDPOINTS.ASK,
+        method: 'POST',
+        data: requestData,
+        timeout: 120000,
+      });
 
-    this._streamTask = requestStream({
-      url: `${API_ENDPOINTS.ASK}/stream`,
-      method: 'POST',
-      data: requestData,
-      onMeta: (meta) => {
+      if (res && res.content) {
         this.setData({
-          reportChartData: meta.chart || null,
-          reportTransitData: meta.transits || null
-        });
-      },
-      onChunk: (chunk) => {
-        streamText += chunk;
-      },
-      onDone: () => {
-        this.setData({
-          reportData: this._parseReport(streamText),
+          reportData: this._parseReport(res.content),
+          reportChartData: res.chart || null,
+          reportTransitData: res.transits || null,
           reportLoading: false,
-          isLoading: false
+          isLoading: false,
         });
-        this._streamTask = null;
         this._fetchQuota();
-      },
-      onError: (err) => {
-        logger.error('Ask Stream Error:', err);
-        // 403 配额不足
-        if (err && err.statusCode === 403) {
-          this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
-          this._streamTask = null;
-          this._fetchQuota();
-          wx.showModal({
-            title: '提问次数已用完',
-            content: '开通会员可享 AI 问答无限次使用',
-            confirmText: '了解会员',
-            cancelText: '关闭',
-            success: (res) => {
-              if (res.confirm) {
-                wx.navigateTo({ url: '/pages/subscription/subscription' });
-              }
-            },
-          });
-          return;
-        }
-        // 如果流式未获得任何内容，降级为非流式请求
-        if (!streamText) {
-          this._fallbackNonStream(requestData);
-        } else {
-          // 已有部分内容，尝试解析已获取的部分
-          this.setData({
-            reportData: this._parseReport(streamText),
-            reportLoading: false,
-            isLoading: false
-          });
-          this._streamTask = null;
-        }
+      } else {
+        throw new Error('No content received');
       }
-    });
+    } catch (err) {
+      logger.error('Ask AI Error:', err);
+      // 403 配额不足
+      if (err && err.statusCode === 403) {
+        this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
+        this._fetchQuota();
+        wx.showModal({
+          title: '提问次数已用完',
+          content: '开通会员可享 AI 问答无限次使用',
+          confirmText: '了解会员',
+          cancelText: '关闭',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              wx.navigateTo({ url: '/pages/subscription/subscription' });
+            }
+          },
+        });
+        return;
+      }
+      wx.showToast({ title: '分析服务中断，请稍后再试', icon: 'none' });
+      this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
+    }
   },
 
   // 清理文本中的 markdown 标记（**加粗**、*斜体*、### 标题 等）
@@ -379,46 +362,7 @@ Page({
     };
   },
 
-  async _fallbackNonStream(requestData) {
-    try {
-      const res = await request({
-        url: API_ENDPOINTS.ASK,
-        method: 'POST',
-        data: requestData
-      });
-
-      if (res && res.content) {
-        this.setData({
-          reportData: this._parseReport(res.content),
-          reportChartData: res.chart || null,
-          reportTransitData: res.transits || null,
-          reportLoading: false
-        });
-      } else {
-        throw new Error('No content received');
-      }
-    } catch (error) {
-      logger.error('Ask AI Fallback Error:', error);
-      wx.showToast({
-        title: '分析服务中断，请稍后再试',
-        icon: 'none'
-      });
-      this.setData({
-        showReport: false,
-        reportLoading: false,
-        reportData: null
-      });
-    } finally {
-      this.setData({ isLoading: false });
-    }
-  },
-
   closeReport() {
-    // 取消进行中的流式请求
-    if (this._streamTask) {
-      this._streamTask.abort();
-      this._streamTask = null;
-    }
     this.setData({
       showReport: false,
       reportLoading: false,

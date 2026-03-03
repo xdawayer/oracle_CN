@@ -5,7 +5,7 @@
 import Redis from 'ioredis';
 import type { CacheService } from './strategy.js';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
 
 class RedisCacheService implements CacheService {
   private client: Redis | null = null;
@@ -13,6 +13,8 @@ class RedisCacheService implements CacheService {
   private connectionFailed = false;
 
   private async getClient(): Promise<Redis | null> {
+    // 未配置 REDIS_URL 时直接使用内存缓存，不尝试连接
+    if (!REDIS_URL) return null;
     if (this.connectionFailed) return null;
     if (this.client && this.connected) return this.client;
 
@@ -22,7 +24,7 @@ class RedisCacheService implements CacheService {
         retryStrategy: (times) => {
           if (times > 1) {
             this.connectionFailed = true;
-            return null; // 停止重试
+            return null;
           }
           return 100;
         },
@@ -37,9 +39,10 @@ class RedisCacheService implements CacheService {
       });
 
       await this.client.connect();
+      console.log('[Cache] Redis connected');
       return this.client;
     } catch {
-      console.warn('Redis connection failed, using in-memory fallback');
+      console.warn('[Cache] Redis connection failed, using in-memory fallback');
       this.connectionFailed = true;
       return null;
     }

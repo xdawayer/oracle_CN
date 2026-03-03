@@ -1,12 +1,12 @@
 // INPUT: Daily API 路由。
-// OUTPUT: 导出 daily 路由（含 detail、full 并行与 stream 端点、紧凑摘要与 Server-Timing）。
+// OUTPUT: 导出 daily 路由（含 detail、full 并行端点、紧凑摘要与 Server-Timing）。
 // POS: Daily 端点；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router } from 'express';
 import { performance } from 'perf_hooks';
 import type { BirthInput, DailyResponse, DailyDetailResponse, Language, PlanetPosition } from '../types/api.js';
 import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService } from '../services/ephemeris.js';
-import { AIUnavailableError, generateAIContent, generateAIContentWithMeta } from '../services/ai.js';
+import { AIUnavailableError, generateAIContent } from '../services/ai.js';
 import { generateParallel, extractSuccessContent } from '../services/parallel-generator.js';
 import { getCompactPortrait } from '../services/user-portrait.js';
 import { compactTransitSummary as transitToString } from '../prompts/core/compact.js';
@@ -16,9 +16,6 @@ import { calculateAge, getAgeGroup } from '../utils/age.js';
 
 export const dailyRouter = Router();
 
-function writeSSE(res: any, payload: unknown) {
-  res.write(`data: ${JSON.stringify(payload)}\n\n`);
-}
 
 const SIGN_ORDER = [...SIGNS];
 const MODERN_RULERS: Record<string, string> = {
@@ -168,7 +165,7 @@ function computeLucky(transits: { positions: PlanetPosition[]; aspects: any[] })
   return { ...lucky, interpreted };
 }
 
-/** 从行运位置中提取日月星座并计算幸运值（/full、/full/stream 端点用） */
+/** 从行运位置中提取日月星座并计算幸运值（/full 端点用） */
 function computeLuckyFromPositions(positions: PlanetPosition[]) {
   const moonPos = positions.find((p: any) => p.name === 'Moon');
   const sunPos = positions.find((p: any) => p.name === 'Sun');
@@ -505,154 +502,3 @@ dailyRouter.get('/full', async (req, res) => {
   }
 });
 
-// GET /api/daily/full/stream - 模块级 SSE 流式输出
-dailyRouter.get('/full/stream', async (req, res) => {
-  const requestStart = performance.now();
-  let headersSent = false;
-  try {
-    const lang: Language = 'zh';
-    const birth = await parseBirthInput(req.query as Record<string, unknown>);
-    let date = new Date(req.query.date as string || new Date().toISOString().split('T')[0]);
-    if (isNaN(date.getTime())) {
-      date = new Date();
-    }
-    const dateStr = date.toISOString().split('T')[0];
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.setHeader('Trailer', 'Server-Timing');
-    res.flushHeaders();
-    headersSent = true;
-
-    let disconnected = false;
-    req.on('close', () => { disconnected = true; });
-
-    // 1. 计算星盘与行运（并行）
-    const coreStart = performance.now();
-    const [chart, transits] = await Promise.all([
-      ephemerisService.calculateNatalChart(birth),
-      ephemerisService.calculateTransits(birth, date),
-    ]);
-    const coreMs = performance.now() - coreStart;
-
-    const chartSummary = buildCompactChartSummary(chart);
-    const transitSummary = buildCompactTransitSummary(transits);
-
-    // 2. 获取用户画像（可选，失败不阻断）
-    let portraitStr = '';
-    try {
-      portraitStr = await getCompactPortrait({
-        date: birth.date,
-        time: birth.time,
-        lat: birth.lat,
-        lon: birth.lon,
-        timezone: birth.timezone,
-      });
-    } catch {
-      // 画像不可用时静默跳过
-    }
-
-    // 3. 构建种子摘要（行运 + 画像）
-    const seedParts: string[] = [transitToString(transitSummary)];
-    if (portraitStr) seedParts.push(portraitStr);
-    const seedSummary = seedParts.join('\n');
-
-    // 技术数据（同 forecast 端点）
-    const technical = {
-      transit_planets: transits.positions.filter(p => PLANETS.includes(p.name as any)),
-      transit_asteroids: transits.positions.filter(p => MINOR_BODIES.includes(p.name)),
-      house_rulers: buildHouseRulers(chart.positions),
-      cross_aspects: transits.aspects,
-    };
-
-    // 确定性幸运值 + 评分（与 /transit 端点一致，完整版含 score）
-    const { interpreted: luckyStreamInterp, ...luckyStreamBase } = computeLucky(transits);
-    const luckyStream = { ...luckyStreamBase, score: luckyStreamInterp.score };
-
-    if (!disconnected) {
-      writeSSE(res, {
-        type: 'meta',
-        chart: { natal: chart, transits, technical },
-        lucky: luckyStream,
-        timing: { coreMs: Math.round(coreMs) },
-      });
-    }
-
-    const userAge = calculateAge(birth.date);
-    const userAgeGroup = getAgeGroup(userAge);
-    const baseContext: Record<string, unknown> = {
-      chart_summary: chartSummary,
-      transit_summary: transitSummary,
-      date: dateStr,
-      userAge,
-      userAgeGroup,
-      userBirthDate: birth.date,
-    };
-    if (seedSummary) baseContext._seedSummary = seedSummary;
-
-    const promptMap: Record<string, string> = {
-      'daily-forecast': 'forecast',
-      'daily-detail': 'detail',
-    };
-
-    const aiStart = performance.now();
-    const tasks = Object.entries(promptMap).map(async ([promptId, moduleId]) => {
-      const moduleStart = performance.now();
-      try {
-        const result = await generateAIContentWithMeta({
-          promptId,
-          context: baseContext,
-          lang,
-        });
-        if (!disconnected) {
-          writeSSE(res, {
-            type: 'module',
-            moduleId,
-            content: result.content.content,
-            meta: result.meta,
-            durationMs: Math.round(performance.now() - moduleStart),
-          });
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (!disconnected) {
-          writeSSE(res, {
-            type: 'module',
-            moduleId,
-            content: null,
-            error: message,
-            durationMs: Math.round(performance.now() - moduleStart),
-          });
-        }
-      }
-    });
-
-    await Promise.all(tasks);
-    const aiMs = performance.now() - aiStart;
-    const totalMs = performance.now() - requestStart;
-
-    if (!disconnected) {
-      writeSSE(res, { type: 'timing', timing: { coreMs: Math.round(coreMs), aiMs: Math.round(aiMs), totalMs: Math.round(totalMs) } });
-      res.write('data: [DONE]\n\n');
-    }
-    res.addTrailers({
-      'Server-Timing': `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`,
-    });
-    res.end();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (headersSent) {
-      writeSSE(res, { type: 'error', message });
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    }
-    if (error instanceof AIUnavailableError) {
-      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
-      return;
-    }
-    res.status(500).json({ error: message });
-  }
-});

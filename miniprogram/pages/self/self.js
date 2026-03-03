@@ -1,4 +1,4 @@
-const { request, requestStream } = require('../../utils/request');
+const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
@@ -856,59 +856,22 @@ Page({
 
     try {
       const query = this.buildNatalParams();
-      const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
+      const res = await request({ url: `${API_ENDPOINTS.NATAL_FULL}?${query}`, timeout: 120000 });
+      if (!res) return;
 
-      if (!canChunked) {
-        const res = await request({ url: `${API_ENDPOINTS.NATAL_FULL}?${query}`, timeout: 120000 });
-        if (!res) return;
-
-        const prefetched = {};
-        const blockNames = ['overview', 'coreThemes', 'dimension'];
-        for (const blockName of blockNames) {
-          const block = res[blockName];
-          if (block && block.content) {
-            prefetched[blockName] = block.content;
-          }
+      const prefetched = {};
+      const blockNames = ['overview', 'coreThemes', 'dimension'];
+      for (const blockName of blockNames) {
+        const block = res[blockName];
+        if (block && block.content) {
+          prefetched[blockName] = block.content;
         }
-
-        if (Object.keys(prefetched).length > 0) {
-          this.setData({ prefetchedContent: prefetched });
-          logger.log('[natal/full] Prefetched blocks:', Object.keys(prefetched).join(', '));
-        }
-        return;
       }
 
-      const prefetched = { ...(this.data.prefetchedContent || {}) };
-      const moduleMap = {
-        overview: 'overview',
-        coreThemes: 'coreThemes',
-        dimension: 'dimension'
-      };
-
-      await new Promise((resolve) => {
-        this._natalStreamTask = requestStream({
-          url: `${API_ENDPOINTS.NATAL_FULL_STREAM}?${query}`,
-          method: 'GET',
-          onModule: (evt) => {
-            const blockName = moduleMap[evt.moduleId];
-            if (!blockName || !evt.content) return;
-            prefetched[blockName] = evt.content;
-            this._cacheNatalFullBlock(blockName, evt.content);
-            this.setData({ prefetchedContent: prefetched });
-          },
-          onDone: () => {
-            if (Object.keys(prefetched).length > 0) {
-              this.setData({ prefetchedContent: prefetched });
-              logger.log('[natal/full/stream] Prefetched blocks:', Object.keys(prefetched).join(', '));
-            }
-            resolve();
-          },
-          onError: (err) => {
-            logger.log('[natal/full/stream] Prefetch failed, will fallback to /api/detail:', err?.message || err);
-            resolve();
-          },
-        });
-      });
+      if (Object.keys(prefetched).length > 0) {
+        this.setData({ prefetchedContent: prefetched });
+        logger.log('[natal/full] Prefetched blocks:', Object.keys(prefetched).join(', '));
+      }
     } catch (err) {
       // 静默失败，fallback 到原有单端点模式
       logger.log('[natal/full] Prefetch failed, will fallback to /api/detail:', err?.statusCode || err?.message || err);

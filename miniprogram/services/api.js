@@ -1,14 +1,14 @@
 const API_ENDPOINTS = {
   NATAL_CHART: '/api/natal/chart',
   NATAL_FULL: '/api/natal/full',
-  NATAL_FULL_STREAM: '/api/natal/full/stream',
+
   NATAL_OVERVIEW: '/api/natal/overview',
   NATAL_CORE_THEMES: '/api/natal/core-themes',
   NATAL_DIMENSION: '/api/natal/dimension',
   DETAIL: '/api/detail',
   DAILY_FORECAST: '/api/daily',
   DAILY_FULL: '/api/daily/full',
-  DAILY_FULL_STREAM: '/api/daily/full/stream',
+
   DAILY_DETAIL: '/api/daily/detail',
   DAILY_TRANSIT: '/api/daily/transit',
   ASK: '/api/ask',
@@ -39,7 +39,7 @@ const API_ENDPOINTS = {
   PAIRING: '/api/pairing',
   // 关系分析并行（overview + coreDynamics + highlights）
   SYNASTRY_FULL: '/api/synastry/full',
-  SYNASTRY_FULL_STREAM: '/api/synastry/full/stream',
+
   // 通用报告（人格深度解读、年度报告等）
   REPORT_CREATE: '/api/report/create',
   REPORT_STATUS: '/api/report/status',

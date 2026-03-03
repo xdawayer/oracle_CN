@@ -1,4 +1,4 @@
-const { request, requestStream } = require('../../utils/request');
+const { request } = require('../../utils/request');
 const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const { searchCities, formatCityDisplay, autoMatchCity, getCityCoordinates } = require('../../utils/city-search');
@@ -1240,74 +1240,7 @@ Page({
           })
         : Promise.resolve(null);
 
-      const canChunked = wx.canIUse && wx.canIUse('request.object.enableChunked');
-      let streamSuccess = false;
-
-      const fullPromise = canChunked
-        ? new Promise((resolve) => {
-            const streamState = {
-              overview: null,
-              coreDynamics: null,
-              highlights: null
-            };
-
-            requestStream({
-              url: `${API_ENDPOINTS.SYNASTRY_FULL_STREAM}?${fullQuery}`,
-              method: 'GET',
-              onMeta: (meta) => {
-                if (!technicalRes && meta && meta.chartA && meta.chartB) {
-                  const chartData = this.prepareChartDataFromFullResponse({
-                    chartA: meta.chartA,
-                    chartB: meta.chartB,
-                    synastryCore: meta.synastryCore || {}
-                  });
-                  this.setData(chartData);
-                }
-              },
-              onModule: (evt) => {
-                if (!evt || !evt.moduleId) return;
-                const tabContents = { ...(this.data.tabContents || {}) };
-                const statusUpdate = {};
-
-                if (evt.moduleId === 'overview') {
-                  const overviewContent = _clean(evt.content || {});
-                  const overviewData = this.parseOverview(overviewContent);
-                  tabContents.overview = overviewContent;
-                  statusUpdate['tabLoadStatus.overview'] = overviewContent ? 'loaded' : 'error';
-                  this.setData(Object.assign({ overviewData, tabContents }, statusUpdate));
-                  streamState.overview = overviewContent;
-                  if (overviewContent) streamSuccess = true;
-                } else if (evt.moduleId === 'coreDynamics') {
-                  tabContents.coreDynamics = _clean(evt.content || {});
-                  statusUpdate['tabLoadStatus.coreDynamics'] = evt.content ? 'loaded' : 'error';
-                  this.setData(Object.assign({ tabContents }, statusUpdate));
-                  streamState.coreDynamics = evt.content;
-                } else if (evt.moduleId === 'highlights') {
-                  tabContents.highlights = _clean(evt.content || {});
-                  statusUpdate['tabLoadStatus.highlights'] = evt.content ? 'loaded' : 'error';
-                  this.setData(Object.assign({ tabContents }, statusUpdate));
-                  streamState.highlights = evt.content;
-                }
-
-                // streamSuccess 仅以 overview 成功为准
-              },
-              onDone: () => {
-                const statusUpdate = {};
-                if (!streamState.overview) statusUpdate['tabLoadStatus.overview'] = 'error';
-                if (!streamState.coreDynamics) statusUpdate['tabLoadStatus.coreDynamics'] = 'error';
-                if (!streamState.highlights) statusUpdate['tabLoadStatus.highlights'] = 'error';
-                if (Object.keys(statusUpdate).length > 0) {
-                  this.setData(statusUpdate);
-                }
-                resolve(streamSuccess ? streamState : null);
-              },
-              onError: (err) => {
-                logger.warn('[Synastry] /full/stream failed:', err);
-                resolve(null);
-              }
-            });
-          })
-        : request({ url: `${API_ENDPOINTS.SYNASTRY_FULL}?${fullQuery}` }).catch(err => {
+      const fullPromise = request({ url: `${API_ENDPOINTS.SYNASTRY_FULL}?${fullQuery}`, timeout: 120000 }).catch(err => {
             logger.warn('[Synastry] /full failed:', err);
             return null;
           });
@@ -1323,7 +1256,7 @@ Page({
       const fullRes = await fullPromise;
       let fullSuccess = false;
 
-      if (fullRes && !canChunked) {
+      if (fullRes) {
         try {
           // 从 /full 响应中提取图谱数据（如果 /technical 之前失败，用 /full 的数据补充）
           const chartData = technicalRes ? {} : this.prepareChartDataFromFullResponse(fullRes);
@@ -1358,8 +1291,6 @@ Page({
         } catch (parseErr) {
           logger.error('[Synastry] Failed to parse /full response:', parseErr);
         }
-      } else if (fullRes && canChunked) {
-        fullSuccess = true;
       }
 
       // /full 失败时，回退到单个 /synastry AI 调用

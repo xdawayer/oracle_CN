@@ -52,22 +52,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(compression({
-  filter: (req, res) => {
-    // SSE 流式端点不压缩，避免缓冲导致 ERR_INCOMPLETE_CHUNKED_ENCODING
-    // 注意：不能用 res.getHeader('Content-Type') 判断，因为 compression 中间件
-    // 在请求进入时就决定是否包装 response stream，此时 Content-Type 尚未设置
-    if (req.path.endsWith('/stream')) return false;
-    return compression.filter(req, res);
-  },
-}));
+app.use(compression());
 
 // 全局请求超时中间件（120s，与 AI 超时一致）
-// SSE 流式端点不设超时（由 AI 超时自身控制）
-app.use((req, res, next) => {
-  if (req.path.endsWith('/stream')) {
-    return next();
-  }
+app.use((_req, res, next) => {
   res.setTimeout(120_000, () => {
     if (!res.headersSent) {
       res.status(504).json({ error: 'Request timeout' });
