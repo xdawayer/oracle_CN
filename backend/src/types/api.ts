@@ -534,7 +534,21 @@ export type SynastryOverviewSectionContent =
   | SynastryWeatherForecastAI
   | SynastryActionPlanAI;
 
-export type AskAnswerAI = string;
+/** ask-answer v10.2+ 输出结构化 JSON */
+export interface AskAnswerAI {
+  astroContext?: {
+    keyPlanets?: string[];
+    keyAspects?: string[];
+    currentTransits?: string[];
+  };
+  sections: Array<{
+    type: string;
+    title?: string;
+    content?: string;
+    cards?: Array<{ title: string; content: string; astroBasis?: string }>;
+    tips?: string[];
+  }>;
+}
 
 export interface CBTAnalysisAI {
   cognitive_analysis: {

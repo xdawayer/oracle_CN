@@ -266,8 +266,7 @@ const REASONING_PROMPTS = [
 
 // 输出原始文本（非 JSON）的 promptId
 const RAW_TEXT_PROMPTS = new Set<string>([
-  // ask 问答输出纯 Markdown 文本
-  'ask-answer',
+  // ask-answer 已改为 JSON 输出（v10.2），移至标准 JSON 解析路径
   // 流年报告输出纯 Markdown 文本
   'annual-overview',
   'annual-career',

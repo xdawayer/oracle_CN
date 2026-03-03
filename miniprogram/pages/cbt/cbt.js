@@ -644,18 +644,19 @@ Page({
           storage.set(`cbt_report_${dateKey}`, { reportData: fallbackReport, recordSummary });
         }
       } else {
-        this.setData({
-          reportData: { sections: [{ type: 'mood_echo', title: '提示', content: '记录完成，AI 解读暂时不可用。' }] },
-        });
+        const emptyFallback = { sections: [{ type: 'mood_echo', title: '提示', content: '记录完成，AI 解读暂时不可用。' }] };
+        this.setData({ reportData: emptyFallback });
+        storage.set(`cbt_report_${dateKey}`, { reportData: emptyFallback, recordSummary });
       }
 
     } catch (error) {
       const errInfo = error ? (error.message || error.errMsg || String(error)) : 'unknown';
       const statusCode = error && error.statusCode;
       logger.error('CBT Analysis Error:', errInfo, 'statusCode:', statusCode);
-      this.setData({
-        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，记录已保存。' }] },
-      });
+      const fallbackReport = { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，记录已保存。' }] };
+      this.setData({ reportData: fallbackReport });
+      // 降级报告也存入 storage，以便从历史查看时不会显示"暂无报告数据"
+      storage.set(`cbt_report_${dateKey}`, { reportData: fallbackReport, recordSummary });
     } finally {
       this.setData({ analyzing: false });
       // 无论 AI 是否成功，都保存心情记录
