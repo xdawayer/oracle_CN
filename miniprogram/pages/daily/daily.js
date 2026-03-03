@@ -187,6 +187,7 @@ Page({
     auditMode: false,
     LoadingState,
     status: LoadingState.IDLE,
+    errorMessage: '',
     isForecastPending: false,
     dates: [],
     selectedDateIndex: 2,
@@ -513,6 +514,7 @@ Page({
           month: this._monthlyMonth,
           lang: 'zh',
         },
+        timeout: 60000,
       });
 
       // 处理积分不足：同时关闭支付弹窗并显示积分不足弹窗
@@ -562,6 +564,7 @@ Page({
         url: API_ENDPOINTS.REPORT_RETRY,
         method: 'POST',
         data: { reportType: 'monthly', birth },
+        timeout: 60000,
       });
       wx.hideLoading();
       if (result && result.success) {
@@ -708,7 +711,7 @@ Page({
 
   async handleGenerate() {
     if (!this.userProfile) {
-      this.setData({ status: LoadingState.ERROR });
+      this.setData({ status: LoadingState.ERROR, errorMessage: '无法获取今日洞察，请先完善个人信息。' });
       return;
     }
 
@@ -786,7 +789,7 @@ Page({
       const query = this.buildDailyParams(dateStr);
       if (!query) {
         if (this._isLatestGenerate(generateSeq)) {
-          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+          this.setData({ status: LoadingState.ERROR, errorMessage: '无法获取今日洞察，请先完善个人信息。', isForecastPending: false });
         }
         return;
       }
@@ -861,7 +864,7 @@ Page({
             overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
           });
         } else {
-          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+          this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
         }
       } catch (legacyErr) {
         if (!this._isLatestGenerate(generateSeq)) return;
@@ -873,14 +876,14 @@ Page({
             overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
           });
         } else {
-          this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+          this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
         }
       }
 
     } catch (e) {
       if (!this._isLatestGenerate(generateSeq)) return;
       logger.error(e);
-      this.setData({ status: LoadingState.ERROR, isForecastPending: false });
+      this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
     } finally {
       // cleanup
     }
@@ -1292,8 +1295,17 @@ Page({
 
     let detailContent = null;
     if (needsDetail) {
-      wx.showLoading({ title: '加载解读...' });
-      detailContent = await this.ensureDetailContent(type, dateStr);
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (!this._isLatestDetail(detailSeq)) return;
+        wx.showLoading({ title: attempt === 1 ? '加载解读...' : 'AI 正在生成，请稍等...' });
+        detailContent = await this.ensureDetailContent(type, dateStr);
+        if (detailContent) break;
+        if (attempt < maxAttempts) {
+          wx.showLoading({ title: 'AI 正在生成，请稍等...' });
+          await new Promise(r => setTimeout(r, 15000));
+        }
+      }
       if (this._isLatestDetail(detailSeq)) {
         wx.hideLoading();
       }
@@ -1403,7 +1415,7 @@ Page({
     try {
       const payload = this.buildDetailPayload(type, dateStr);
       if (!payload) return null;
-      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 60000 });
+      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000 });
       const content = result?.content || null;
       if (content && cacheKey) {
         storage.set(cacheKey, { content });

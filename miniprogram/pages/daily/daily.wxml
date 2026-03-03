@@ -559,7 +559,7 @@
 
   <view class="section" wx:if="{{status === LoadingState.ERROR}}">
     <view class="card">
-      <text class="error-text">无法获取今日洞察，请先完善个人信息。</text>
+      <text class="error-text">{{errorMessage || '无法获取今日洞察，请稍后重试。'}}</text>
     </view>
   </view>
 

@@ -1259,6 +1259,7 @@ Page({
       url: API_ENDPOINTS.REPORT_CREATE,
       method: 'POST',
       data: { reportType: 'natal-report', birth: birthData, lang: 'zh' },
+      timeout: 60000,
     });
 
     if (result && result.success) {

@@ -332,6 +332,7 @@ Page({
         url: API_ENDPOINTS.REPORT_CREATE,
         method: 'POST',
         data: { reportType, birth: birthData, lang: 'zh' },
+        timeout: 60000,
       });
 
       // 处理积分不足：同时关闭支付弹窗
