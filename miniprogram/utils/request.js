@@ -93,19 +93,26 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
     }
 
     let settled = false;
-    const fallback = (reason) => {
+    const isTimeout = (errMsg) => typeof errMsg === 'string' && errMsg.indexOf('timeout') !== -1;
+    const fallback = (reason, isCloudBroken) => {
       if (settled) return;
       settled = true;
-      // 进入冷却期，期间跳过 cloud；冷却结束后自动重试
-      _cloudFailedUntil = Date.now() + CLOUD_COOLDOWN_MS;
-      logger.warn('[request] callContainer ' + reason + ', fallback to wx.request (cooldown 30s)');
-      _directRequest(options, resolve, reject);
+      // 仅在云托管基础设施故障时进入冷却（超时不冷却，云托管本身可用只是请求慢）
+      if (isCloudBroken) {
+        _cloudFailedUntil = Date.now() + CLOUD_COOLDOWN_MS;
+        logger.warn('[request] callContainer ' + reason + ', fallback to wx.request (cooldown 30s)');
+        _directRequest(options, resolve, reject);
+      } else {
+        // 超时或非基础设施故障：直接 reject，让上层 retry 仍走 callContainer
+        logger.warn('[request] callContainer ' + reason + ', reject (no cooldown)');
+        reject({ errMsg: 'callContainer ' + reason });
+      }
     };
 
     // 云调用超时保护：根据请求 timeout 自适应，长耗时请求给予更多时间
     const reqTimeout = Number.isFinite(options.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
     const cloudTimeout = Math.max(CLOUD_TIMEOUT_MS, Math.min(Math.floor(reqTimeout * 0.9), CLOUD_TIMEOUT_MAX_MS));
-    const timer = setTimeout(() => fallback('timeout'), cloudTimeout);
+    const timer = setTimeout(() => fallback('timeout', false), cloudTimeout);
 
     wx.cloud.callContainer({
       config: { env: CLOUD_HOSTING_ENV },
@@ -124,7 +131,9 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
       },
       fail: (err) => {
         clearTimeout(timer);
-        fallback('failed: ' + (err.errMsg || err));
+        const errMsg = err.errMsg || String(err);
+        // 超时不算基础设施故障，重试仍走 callContainer
+        fallback('failed: ' + errMsg, !isTimeout(errMsg));
       },
     });
     return;
