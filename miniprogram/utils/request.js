@@ -112,7 +112,11 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
     // 云调用超时保护：根据请求 timeout 自适应，长耗时请求给予更多时间
     const reqTimeout = Number.isFinite(options.timeout) && options.timeout > 0 ? options.timeout : DEFAULT_TIMEOUT_MS;
     const cloudTimeout = Math.max(CLOUD_TIMEOUT_MS, Math.min(Math.floor(reqTimeout * 0.9), CLOUD_TIMEOUT_MAX_MS));
-    const timer = setTimeout(() => fallback('timeout', false), cloudTimeout);
+    const timer = setTimeout(() => {
+      // DEBUG: 临时弹窗显示超时信息，定位体验版问题后删除
+      try { wx.showToast({ title: '[CC] JS timeout ' + cloudTimeout + 'ms ' + path, icon: 'none', duration: 5000 }); } catch (_e) {}
+      fallback('timeout', false);
+    }, cloudTimeout);
 
     wx.cloud.callContainer({
       config: { env: CLOUD_HOSTING_ENV },
@@ -132,6 +136,8 @@ const wxRequest = (options) => new Promise((resolve, reject) => {
       fail: (err) => {
         clearTimeout(timer);
         const errMsg = err.errMsg || String(err);
+        // DEBUG: 临时弹窗显示 callContainer 具体错误，定位体验版问题后删除
+        try { wx.showToast({ title: '[CC] ' + errMsg.slice(0, 40), icon: 'none', duration: 5000 }); } catch (_e) {}
         // 超时不算基础设施故障，重试仍走 callContainer
         fallback('failed: ' + errMsg, !isTimeout(errMsg));
       },
