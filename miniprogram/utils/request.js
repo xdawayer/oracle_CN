@@ -319,6 +319,10 @@ const _requestInternal = async (options) => {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      // 防御性处理：callContainer 在极端情况下可能返回 JSON 字符串而非解析后的对象
+      if (typeof response.data === 'string') {
+        try { return JSON.parse(response.data); } catch (_) { /* 非 JSON 字符串，原样返回 */ }
+      }
       return response.data;
     }
 

@@ -290,9 +290,11 @@ Page({
         throw new Error('No content received');
       }
     } catch (err) {
-      logger.error('Ask AI Error:', err);
+      const errInfo = err ? (err.message || err.errMsg || String(err)) : 'unknown';
+      const statusCode = err && err.statusCode;
+      logger.error('Ask AI Error:', errInfo, 'statusCode:', statusCode);
       // 403 配额不足
-      if (err && err.statusCode === 403) {
+      if (statusCode === 403) {
         this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
         this._fetchQuota();
         wx.showModal({
@@ -308,7 +310,13 @@ Page({
         });
         return;
       }
-      wx.showToast({ title: '分析服务中断，请稍后再试', icon: 'none' });
+      // 显示更具体的错误信息辅助诊断
+      const toastMsg = statusCode === 503
+        ? '星象解读暂时维护中，请稍后再试'
+        : statusCode
+          ? '服务异常(' + statusCode + ')，请稍后再试'
+          : (errInfo.indexOf('timeout') !== -1 ? '请求超时，请稍后再试' : '分析服务中断，请稍后再试');
+      wx.showToast({ title: toastMsg, icon: 'none', duration: 3000 });
       this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
     }
   },

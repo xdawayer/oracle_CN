@@ -106,8 +106,9 @@ app.use('/api/wxpay', wxpayRouter);    // 微信支付
 app.use('/api/user', userRouter);      // 用户资料
 app.use('/api/log', logRouter);       // 错误日志上报
 
-// Health check
-app.get('/health', (_, res) => res.json({ status: 'ok' }));
+// Health check（含构建版本，用于验证部署是否生效）
+const BUILD_VERSION = '20260304b';
+app.get('/health', (_, res) => res.json({ status: 'ok', build: BUILD_VERSION }));
 
 // 启动时检查关键环境变量
 const checkEnvVars = () => {
