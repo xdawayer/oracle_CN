@@ -242,7 +242,6 @@ Page({
 
   _invalidateGenerateTask() {
     this._activeGenerateSeq += 1;
-    this._stopActiveStream();
   },
 
   _isLatestDetail(seq) {

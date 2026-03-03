@@ -1,5 +1,5 @@
-// INPUT: AI 内容生成服务（DeepSeek chat/reasoning，含 token 预算、流式输出与缓存）。
-// OUTPUT: 导出 AI 调用服务（snake_case 输出、缓存/JSON 修复、流式生成与调用日志）。
+// INPUT: AI 内容生成服务（DeepSeek chat/reasoning，含 token 预算与缓存）。
+// OUTPUT: 导出 AI 调用服务（snake_case 输出、缓存/JSON 修复与调用日志）。
 // POS: AI 生成服务；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 // 一旦我被更新，务必更新我的开头注释，以及所属的文件夹的md。
 

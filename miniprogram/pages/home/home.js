@@ -385,9 +385,7 @@ Page({
   },
 
   /**
-   * 获取每日洞察：缓存优先 → streaming AI 生成
-   * 注意：streaming 路径为 fire-and-forget，函数在设置 stream 后即返回（resolved promise），
-   * 不会等待 stream 完成。这是有意为之，以提前解锁 markHomeVisibleReady 和 tab-preloader。
+   * 获取每日洞察：缓存优先 → AI 生成
    */
   async fetchDailyForecast(skipCache) {
     this.setData({ isLoadingForecast: true });
