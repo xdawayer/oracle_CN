@@ -78,12 +78,9 @@
         <text class="menu-item-chevron">></text>
       </view>
       <view class="menu-list-item feedback-item">
-        <button class="feedback-btn" open-type="feedback">
-          <view class="feedback-btn-inner">
-            <text class="menu-item-label">意见反馈</text>
-            <text class="menu-item-chevron">></text>
-          </view>
-        </button>
+        <text class="menu-item-label">意见反馈</text>
+        <text class="menu-item-chevron">></text>
+        <button class="feedback-btn-overlay" open-type="feedback"></button>
       </view>
       <view class="menu-list-item logout-item" bindtap="handleLogout">
         <text class="menu-item-label">退出登录</text>
