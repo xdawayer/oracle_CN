@@ -576,8 +576,8 @@ Component({
       const equalAngles = houseCusps.map((_, i) => normalizeAngle(ascLongitude + i * 30));
 
       // 绘制宫位外分隔圆
-      ctx.strokeStyle = 'rgba(216, 209, 197, 0.6)';
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = '#D8D1C5';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, houseRingRadius, 0, 2 * Math.PI);
       ctx.stroke();
