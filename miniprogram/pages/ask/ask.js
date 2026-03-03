@@ -344,7 +344,21 @@ Page({
   _parseReport(raw) {
     if (!raw) return null;
     // 已经是对象，直接清理 markdown 后返回
-    if (typeof raw === 'object' && raw !== null) return this._cleanMarkdown(raw);
+    if (typeof raw === 'object' && raw !== null) {
+      const cleaned = this._cleanMarkdown(raw);
+      // 如果没有 sections，兜底包装为可渲染结构
+      if (!cleaned.sections) {
+        return {
+          astroContext: cleaned.astroContext || null,
+          sections: [{
+            type: 'deep_analysis',
+            title: '解读',
+            cards: [{ title: '', content: JSON.stringify(cleaned) }]
+          }]
+        };
+      }
+      return cleaned;
+    }
     // 剥离 markdown 代码块标记（```json ... ``` 或 ``` ... ```）
     let text = typeof raw === 'string' ? raw.trim() : String(raw);
     const fenceMatch = text.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);

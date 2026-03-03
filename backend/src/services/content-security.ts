@@ -85,6 +85,14 @@ export function containsHighRiskContent(content: string): boolean {
     || RELIGIOUS_RISK_WORDS.some(keyword => content.includes(keyword));
 }
 
+/**
+ * 仅检测政治/宗教敏感内容（用于心理健康类 prompt，跳过自杀/自残等心理健康关键词）
+ */
+export function containsPoliticalOrReligiousContent(content: string): boolean {
+  return POLITICAL_KEYWORDS.some(keyword => content.includes(keyword))
+    || RELIGIOUS_RISK_WORDS.some(keyword => content.includes(keyword));
+}
+
 // Prompt injection 常见模式
 const INJECTION_PATTERNS = [
   /ignore\s+(previous|above|all)\s+(instructions|prompts)/gi,

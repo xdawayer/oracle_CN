@@ -653,7 +653,13 @@ Page({
       const errInfo = error ? (error.message || error.errMsg || String(error)) : 'unknown';
       const statusCode = error && error.statusCode;
       logger.error('CBT Analysis Error:', errInfo, 'statusCode:', statusCode);
-      const fallbackReport = { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 解读服务暂时不可用，记录已保存。' }] };
+
+      let fallbackMsg = 'AI 解读服务暂时不可用，记录已保存。';
+      if (statusCode === 503) {
+        fallbackMsg = '星象解读正在维护中，记录已保存，稍后可查看。';
+      }
+
+      const fallbackReport = { sections: [{ type: 'mood_echo', title: '提示', content: fallbackMsg }] };
       this.setData({ reportData: fallbackReport });
       // 降级报告也存入 storage，以便从历史查看时不会显示"暂无报告数据"
       storage.set(`cbt_report_${dateKey}`, { reportData: fallbackReport, recordSummary });

@@ -4,7 +4,7 @@
 // 一旦我被更新，务必更新我的开头注释，以及所属的文件夹的md。
 
 import { getPrompt, buildCacheKey } from '../prompts/index.js';
-import { replaceSensitiveWords, checkTextSecurity, containsHighRiskContent } from './content-security.js';
+import { replaceSensitiveWords, checkTextSecurity, containsHighRiskContent, containsPoliticalOrReligiousContent } from './content-security.js';
 import { hashInput, CACHE_TTL } from '../cache/strategy.js';
 import { cacheService } from '../cache/redis.js';
 import type { AIContentMeta, LocalizedContent, Language } from '../types/api.js';
@@ -69,6 +69,18 @@ const MAX_TOKENS_MAP: Record<string, number> = {
   'kline-year-tactical': 3000,
   'kline-life-scroll': 5000,
 };
+
+// 心理健康/咨询类 prompt（自然涉及敏感话题，跳过心理健康关键词检测）
+const COUNSELING_SAFE_PROMPTS = new Set([
+  'cbt-analysis',
+  'cbt-aggregate-analysis',
+  'cbt-somatic-analysis',
+  'cbt-root-analysis',
+  'cbt-mood-analysis',
+  'cbt-competence-analysis',
+  'ask-answer',
+  'oracle-answer',
+]);
 
 function resolveMaxTokens(promptId: string, override?: number): number {
   if (Number.isFinite(override) && (override as number) > 0) return override as number;
@@ -450,6 +462,17 @@ function normalizeLocalizedContent<T>(value: unknown, fallbackLang: Language): L
   }
   const record = value as Record<string, unknown>;
   if ('content' in record) {
+    // content 值是对象 → 按原逻辑提取
+    if (record.content && typeof record.content === 'object') {
+      const langValue = typeof record.lang === 'string' ? record.lang : fallbackLang;
+      const lang = (langValue === 'zh' || langValue === 'en') ? (langValue as Language) : fallbackLang;
+      return { lang, content: record.content as T };
+    }
+    // content 是 string 但同时有 sections → AI 额外加了 content 字段，取整个 record 作为内容
+    if ('sections' in record) {
+      return { lang: fallbackLang, content: record as T };
+    }
+    // content 是 string 且无 sections → 按原逻辑
     const langValue = typeof record.lang === 'string' ? record.lang : fallbackLang;
     const lang = (langValue === 'zh' || langValue === 'en') ? (langValue as Language) : fallbackLang;
     return { lang, content: record.content as T };
@@ -736,9 +759,17 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
 
     // 内容安全审核（JSON 结构内容做本地高风险检测）
     const jsonContentStr = JSON.stringify(result.content);
-    if (containsHighRiskContent(jsonContentStr)) {
-      console.warn(`[AI] JSON content filtered for ${options.promptId} (high-risk content detected)`);
-      throw new AIUnavailableError('content_filtered', 'Content filtered by security check');
+    if (COUNSELING_SAFE_PROMPTS.has(options.promptId)) {
+      // 心理健康类内容只检测政治/宗教敏感词，不检测自杀/自残等心理健康关键词
+      if (containsPoliticalOrReligiousContent(jsonContentStr)) {
+        console.warn(`[AI] JSON content filtered for ${options.promptId} (political/religious content detected)`);
+        throw new AIUnavailableError('content_filtered', 'Content filtered by security check');
+      }
+    } else {
+      if (containsHighRiskContent(jsonContentStr)) {
+        console.warn(`[AI] JSON content filtered for ${options.promptId} (high-risk content detected)`);
+        throw new AIUnavailableError('content_filtered', 'Content filtered by security check');
+      }
     }
 
     // 写入缓存
