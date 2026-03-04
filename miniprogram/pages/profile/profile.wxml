@@ -25,25 +25,29 @@
       </view>
     </view>
 
-    <view class="form-item ink-border" bindtap="onEditBirthDate">
-      <view class="form-label-row">
-        <text class="form-label">出生日期</text>
+    <picker mode="date" value="{{birthDate}}" start="1940-01-01" end="2010-12-31" bindchange="onDateChange">
+      <view class="form-item ink-border">
+        <view class="form-label-row">
+          <text class="form-label">出生日期</text>
+        </view>
+        <view class="form-value-row">
+          <text class="form-value">{{birthDate || '未设置'}}</text>
+          <text class="form-chevron">></text>
+        </view>
       </view>
-      <view class="form-value-row">
-        <text class="form-value">{{birthDate || '未设置'}}</text>
-        <text class="form-chevron">></text>
-      </view>
-    </view>
+    </picker>
 
-    <view class="form-item ink-border" bindtap="onEditBirthTime">
-      <view class="form-label-row">
-        <text class="form-label">出生时间</text>
+    <picker mode="time" value="{{birthTime}}" bindchange="onTimeChange">
+      <view class="form-item ink-border">
+        <view class="form-label-row">
+          <text class="form-label">出生时间</text>
+        </view>
+        <view class="form-value-row">
+          <text class="form-value">{{birthTime || '未设置'}}</text>
+          <text class="form-chevron">></text>
+        </view>
       </view>
-      <view class="form-value-row">
-        <text class="form-value">{{birthTime || '未设置'}}</text>
-        <text class="form-chevron">></text>
-      </view>
-    </view>
+    </picker>
 
     <view class="form-item ink-border" bindtap="onEditBirthCity">
       <view class="form-label-row">
@@ -62,16 +66,6 @@
       <text class="save-btn-text">保存修改</text>
     </view>
   </view>
-
-  <!-- 日期选择器 -->
-  <picker mode="date" value="{{birthDate}}" start="1940-01-01" end="2010-12-31" bindchange="onDateChange" wx:if="{{showDatePicker}}">
-    <view></view>
-  </picker>
-
-  <!-- 时间选择器 -->
-  <picker mode="time" value="{{birthTime}}" bindchange="onTimeChange" wx:if="{{showTimePicker}}">
-    <view></view>
-  </picker>
 
   <!-- 头像选择弹窗 -->
   <view class="avatar-picker-mask" wx:if="{{showAvatarPicker}}" bindtap="onCloseAvatarPicker">

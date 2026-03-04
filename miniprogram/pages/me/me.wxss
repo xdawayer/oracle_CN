@@ -81,44 +81,6 @@
   letter-spacing: 2rpx;
 }
 
-/* 出生资料 */
-.birth-info-list {
-  border-top: 1rpx solid var(--border-color);
-}
-
-.birth-info-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1rpx solid var(--border-color);
-}
-
-.birth-info-item:last-child {
-  border-bottom: none;
-}
-
-.birth-info-label {
-  font-size: 26rpx;
-  color: var(--ink-light);
-}
-
-.birth-info-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.birth-info-value {
-  font-size: 26rpx;
-  color: var(--ink-dark);
-}
-
-.birth-info-chevron {
-  font-size: 22rpx;
-  color: var(--ink-light);
-}
-
 /* VIP 卡片 */
 .vip-card {
   background: var(--ink-deep);

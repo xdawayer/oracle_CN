@@ -97,18 +97,25 @@ Page({
         const serverName = res.name || this.data.name;
         const hasAvatarField = Object.prototype.hasOwnProperty.call(res, 'avatarUrl');
         const serverAvatar = hasAvatarField ? (res.avatarUrl || '') : this.data.avatarUrl;
+        // 出生信息优先使用本地缓存（后端可能有编码问题）
+        const localBirthDate = this.data.birthDate;
+        const localBirthTime = this.data.birthTime;
+        const localBirthCity = this.data.birthCity;
+        const finalBirthDate = localBirthDate !== '2000-01-01' ? localBirthDate : (res.birthDate || localBirthDate);
+        const finalBirthTime = localBirthTime !== '12:00' ? localBirthTime : (res.birthTime || localBirthTime);
+        const finalBirthCity = localBirthCity !== '北京, 中国' ? localBirthCity : (res.birthCity || localBirthCity);
         this.setData({
           name: serverName,
           avatarUrl: serverAvatar,
-          birthDate: res.birthDate || this.data.birthDate,
-          birthTime: res.birthTime || this.data.birthTime,
-          birthCity: res.birthCity || this.data.birthCity,
+          birthDate: finalBirthDate,
+          birthTime: finalBirthTime,
+          birthCity: finalBirthCity,
           originalData: {
             name: serverName,
             avatarUrl: serverAvatar,
-            birthDate: res.birthDate || this.data.birthDate,
-            birthTime: res.birthTime || this.data.birthTime,
-            birthCity: res.birthCity || this.data.birthCity,
+            birthDate: finalBirthDate,
+            birthTime: finalBirthTime,
+            birthCity: finalBirthCity,
           },
         });
         if (hasAvatarField) {
@@ -123,15 +130,10 @@ Page({
       // 使用本地数据
     }
 
-    // 从"我的"页面跳转过来时，自动触发对应编辑
-    if (this._focusField) {
-      const field = this._focusField;
+    // 从"我的"页面跳转过来时，自动触发城市编辑
+    if (this._focusField === 'birthCity') {
       this._focusField = '';
-      setTimeout(() => {
-        if (field === 'birthDate') this.onEditBirthDate();
-        else if (field === 'birthTime') this.onEditBirthTime();
-        else if (field === 'birthCity') this.onEditBirthCity();
-      }, 300);
+      setTimeout(() => this.onEditBirthCity(), 300);
     }
   },
 
@@ -230,22 +232,13 @@ Page({
     this.setData({ showNameEditor: false });
   },
 
-  onEditBirthDate() {
-    // 使用 picker 组件
-    this.setData({ showDatePicker: true });
-  },
-
   onDateChange(e) {
-    this.setData({ birthDate: e.detail.value, showDatePicker: false });
+    this.setData({ birthDate: e.detail.value });
     this.checkChanges();
   },
 
-  onEditBirthTime() {
-    this.setData({ showTimePicker: true });
-  },
-
   onTimeChange(e) {
-    this.setData({ birthTime: e.detail.value, showTimePicker: false });
+    this.setData({ birthTime: e.detail.value });
     this.checkChanges();
   },
 

@@ -52,6 +52,10 @@ Page({
     if (options.mode === 'edit') {
       this.setData({ isEditMode: true });
       this.loadExistingProfile();
+    } else if (options.mode === 'editCity') {
+      // 仅编辑城市模式：直接跳到步骤2
+      this.setData({ isEditMode: true, step: 2, agreedTerms: true });
+      this.loadExistingProfile();
     }
 
     this.checkCanProceed();
@@ -340,6 +344,24 @@ Page({
       };
 
       storage.set('user_profile', newProfile);
+
+      // 同步到 astro_user 缓存
+      const astroUser = storage.get('astro_user') || {};
+      astroUser.birthDate = finalBirthDate;
+      astroUser.birthTime = birthTime;
+      astroUser.birthCity = newProfile.birthCity;
+      if (selectedCity) {
+        astroUser.lat = selectedCity.lat;
+        astroUser.lon = selectedCity.lon;
+        astroUser.timezone = selectedCity.timezone;
+      }
+      storage.set('astro_user', astroUser);
+
+      // editCity 模式：通过 eventChannel 通知上级页面
+      const eventChannel = this.getOpenerEventChannel && this.getOpenerEventChannel();
+      if (eventChannel) {
+        eventChannel.emit('selectCity', { city: newProfile.birthCity });
+      }
 
       wx.showToast({
         title: isEditMode ? '保存成功' : '设置完成',
