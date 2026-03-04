@@ -103,15 +103,20 @@ Page({
     if (this._lastForecastDate && this._lastForecastDate !== today) {
       jobs.push(this.fetchDailyForecast());
     }
-    // profile 变化 → skipCache 重新生成
+    // profile 变化 或 首次获取到 profile（从 onboarding 返回）→ 重新生成
     else if (this.userProfile) {
       const currentFp = this._lastProfileFingerprint || '';
       const newFp = buildProfileFingerprint(this.userProfile);
-      if (currentFp && newFp !== currentFp) {
-        jobs.push(this.fetchDailyForecast(true));
+      if (newFp !== currentFp) {
+        // currentFp 为空说明是首次获取 profile，不需要 skipCache
+        jobs.push(this.fetchDailyForecast(!!currentFp));
       }
       // 仍处于初始加载状态 → 重试
       else if (this.data.isLoadingForecast || this.data.shareData.quote === '加载中...') {
+        jobs.push(this.fetchDailyForecast());
+      }
+      // 上次请求失败（score 仍为 '--'）→ 自动重试
+      else if (this.data.shareData.score === '--') {
         jobs.push(this.fetchDailyForecast());
       }
     } else if (!this.userProfile) {
@@ -318,9 +323,10 @@ Page({
     return params.join('&');
   },
 
-  /** 序列号自增 + 清理残留 pending */
+  /** 序列号自增 + 清理残留 pending + 重置重试标志 */
   _beginForecastTask() {
     this._forecastSeq = (this._forecastSeq || 0) + 1;
+    this._forecastRetried = false;
     if (this.userProfile) {
       const today = new Date().toISOString().slice(0, 10);
       const key = buildDailyFullCacheKey(this.userProfile, today);
@@ -438,7 +444,7 @@ Page({
       storage.set(fullCacheKey + '_pending', true);
     }
 
-    try {
+    const doRequest = async () => {
       const res = await request({
         url: `${API_ENDPOINTS.DAILY_FULL}?${query}`,
         method: 'GET',
@@ -448,18 +454,36 @@ Page({
       if (!this._isLatestForecast(seq)) return;
 
       if (res && res.forecast) {
-        // 写缓存
         if (fullCacheKey) {
           storage.set(fullCacheKey, res);
           storage.remove(fullCacheKey + '_pending');
         }
         this._renderCardFromFullResult(res, today);
       } else {
-        if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
-        this._handleForecastError(new Error('AI 未返回有效内容'));
+        throw new Error('AI 未返回有效内容');
       }
+    };
+
+    try {
+      await doRequest();
     } catch (err) {
       if (!this._isLatestForecast(seq)) return;
+      // 首次失败 → 等 3s 自动重试一次（应对 callContainer 冷启动）
+      if (!this._forecastRetried) {
+        this._forecastRetried = true;
+        logger.log('Daily forecast failed, auto-retry in 3s', err?.message || err);
+        await new Promise(r => setTimeout(r, 3000));
+        if (!this._isLatestForecast(seq)) return;
+        try {
+          await doRequest();
+          return;
+        } catch (retryErr) {
+          if (!this._isLatestForecast(seq)) return;
+          if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
+          this._handleForecastError(retryErr);
+          return;
+        }
+      }
       if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
       this._handleForecastError(err);
     }

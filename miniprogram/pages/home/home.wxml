@@ -15,7 +15,7 @@
     </view>
   </view>
 
-  <!-- 加载中：骨架屏 -->
+  <!-- 加载中：骨架屏 + AI 生成提示 -->
   <view class="daily-card" wx:if="{{isLoadingForecast}}">
     <view class="card-content home-skeleton">
       <view class="card-hero">
@@ -23,10 +23,8 @@
         <view class="skeleton-block home-skeleton-quote"></view>
       </view>
       <view class="ink-divider"></view>
-      <view class="desc-box">
-        <view class="skeleton-block home-skeleton-line"></view>
-        <view class="skeleton-block home-skeleton-line home-skeleton-line-short"></view>
-        <view class="skeleton-block home-skeleton-line home-skeleton-line-mid"></view>
+      <view class="loading-hint">
+        <text class="loading-hint-text font-body">AI 正在为你生成今日洞察...</text>
       </view>
       <view class="ink-divider"></view>
       <view class="lucky-section">
