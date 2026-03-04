@@ -6,7 +6,7 @@ const logger = require('../../utils/logger');
 // ===== AI 响应解析工具 =====
 function stripMarkdown(obj) {
   if (typeof obj === 'string') {
-    return obj.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '');
+    return obj.replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\*([^\s*][\s\S]*?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '').replace(/`([^`]+)`/g, '$1');
   }
   if (Array.isArray(obj)) {
     return obj.map(stripMarkdown);

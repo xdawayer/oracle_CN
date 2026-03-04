@@ -524,6 +524,28 @@ function stripCodeFence(text: string): string {
   return (fenced ? fenced[1] : trimmed).trim();
 }
 
+/** 递归清除 JSON 对象中所有字符串值的 markdown 格式标记 */
+function stripMarkdownFromValues(obj: unknown): unknown {
+  if (typeof obj === 'string') {
+    return obj
+      .replace(/\*\*([\s\S]+?)\*\*/g, '$1')  // **bold**
+      .replace(/\*([^\s*][\s\S]*?)\*/g, '$1') // *italic*（避免误伤单独的 *）
+      .replace(/^#{1,6}\s+/gm, '')            // ### heading
+      .replace(/`([^`]+)`/g, '$1');            // `code`
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripMarkdownFromValues);
+  }
+  if (obj && typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      result[key] = stripMarkdownFromValues(val);
+    }
+    return result;
+  }
+  return obj;
+}
+
 function repairJsonLocal(jsonText: string): string | null {
   try {
     let text = jsonText.trim();
@@ -756,6 +778,8 @@ async function generateAIContentInternal<T>(options: AIGenerateOptions): Promise
       console.log(`[AI] JSON repaired locally for ${options.promptId}`);
       parsed = JSON.parse(repaired) as unknown;
     }
+    // 清除 AI 残留的 markdown 格式标记（**加粗** *斜体* ### 标题 `代码`）
+    parsed = stripMarkdownFromValues(parsed);
     const result = normalizeLocalizedContent<T>(parsed, lang);
 
     // 内容安全审核（JSON 结构内容做本地高风险检测）

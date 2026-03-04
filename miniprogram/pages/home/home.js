@@ -59,6 +59,7 @@ Page({
       note: '约 8000-10000 字深度解读，永久保存',
     },
     isLoadingForecast: true,
+    isForecastPending: false,
     isLoadingRecommendations: true,
     recommendations: [],
 
@@ -382,6 +383,7 @@ Page({
 
     this.setData({
       isLoadingForecast: false,
+      isForecastPending: false,
       shareData
     });
 
@@ -395,9 +397,13 @@ Page({
     return `home_card_${buildProfileFingerprint(this.userProfile)}_${dateStr}`;
   },
 
-  /** 从 /transit 确定性数据渲染卡片（<500ms，无需 AI） */
-  _renderCardFromTransit(transitRes, today) {
+  /**
+   * 从 /transit 确定性数据渲染卡片基础信息（分数/幸运值）
+   * pending=true 时仅展示“AI 报告生成中”提示，不展示过渡文案
+   */
+  _renderCardFromTransit(transitRes, today, options = {}) {
     if (!this._alive) return;
+    const pending = options.pending !== false;
     const interp = transitRes.interpreted || {};
     const natal = transitRes.natal || {};
     const sunPos = natal.positions
@@ -407,10 +413,14 @@ Page({
 
     this.setData({
       isLoadingForecast: false,
+      // pending 阶段为“AI 报告生成中”，最终兜底结束 pending
+      isForecastPending: pending,
       shareData: {
         score: String(interp.score || '--'),
-        quote: interp.summary || '今日洞察生成中...',
-        body: interp.description || '',
+        quote: pending ? 'AI报告正在生成中……' : '已加载今日基础数据',
+        body: pending
+          ? '今日运势基础数据已就绪，个性化解读生成中，请稍候。'
+          : 'AI 解读暂不可用，请稍后下拉刷新重试。',
         sunSign,
         lucky: {
           color: interp.luckyColor || '--',
@@ -462,13 +472,14 @@ Page({
       if (this._isLatestForecast(seq)) {
         // 资料变更模式下有 transit 暂存数据，降级渲染
         if (this._transitFallback) {
-          this._renderCardFromTransit(this._transitFallback.data, this._transitFallback.today);
+          this._renderCardFromTransit(this._transitFallback.data, this._transitFallback.today, { pending: false });
           this._transitFallback = null;
           this._profileChanged = false;
         } else if (this.data.isLoadingForecast) {
           // transit 也失败了，此时仍在 loading → 显示错误
           this.setData({
             isLoadingForecast: false,
+            isForecastPending: false,
             shareData: {
               ...this.data.shareData,
               score: '--',
@@ -493,7 +504,10 @@ Page({
    * 获取每日洞察：缓存优先 → transit 快速渲染 → AI 后台升级
    */
   async fetchDailyForecast(skipCache) {
-    this.setData({ isLoadingForecast: true });
+    this.setData({
+      isLoadingForecast: true,
+      isForecastPending: false
+    });
 
     if (!this.userProfile) {
       this.setData({
@@ -511,6 +525,7 @@ Page({
 
     const seq = this._beginForecastTask();
     const today = new Date().toISOString().slice(0, 10);
+    this._transitFallback = null;
 
     // 缓存优先：先查 home 卡片缓存，再查 full 缓存（preloader 可能已写入）
     if (!skipCache) {
@@ -543,11 +558,12 @@ Page({
         timeout: 15000,
       });
       if (this._isLatestForecast(seq) && transitRes && transitRes.interpreted) {
+        this._transitFallback = { data: transitRes, today };
         if (this._profileChanged) {
           // 资料变更：暂存 transit，保持 loading 直到 AI 内容到达
-          this._transitFallback = { data: transitRes, today };
         } else {
-          this._renderCardFromTransit(transitRes, today);
+          // 非资料变更：先展示基础数据 + “AI 报告生成中”提示，避免显示过渡 mock 文案
+          this._renderCardFromTransit(transitRes, today, { pending: true });
         }
       }
     } catch (e) {

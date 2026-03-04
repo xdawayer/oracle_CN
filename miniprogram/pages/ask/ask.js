@@ -376,10 +376,10 @@ Page({
   _stripMarkdown(str) {
     if (typeof str !== 'string') return str;
     return str
-      .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold**
-      .replace(/\*(.+?)\*/g, '$1')        // *italic*
-      .replace(/^#{1,6}\s+/gm, '')        // ### heading
-      .replace(/`([^`]+)`/g, '$1');       // `code`
+      .replace(/\*\*([\s\S]+?)\*\*/g, '$1')   // **bold**（含跨行）
+      .replace(/\*([^\s*][\s\S]*?)\*/g, '$1')  // *italic*（避免误伤单独 *）
+      .replace(/^#{1,6}\s+/gm, '')             // ### heading
+      .replace(/`([^`]+)`/g, '$1');            // `code`
   },
 
   // 递归清理对象中所有字符串值的 markdown 标记

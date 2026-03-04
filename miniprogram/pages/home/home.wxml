@@ -59,7 +59,10 @@
 
       <!-- 正文描述 -->
       <view class="desc-box">
-        <text class="desc-text font-body">{{shareData.body}}</text>
+        <view class="loading-hint" wx:if="{{isForecastPending}}">
+          <text class="loading-hint-text font-body">{{shareData.body}}</text>
+        </view>
+        <text class="desc-text font-body" wx:else>{{shareData.body}}</text>
       </view>
 
       <view class="ink-divider"></view>
