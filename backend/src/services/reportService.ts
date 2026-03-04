@@ -154,24 +154,41 @@ const REPORT_PROMPTS: Record<ReportType, { systemPrompt: string; sections: strin
 };
 
 class ReportService {
-  // Check if user has purchased a specific report type
-  async hasReportAccess(userId: string, reportType: ReportType): Promise<boolean> {
+  // Check if user has purchased a specific report type (bound to birth info via chartHash)
+  async hasReportAccess(userId: string, reportType: ReportType, chartHash?: string): Promise<boolean> {
     if (!isDatabaseConfigured()) return false;
 
+    if (chartHash) {
+      // 精确检查：userId + reportType + chartHash（出生信息绑定）
+      const record = await getOne<{ id: string }>(
+        'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ?',
+        [userId, 'report', `${reportType}:${chartHash}`]
+      );
+      if (record) return true;
+
+      // 检查 reports 表（含 chartHash）
+      const existingReport = await getOne<{ id: string }>(
+        'SELECT id FROM reports WHERE user_id = ? AND report_type = ? AND JSON_UNQUOTE(JSON_EXTRACT(content, \'$.chartHash\')) = ?',
+        [userId, reportType, chartHash]
+      );
+      if (existingReport) return true;
+
+      return false;
+    }
+
+    // 无 chartHash 时的宽松检查（兼容旧路由）
     const record = await getOne<{ id: string }>(
       'SELECT id FROM purchase_records WHERE user_id = ? AND feature_type = ? AND feature_id = ?',
       [userId, 'report', reportType]
     );
     if (record) return true;
 
-    // Check for existing purchased report
     const existingReport = await getOne<{ id: string }>(
       'SELECT id FROM reports WHERE user_id = ? AND report_type = ?',
       [userId, reportType]
     );
     if (existingReport) return true;
 
-    // Check for purchase record
     const purchase = await getOne<{ id: string }>(
       'SELECT id FROM purchases WHERE user_id = ? AND product_type = ? AND product_id = ? AND status = ?',
       [userId, 'report', reportType, 'completed']

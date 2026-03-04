@@ -161,6 +161,14 @@ function buildBirthLookupKey(config: ReportConfig, userId: string, birthLookupHa
 // 仅供测试使用
 export { normalizeBirthLookupInput as _normalizeBirthLookupInput, buildBirthLookupHash as _buildBirthLookupHash };
 
+/** 计算出生信息对应的 chartHash（供 API 层做权限检查） */
+export async function computeChartHash(birthData: Partial<BirthInput>): Promise<string> {
+  const birthInput = await parseBirthInput(birthData as Record<string, unknown>);
+  const chart = await ephemerisService.calculateNatalChart(birthInput);
+  const chartSummary = buildCompactChartSummary(chart) as Record<string, unknown>;
+  return hashInput(chartSummary);
+}
+
 /** 解析出生信息 */
 async function parseBirthInput(query: Record<string, unknown>): Promise<BirthInput> {
   const city = (query.city as string) || '';

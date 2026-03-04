@@ -143,6 +143,8 @@ Page({
 
   onPullDownRefresh() {
     // 下拉刷新：skipCache
+    // fetchDailyForecast 在 transit 返回后 resolve（<500ms），AI 在后台继续
+    // 这是预期行为：用户无需等待 AI 重试，卡片已用 transit 数据刷新
     Promise.all([
       this.fetchDailyForecast(true),
       this.initRecommendations()
@@ -323,10 +325,9 @@ Page({
     return params.join('&');
   },
 
-  /** 序列号自增 + 清理残留 pending + 重置重试标志 */
+  /** 序列号自增 + 清理残留 pending */
   _beginForecastTask() {
     this._forecastSeq = (this._forecastSeq || 0) + 1;
-    this._forecastRetried = false;
     if (this.userProfile) {
       const today = new Date().toISOString().slice(0, 10);
       const key = buildDailyFullCacheKey(this.userProfile, today);
@@ -382,25 +383,99 @@ Page({
     this._lastProfileFingerprint = buildProfileFingerprint(this.userProfile);
   },
 
-  /** 统一错误处理 */
-  _handleForecastError(err) {
+  /** 首页卡片专用缓存 key（与 daily 页面的 full 缓存分开） */
+  _homeCardCacheKey(dateStr) {
+    if (!this.userProfile) return null;
+    return `home_card_${buildProfileFingerprint(this.userProfile)}_${dateStr}`;
+  },
+
+  /** 从 /transit 确定性数据渲染卡片（<500ms，无需 AI） */
+  _renderCardFromTransit(transitRes, today) {
     if (!this._alive) return;
-    const errMsg = err ? (err.message || err.errMsg || String(err)) : 'unknown';
-    logger.error('Fetch daily failed', errMsg, err);
+    const interp = transitRes.interpreted || {};
+    const natal = transitRes.natal || {};
+    const sunPos = natal.positions
+      ? natal.positions.find(p => p.name === 'Sun')
+      : null;
+    const sunSign = sunPos ? (SIGN_CN[sunPos.sign] || sunPos.sign) : '';
+
     this.setData({
       isLoadingForecast: false,
       shareData: {
-        ...this.data.shareData,
-        score: '--',
-        quote: '暂时无法获取',
-        body: '请下拉刷新重试',
-        lucky: { color: '--', number: '--', direction: '--' }
+        score: String(interp.score || '--'),
+        quote: interp.summary || '今日洞察生成中...',
+        body: interp.description || '',
+        sunSign,
+        lucky: {
+          color: interp.luckyColor || '--',
+          number: interp.luckyNumber !== undefined ? String(interp.luckyNumber) : '--',
+          direction: interp.luckyDirection || '--',
+        },
+        date: this.data.shareData.date,
       }
     });
+    this._lastForecastDate = today;
+    this._lastProfileFingerprint = buildProfileFingerprint(this.userProfile);
+  },
+
+  /** AI 内容后台获取（带自动重试，不阻塞卡片展示） */
+  async _fetchAIForecast(seq, query, today) {
+    const fullCacheKey = buildDailyFullCacheKey(this.userProfile, today);
+    const homeCardKey = this._homeCardCacheKey(today);
+    // 设置 pending 标记，防止 preloader 重复请求
+    if (fullCacheKey) storage.set(fullCacheKey + '_pending', true);
+
+    const RETRY_DELAYS = [0, 8000, 15000, 30000];
+    try {
+      for (let attempt = 0; attempt < RETRY_DELAYS.length; attempt++) {
+        if (!this._isLatestForecast(seq)) return;
+
+        if (attempt > 0) {
+          await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+          if (!this._isLatestForecast(seq)) return;
+        }
+        try {
+          const res = await request({
+            url: `${API_ENDPOINTS.DAILY_FULL}?${query}&sections=forecast`,
+            method: 'GET',
+            timeout: 120000,
+          });
+          if (!this._isLatestForecast(seq)) return;
+          if (res && res.forecast) {
+            if (homeCardKey) storage.set(homeCardKey, res);
+            this._renderCardFromFullResult(res, today);
+            return;
+          }
+        } catch (err) {
+          logger.log(`AI forecast attempt ${attempt + 1}/${RETRY_DELAYS.length} failed:`, err?.message || err);
+        }
+      }
+      // 所有重试用尽
+      if (this._isLatestForecast(seq) && this.data.isLoadingForecast) {
+        // transit 也失败了，此时仍在 loading → 显示错误
+        this.setData({
+          isLoadingForecast: false,
+          shareData: {
+            ...this.data.shareData,
+            score: '--',
+            quote: '暂时无法获取',
+            body: '请下拉刷新重试',
+            lucky: { color: '--', number: '--', direction: '--' }
+          }
+        });
+      } else {
+        logger.warn('AI forecast all retries exhausted, keeping transit data');
+      }
+    } finally {
+      // 仅当仍是最新请求时才清除 pending，避免旧序列误删新序列的标记
+      if (fullCacheKey && this._isLatestForecast(seq)) {
+        storage.remove(fullCacheKey + '_pending');
+      }
+    }
   },
 
   /**
-   * 获取每日洞察：缓存优先 → AI 生成
+   * 获取每日洞察：缓存优先 → transit 快速渲染 → AI 后台升级
    */
   async fetchDailyForecast(skipCache) {
     this.setData({ isLoadingForecast: true });
@@ -422,71 +497,44 @@ Page({
     const seq = this._beginForecastTask();
     const today = new Date().toISOString().slice(0, 10);
 
-    // 缓存优先
+    // 缓存优先：先查 home 卡片缓存，再查 full 缓存（preloader 可能已写入）
     if (!skipCache) {
+      const homeCardKey = this._homeCardCacheKey(today);
+      const homeCached = homeCardKey ? storage.get(homeCardKey) : null;
+      if (homeCached && homeCached.forecast) {
+        this._renderCardFromFullResult(homeCached, today);
+        return;
+      }
       const fullCacheKey = buildDailyFullCacheKey(this.userProfile, today);
-      const cached = fullCacheKey ? storage.get(fullCacheKey) : null;
-      if (cached && (cached.chart || cached.forecast)) {
-        this._renderCardFromFullResult(cached, today);
+      const fullCached = fullCacheKey ? storage.get(fullCacheKey) : null;
+      if (fullCached && (fullCached.chart || fullCached.forecast)) {
+        this._renderCardFromFullResult(fullCached, today);
         return;
       }
     }
 
-    // 缓存未命中 → 请求 /daily/full
     const query = this.buildDailyParams(today);
     if (!query) {
       this.setData({ isLoadingForecast: false });
       return;
     }
 
-    const fullCacheKey = buildDailyFullCacheKey(this.userProfile, today);
-    if (fullCacheKey) {
-      storage.set(fullCacheKey + '_pending', true);
-    }
-
-    const doRequest = async () => {
-      const res = await request({
-        url: `${API_ENDPOINTS.DAILY_FULL}?${query}`,
-        method: 'GET',
-        timeout: 120000,
-      });
-
-      if (!this._isLatestForecast(seq)) return;
-
-      if (res && res.forecast) {
-        if (fullCacheKey) {
-          storage.set(fullCacheKey, res);
-          storage.remove(fullCacheKey + '_pending');
-        }
-        this._renderCardFromFullResult(res, today);
-      } else {
-        throw new Error('AI 未返回有效内容');
-      }
-    };
-
+    // Phase 1：快速 transit（确定性数据，<500ms）→ 立即渲染卡片
     try {
-      await doRequest();
-    } catch (err) {
-      if (!this._isLatestForecast(seq)) return;
-      // 首次失败 → 等 3s 自动重试一次（应对 callContainer 冷启动）
-      if (!this._forecastRetried) {
-        this._forecastRetried = true;
-        logger.log('Daily forecast failed, auto-retry in 3s', err?.message || err);
-        await new Promise(r => setTimeout(r, 3000));
-        if (!this._isLatestForecast(seq)) return;
-        try {
-          await doRequest();
-          return;
-        } catch (retryErr) {
-          if (!this._isLatestForecast(seq)) return;
-          if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
-          this._handleForecastError(retryErr);
-          return;
-        }
+      const transitRes = await request({
+        url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`,
+        method: 'GET',
+        timeout: 15000,
+      });
+      if (this._isLatestForecast(seq) && transitRes && transitRes.interpreted) {
+        this._renderCardFromTransit(transitRes, today);
       }
-      if (fullCacheKey) storage.remove(fullCacheKey + '_pending');
-      this._handleForecastError(err);
+    } catch (e) {
+      logger.warn('Transit fetch failed:', e?.message || e);
     }
+
+    // Phase 2：AI 内容后台获取（带自动重试）
+    this._fetchAIForecast(seq, query, today);
   },
 
   async initRecommendations() {
@@ -802,30 +850,19 @@ Page({
       accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
     };
 
-    const DEV_MODE = isDev;
-
     try {
-      if (!DEV_MODE) {
-        const payResult = await request({
-          url: '/api/reports/purchase',
-          method: 'POST',
-          data: { reportType: 'annual' },
-        });
-
-        if (!payResult || !payResult.success) {
-          const errorMsg = payResult?.error || '支付失败';
-          if (!handleInsufficientCredits(this, payResult, { showPayment: false, paymentLoading: false })) {
-            wx.showToast({ title: errorMsg, icon: 'none' });
-          }
-          return;
-        }
-      }
-
+      // 统一走 /api/report/create（内置积分门控：检查+扣减+创建任务一步完成）
       const result = await request({
-        url: '/api/annual-task/create',
+        url: API_ENDPOINTS.REPORT_CREATE,
         method: 'POST',
-        data: { birth: birthData, lang: 'zh' },
+        data: { reportType: 'annual', birth: birthData, lang: 'zh' },
+        timeout: 60000,
       });
+
+      // 处理积分不足
+      if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
+        return;
+      }
 
       if (result && result.success) {
         this.closePayment();
@@ -857,6 +894,7 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
       logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

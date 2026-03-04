@@ -1182,32 +1182,68 @@ Page({
       accuracy: userProfile.accuracyLevel === 'approximate' ? 'approximate' : 'exact',
     };
 
-    // 开发环境跳过支付，生产环境走积分扣除流程
-    const DEV_MODE = isDev;
-
     try {
-      if (!DEV_MODE) {
-        // 正式版：先支付
-        const payResult = await request({
-          url: '/api/reports/purchase',
-          method: 'POST',
-          data: { reportType },
-        });
+      // 统一走 /api/report/create（内置积分门控：检查+扣减+创建任务一步完成）
+      const result = await request({
+        url: API_ENDPOINTS.REPORT_CREATE,
+        method: 'POST',
+        data: { reportType, birth: birthData, lang: 'zh' },
+        timeout: 60000,
+      });
 
-        if (!payResult || !payResult.success) {
-          const errorMsg = payResult?.error || '支付失败';
-          if (!handleInsufficientCredits(this, payResult, { showPayment: false, paymentLoading: false })) {
-            wx.showToast({ title: errorMsg, icon: 'none' });
-          }
-          return;
-        }
+      // 处理积分不足
+      if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
+        return;
       }
 
-      // 根据报告类型分派创建逻辑
-      if (reportType === 'annual') {
-        await this._createAnnualTask(birthData);
-      } else if (reportType === 'natal-report') {
-        await this._createNatalTask(birthData);
+      if (result && result.success) {
+        this.closePayment();
+
+        if (reportType === 'annual') {
+          this.setData({
+            annualTaskStatus: result.status,
+            annualTaskProgress: result.progress || 0,
+            annualTaskMessage: result.message || '',
+          });
+
+          if (result.isNew) {
+            wx.showModal({
+              title: '任务已创建',
+              content: `报告将在后台生成，预计需要 ${result.estimatedMinutes || 5} 分钟。\n\n生成完成后可在"本我"页面查看。`,
+              showCancel: false,
+              confirmText: '知道了',
+            });
+            this._startStatusPolling();
+          } else if (result.status === 'completed') {
+            wx.navigateTo({ url: '/pages/annual-report/annual-report' });
+          } else if (result.status === 'processing') {
+            wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
+            this._startStatusPolling();
+          }
+        } else if (reportType === 'natal-report') {
+          this.setData({
+            natalReportStatus: result.status,
+            natalReportProgress: result.progress || 0,
+            natalReportMessage: result.message || '',
+          });
+
+          if (result.isNew) {
+            wx.showModal({
+              title: '任务已创建',
+              content: '报告将在后台生成，预计需要数分钟。\n\n生成完成后可在"本我"页面查看。',
+              showCancel: false,
+              confirmText: '知道了',
+            });
+            this._startNatalReportPolling();
+          } else if (result.status === 'completed') {
+            wx.navigateTo({ url: '/pages/report/report?reportType=natal-report' });
+          } else if (result.status === 'processing') {
+            wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
+            this._startNatalReportPolling();
+          }
+        }
+      } else {
+        wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
       if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
@@ -1215,77 +1251,6 @@ Page({
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
       this.setData({ paymentLoading: false });
-    }
-  },
-
-  /** 创建年度报告异步任务 */
-  async _createAnnualTask(birthData) {
-    const result = await request({
-      url: '/api/annual-task/create',
-      method: 'POST',
-      data: { birth: birthData, lang: 'zh' },
-    });
-
-    if (result && result.success) {
-      this.closePayment();
-      this.setData({
-        annualTaskStatus: result.status,
-        annualTaskProgress: result.progress || 0,
-        annualTaskMessage: result.message || '',
-      });
-
-      if (result.isNew) {
-        wx.showModal({
-          title: '任务已创建',
-          content: `报告将在后台生成，预计需要 ${result.estimatedMinutes || 5} 分钟。\n\n生成完成后可在"本我"页面查看。`,
-          showCancel: false,
-          confirmText: '知道了',
-        });
-        this._startStatusPolling();
-      } else if (result.status === 'completed') {
-        wx.navigateTo({ url: '/pages/annual-report/annual-report' });
-      } else if (result.status === 'processing') {
-        wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
-        this._startStatusPolling();
-      }
-    } else {
-      wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
-    }
-  },
-
-  /** 创建本命深度解读异步任务 */
-  async _createNatalTask(birthData) {
-    const result = await request({
-      url: API_ENDPOINTS.REPORT_CREATE,
-      method: 'POST',
-      data: { reportType: 'natal-report', birth: birthData, lang: 'zh' },
-      timeout: 60000,
-    });
-
-    if (result && result.success) {
-      this.closePayment();
-      this.setData({
-        natalReportStatus: result.status,
-        natalReportProgress: result.progress || 0,
-        natalReportMessage: result.message || '',
-      });
-
-      if (result.isNew) {
-        wx.showModal({
-          title: '任务已创建',
-          content: '报告将在后台生成，预计需要数分钟。\n\n生成完成后可在"本我"页面查看。',
-          showCancel: false,
-          confirmText: '知道了',
-        });
-        this._startNatalReportPolling();
-      } else if (result.status === 'completed') {
-        wx.navigateTo({ url: '/pages/report/report?reportType=natal-report' });
-      } else if (result.status === 'processing') {
-        wx.showToast({ title: '报告正在生成中...', icon: 'loading' });
-        this._startNatalReportPolling();
-      }
-    } else {
-      wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
     }
   },
 

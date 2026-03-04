@@ -441,10 +441,17 @@ dailyRouter.get('/full', async (req, res) => {
     const userAge = calculateAge(birth.date);
     const userAgeGroup = getAgeGroup(userAge);
 
-    // 5. 并行生成 forecast + detail
+    // 5. 按 sections 参数决定生成哪些内容（默认全部）
+    const rawSections = req.query.sections;
+    const sectionsStr = Array.isArray(rawSections) ? rawSections.join(',') : (rawSections as string | undefined);
+    const promptIds = sectionsStr
+      ? sectionsStr.split(',').map(s => `daily-${s.trim()}`).filter(id => ['daily-forecast', 'daily-detail'].includes(id))
+      : ['daily-forecast', 'daily-detail'];
+    if (promptIds.length === 0) promptIds.push('daily-forecast');
+
     const aiStart = performance.now();
     const parallelResult = await generateParallel({
-      promptIds: ['daily-forecast', 'daily-detail'],
+      promptIds,
       sharedContext: {
         chart_summary: chartSummary,
         transit_summary: transitSummary,

@@ -10,6 +10,7 @@ import {
   getReportContent,
   retryReportTask,
   deleteReportTask,
+  computeChartHash,
   type ReportConfig,
 } from '../services/report-task.js';
 import { ANNUAL_REPORT_CONFIG } from '../services/annual-task.js';
@@ -102,11 +103,14 @@ reportRouter.post('/create', authMiddleware, requireAuth, async (req: Request, r
   }
 
   try {
-    // 积分检查门控：查询价格 → 已购检查 → 余额检查 → 扣减
+    // 计算 chartHash（出生信息唯一标识），用于绑定购买记录
+    const chartHash = await computeChartHash(birth as Partial<BirthInput>);
+
+    // 积分检查门控：查询价格 → 已购检查（绑定 chartHash） → 余额检查 → 扣减
     const price = REPORT_PRICES[reportType];
     if (price && price > 0) {
-      // 检查是否已购买（已购直接跳过扣费）
-      const hasAccess = await reportService.hasReportAccess(userId, reportType as Parameters<typeof reportService.hasReportAccess>[1]);
+      // 检查是否已购买（同一出生信息已购直接跳过扣费）
+      const hasAccess = await reportService.hasReportAccess(userId, reportType as Parameters<typeof reportService.hasReportAccess>[1], chartHash);
       if (!hasAccess) {
         const entitlements = await entitlementServiceV2.getEntitlements(userId);
 
@@ -115,11 +119,11 @@ reportRouter.post('/create', authMiddleware, requireAuth, async (req: Request, r
           return;
         }
 
-        // 扣减积分
+        // 扣减积分（feature_id 绑定 chartHash）
         const record = await entitlementServiceV2.purchaseWithCredits(
           userId,
           'report',
-          reportType,
+          `${reportType}:${chartHash}`,
           'permanent',
           price
         );
