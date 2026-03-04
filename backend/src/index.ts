@@ -107,24 +107,36 @@ app.use('/api/user', userRouter);      // 用户资料
 app.use('/api/log', logRouter);       // 错误日志上报
 
 // Health check（含构建版本，用于验证部署是否生效）
-const BUILD_VERSION = '20260304d';
+const BUILD_VERSION = '20260304e';
 app.get('/health', (_, res) => res.json({ status: 'ok', build: BUILD_VERSION }));
 
-// POST echo 测试端点（验证 callContainer POST 链路是否正常）
-app.post('/api/echo', (req, res) => {
-  console.log(`[Echo] POST received, body keys: ${Object.keys(req.body || {}).join(',')}`);
-  res.json({
-    build: BUILD_VERSION,
-    method: req.method,
-    bodyKeys: Object.keys(req.body || {}),
-    // 模拟 Ask 响应格式
-    lang: 'zh',
-    content: {
-      sections: [
-        { type: 'deep_analysis', title: '测试解读', cards: [{ title: '诊断', content: '如果你看到这条消息，说明 callContainer POST 链路正常。build=' + BUILD_VERSION }] }
-      ]
-    },
-  });
+// POST echo 测试端点（验证异步任务流程是否正常）
+app.post('/api/echo', async (req, res) => {
+  const { createTask: ct, completeTask: cpt, getTask: gt } = await import('./utils/taskStore.js');
+  const taskId = await ct();
+  // 模拟 3 秒后完成任务
+  setTimeout(async () => {
+    await cpt(taskId, {
+      lang: 'zh',
+      content: {
+        sections: [
+          { type: 'deep_analysis', title: '异步测试', cards: [{ title: '诊断', content: '异步任务流程正常！build=' + BUILD_VERSION + ', taskId=' + taskId }] }
+        ]
+      },
+    });
+    console.log(`[Echo] Task ${taskId} completed after 3s`);
+  }, 3000);
+  console.log(`[Echo] Task ${taskId} created, will complete in 3s`);
+  res.json({ taskId, status: 'pending', build: BUILD_VERSION });
+});
+
+// GET echo 轮询端点
+app.get('/api/echo/result/:taskId', async (req, res) => {
+  const { getTask: gt } = await import('./utils/taskStore.js');
+  const task = await gt(req.params.taskId);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  if (task.status === 'pending') return res.json({ status: 'pending' });
+  res.json({ status: 'completed', ...task.result });
 });
 
 // 启动时检查关键环境变量

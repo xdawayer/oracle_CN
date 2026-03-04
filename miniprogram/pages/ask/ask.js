@@ -269,12 +269,14 @@ Page({
 
     try {
       // Step 1: 提交任务（快速返回 taskId）
+      // retry:1 应对容器冷启动超时（首次请求可能 15s+ 触发冷启动，重试时容器已就绪）
       const submitRes = await request({
         url: API_ENDPOINTS.ASK,
         method: 'POST',
         data: requestData,
         timeout: 15000,
         dedupe: false,
+        retry: 1,
       });
 
       logger.info('[Ask] submit res:', JSON.stringify(submitRes).substring(0, 200));
@@ -436,22 +438,44 @@ Page({
 
   // 诊断：长按触发 echo 测试（验证 callContainer POST 是否正常）
   async onDebugEcho() {
+    // 先检测云托管状态
+    let cloudInfo = '';
     try {
-      const res = await request({
-        url: '/api/echo',
-        method: 'POST',
-        data: { test: true },
-        timeout: 15000,
+      const info = wx.getAccountInfoSync();
+      const envVersion = info && info.miniProgram ? info.miniProgram.envVersion : 'unknown';
+      const hasCloud = !!(wx.cloud && wx.cloud.callContainer);
+      cloudInfo = 'env=' + envVersion + ', cloud=' + hasCloud;
+    } catch (e) {
+      cloudInfo = 'getInfo失败';
+    }
+
+    // 先用原始 callContainer 直接测试（绕过 request 封装，看真实错误）
+    if (wx.cloud && wx.cloud.callContainer) {
+      wx.cloud.callContainer({
+        config: { env: 'prod-6gnh6drs7858f443' },
+        path: '/health',
+        method: 'GET',
+        header: { 'X-WX-SERVICE': 'express-wb6g' },
+        success: (res) => {
+          const data = res.data;
+          wx.showModal({
+            title: 'Cloud 直连成功',
+            content: cloudInfo + '\nstatusCode=' + res.statusCode + '\nbuild=' + (data && data.build) + '\ndata=' + JSON.stringify(data).substring(0, 100),
+            showCancel: false,
+          });
+        },
+        fail: (err) => {
+          wx.showModal({
+            title: 'Cloud 直连失败',
+            content: cloudInfo + '\nerr=' + (err.errMsg || JSON.stringify(err)),
+            showCancel: false,
+          });
+        },
       });
+    } else {
       wx.showModal({
-        title: 'Echo 诊断',
-        content: 'build=' + (res && res.build) + '\ncontent=' + (res && res.content ? 'YES' : 'NO') + '\nkeys=' + (res ? Object.keys(res).join(',') : 'null') + '\ntype=' + typeof res,
-        showCancel: false,
-      });
-    } catch (err) {
-      wx.showModal({
-        title: 'Echo 失败',
-        content: String(err && (err.message || err.errMsg) || err),
+        title: 'Cloud 不可用',
+        content: cloudInfo + '\nwx.cloud.callContainer 不存在',
         showCancel: false,
       });
     }

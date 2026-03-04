@@ -594,11 +594,13 @@ Page({
       }
 
       // Step 1: 提交分析任务（快速返回 taskId）
+      // retry:1 应对容器冷启动超时
       const submitRes = await request({
         url: API_ENDPOINTS.CBT_ANALYSIS,
         method: 'POST',
         timeout: 15000,
         dedupe: false,
+        retry: 1,
         data: {
           birth: {
             date: userProfile.birthDate,

@@ -21,7 +21,7 @@ const getChartType = (category?: string): AskChartType => {
   return 'natal';
 };
 
-// 后台处理 Ask AI 生成
+// 后台处理 Ask AI 生成（含权益校验 —— 全部在后台完成，POST 只做 createTask + return）
 async function processAskTask(
   taskId: string,
   body: AskRequest & { mode?: string; pairingContext?: unknown },
@@ -30,6 +30,14 @@ async function processAskTask(
 ) {
   try {
     const requestStart = performance.now();
+
+    // 权益校验（移到后台，避免 MySQL 慢查询拖累 POST 响应）
+    const access = await entitlementServiceV2.checkAccess(userId, 'ask', undefined, deviceFingerprint);
+    if (!access.canAccess) {
+      await failTask(taskId, 'Feature not available', 403);
+      return;
+    }
+
     const { birth, question: rawQuestion, context: rawContext, category, lang: langInput, mode } = body;
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
     const question = sanitizeUserInput(rawQuestion || '');
@@ -82,28 +90,18 @@ async function processAskTask(
   }
 }
 
-// POST /api/ask - 提交问答任务（立即返回 taskId）
+// POST /api/ask - 提交问答任务（立即返回 taskId，所有耗时操作在后台执行）
 askRouter.post('/', optionalAuthMiddleware, async (req, res) => {
   try {
     const { birth, question: rawQuestion } = req.body as AskRequest & { mode?: string };
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
 
-    // Quick validation
+    // Quick validation only — no DB queries in POST handler
     if (!birth || !rawQuestion) {
       return res.status(400).json({ error: 'Missing required fields: birth, question' });
     }
 
-    // Access check (fast, <1s)
-    const access = await entitlementServiceV2.checkAccess(req.userId || null, 'ask', undefined, deviceFingerprint);
-    if (!access.canAccess) {
-      return res.status(403).json({
-        error: 'Feature not available',
-        needPurchase: access.needPurchase,
-        price: access.price,
-      });
-    }
-
-    // Create task and start background processing
+    // Create task and start background processing (checkAccess moved to processAskTask)
     const taskId = await createTask();
     processAskTask(taskId, req.body, req.userId || null, deviceFingerprint)
       .catch(async (err) => {
