@@ -1135,9 +1135,19 @@ Page({
       paymentReportType: type,
       paymentMeta: displayMeta,
     });
-    // 异步获取后端实时价格（含 VIP 折扣）
+    // 异步获取后端实时价格（含 VIP 折扣），传入 birth 做精确权限检查
     try {
-      const res = await request({ url: `/api/reports/access/${type}` });
+      const userProfile = storage.get('user_profile');
+      const birthParam = userProfile && userProfile.birthDate ? encodeURIComponent(JSON.stringify({
+        date: userProfile.birthDate,
+        time: userProfile.birthTime || '12:00',
+        city: userProfile.birthCity || '',
+        lat: userProfile.lat,
+        lon: userProfile.lon,
+        timezone: userProfile.timezone || 'Asia/Shanghai',
+      })) : '';
+      const birthQuery = birthParam ? `?birth=${birthParam}` : '';
+      const res = await request({ url: `/api/reports/access/${type}${birthQuery}` });
       if (res && res.price > 0) {
         displayMeta.price = res.price;
         this.setData({ paymentMeta: displayMeta });

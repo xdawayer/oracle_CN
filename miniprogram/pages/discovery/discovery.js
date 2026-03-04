@@ -291,9 +291,12 @@ Page({
       currentReportType: reportType,
       paymentMeta: displayMeta,
     });
-    // 异步获取后端实时价格（含 VIP 折扣）
+    // 异步获取后端实时价格（含 VIP 折扣），传入 birth 做精确权限检查
     try {
-      const res = await request({ url: `/api/reports/access/${reportType}` });
+      const birthData = this._getBirthData();
+      const birthParam = birthData ? encodeURIComponent(JSON.stringify(birthData)) : '';
+      const birthQuery = birthParam ? `?birth=${birthParam}` : '';
+      const res = await request({ url: `/api/reports/access/${reportType}${birthQuery}` });
       if (res && res.price > 0) {
         displayMeta.price = res.price;
         this.setData({ paymentMeta: displayMeta });

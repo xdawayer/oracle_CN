@@ -2,9 +2,9 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, requireAuth } from './auth.js';
 import reportService, { ReportType } from '../services/reportService.js';
-import userService from '../services/userService.js';
-import entitlementServiceV2 from '../services/entitlementServiceV2.js';
 import { REPORT_PRICES } from './report.js';
+import { computeChartHash } from '../services/report-task.js';
+import type { BirthInput } from '../types/api.js';
 
 const router = Router();
 
@@ -61,7 +61,7 @@ router.get('/:reportId', authMiddleware, requireAuth, async (req: Request, res: 
   }
 });
 
-// Check if user has access to a report type
+// Check if user has access to a report type (supports birth-info-bound check via ?birth=JSON)
 router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
     const reportType = req.params.reportType as ReportType;
@@ -71,7 +71,19 @@ router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Reque
       return res.status(400).json({ error: 'Invalid report type' });
     }
 
-    const hasAccess = await reportService.hasReportAccess(req.userId!, reportType);
+    // 如果前端传了 birth 参数，则做精确的出生信息绑定检查
+    let chartHash: string | undefined;
+    const birthParam = req.query.birth as string | undefined;
+    if (birthParam) {
+      try {
+        const birthData = JSON.parse(birthParam) as Partial<BirthInput>;
+        chartHash = await computeChartHash(birthData);
+      } catch {
+        // birth 参数解析失败，降级到无 chartHash 检查
+      }
+    }
+
+    const hasAccess = await reportService.hasReportAccess(req.userId!, reportType, chartHash);
     const existingReport = await reportService.getReportByType(req.userId!, reportType);
     // 优先使用中国市场定价，回退到 Stripe 定价
     const price = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
@@ -93,104 +105,16 @@ router.get('/access/:reportType', authMiddleware, requireAuth, async (req: Reque
   }
 });
 
-// Generate a report (requires purchase)
-router.post('/generate', authMiddleware, requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { reportType, language = 'en' } = req.body;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report', 'love-topic', 'career-topic', 'wealth-topic'];
-
-    if (!reportType || !validTypes.includes(reportType)) {
-      return res.status(400).json({ error: 'Invalid report type' });
-    }
-
-    // Check if user has purchased this report type
-    const hasAccess = await reportService.hasReportAccess(req.userId!, reportType);
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Report not purchased', requiresPurchase: true });
-    }
-
-    // Get user's birth profile
-    const user = await userService.findById(req.userId!);
-    if (!user || !user.birth_profile) {
-      return res.status(400).json({ error: 'Birth profile required' });
-    }
-
-    // Check if report already exists
-    const existingReport = await reportService.getReportByType(req.userId!, reportType);
-    if (existingReport) {
-      return res.json({
-        id: existingReport.id,
-        type: existingReport.report_type,
-        title: existingReport.title,
-        content: existingReport.content,
-        alreadyGenerated: true,
-      });
-    }
-
-    // Generate the report
-    const report = await reportService.generateReport(
-      req.userId!,
-      reportType,
-      user.birth_profile,
-      language
-    );
-
-    res.json({
-      id: report.id,
-      type: report.report_type,
-      title: report.title,
-      content: report.content,
-      generatedAt: report.generated_at,
-    });
-  } catch (error) {
-    console.error('Generate report error:', error);
-    res.status(500).json({ error: 'Failed to generate report' });
-  }
+// [DEPRECATED] Generate a report — 请使用 POST /api/report/create（统一异步任务 + 积分门控）
+router.post('/generate', authMiddleware, requireAuth, async (_req: Request, res: Response) => {
+  res.status(410).json({ error: 'Deprecated. Use POST /api/report/create instead.' });
 });
 
-// Purchase and generate a report
-router.post('/purchase', authMiddleware, requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { reportType } = req.body;
-    const validTypes = ['monthly', 'annual', 'career', 'wealth', 'love', 'saturn_return', 'synastry_deep', 'natal-report', 'love-topic', 'career-topic', 'wealth-topic'];
-
-    if (!reportType || !validTypes.includes(reportType)) {
-      return res.status(400).json({ error: 'Invalid report type' });
-    }
-
-    // Check if already purchased
-    const hasAccess = await reportService.hasReportAccess(req.userId!, reportType);
-    if (hasAccess) {
-      return res.status(400).json({ error: 'Report already purchased' });
-    }
-
-    const entitlements = await entitlementServiceV2.getEntitlements(req.userId!);
-    const price = REPORT_PRICES[reportType] || reportService.getReportPrice(reportType);
-
-    if (entitlements.credits < price) {
-      return res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });
-    }
-
-    const record = await entitlementServiceV2.purchaseWithCredits(
-      req.userId!,
-      'report',
-      reportType,
-      'permanent',
-      price
-    );
-
-    if (!record) {
-      return res.status(403).json({ error: 'Insufficient credits', price, balance: entitlements.credits });
-    }
-
-    const updated = await entitlementServiceV2.getEntitlements(req.userId!);
-
-    res.json({ success: true, entitlements: updated, price });
-  } catch (error) {
-    console.error('Purchase report error:', error);
-    res.status(500).json({ error: 'Failed to purchase report' });
-  }
+// [DEPRECATED] Purchase a report — 请使用 POST /api/report/create（内置积分门控）
+router.post('/purchase', authMiddleware, requireAuth, async (_req: Request, res: Response) => {
+  res.status(410).json({ error: 'Deprecated. Use POST /api/report/create instead.' });
 });
+
 
 // Delete a report
 router.delete('/:reportId', authMiddleware, requireAuth, async (req: Request, res: Response) => {

@@ -476,9 +476,19 @@ Page({
       note: '约 3000-5000 字深度解读，永久保存',
     };
     this.setData({ showPayment: true, paymentMeta });
-    // 异步获取后端实时价格（含 VIP 折扣）
+    // 异步获取后端实时价格（含 VIP 折扣），传入 birth 做精确权限检查
     try {
-      const res = await request({ url: '/api/reports/access/monthly' });
+      const stored = storage.get('user_profile');
+      const birthParam = stored && stored.birthDate ? encodeURIComponent(JSON.stringify({
+        date: stored.birthDate,
+        time: stored.birthTime || '12:00',
+        city: stored.birthCity || '',
+        lat: stored.lat,
+        lon: stored.lon,
+        timezone: stored.timezone || 'Asia/Shanghai',
+      })) : '';
+      const birthQuery = birthParam ? `?birth=${birthParam}` : '';
+      const res = await request({ url: `/api/reports/access/monthly${birthQuery}` });
       if (res && res.price > 0) {
         paymentMeta.price = res.price;
         this.setData({ paymentMeta });
