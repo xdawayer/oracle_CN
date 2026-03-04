@@ -75,11 +75,13 @@ export function getFestivalContext(date: Date = new Date()): string {
   for (const festival of TRADITIONAL_FESTIVALS) {
     for (const range of festival.ranges) {
       if (range.year !== year || range.month !== month) continue;
-      const dist = Math.abs(day - range.day);
-      if (dist <= 1) {
-        const proximity = dist === 0 ? '今天是' : '临近';
-        return `节日：${proximity}${festival.name}。${festival.greeting}`;
+      const diff = day - range.day;  // 正数=节后，负数=节前
+      if (diff === 0) {
+        return `节日：今天是${festival.name}。${festival.greeting}`;
+      } else if (diff === -1) {
+        return `节日：明天是${festival.name}。${festival.greeting}`;
       }
+      // 节后不再提及，避免"元宵节临近"但实际已过的问题
     }
   }
 
