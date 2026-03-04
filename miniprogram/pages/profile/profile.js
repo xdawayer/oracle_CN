@@ -281,9 +281,12 @@ Page({
         },
       });
 
-      // 更新本地缓存
+      // 更新本地缓存（出生信息也必须同步，否则其他页面读到旧数据）
       const profile = storage.get('user_profile') || {};
       profile.name = this.data.name;
+      profile.birthDate = this.data.birthDate;
+      profile.birthTime = this.data.birthTime;
+      profile.birthCity = this.data.birthCity;
       storage.set('user_profile', profile);
       if (avatarUrl) {
         storage.set('user_avatar', avatarUrl);
