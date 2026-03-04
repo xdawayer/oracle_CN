@@ -44,7 +44,7 @@ export const EMAIL_CONFIG = {
 // Free tier limits
 export const FREE_TIER_LIMITS = {
   // 新版配置
-  ASK_QUESTIONS_PER_WEEK: 999,       // 临时放开测试（原值 3）
+  ASK_QUESTIONS_PER_WEEK: 3,          // 每周免费 3 次 Ask
   SYNASTRY_TOTAL: 3,                 // 永久免费 3 次合盘
   DETAIL_READINGS: 2,                // 探索自我前 2 个心理维度免费
   SYNTHETICA_DAILY: 3,               // Synthetica 工具每日免费次数
