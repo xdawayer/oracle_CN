@@ -9,6 +9,9 @@ Page({
     auditMode: false,
     userProfile: {},
     avatarUrl: '',
+    birthDate: '',
+    birthTime: '',
+    birthCity: '',
     isLoggedIn: false,
     statusBarHeight: 20,
   },
@@ -46,10 +49,14 @@ Page({
     profile.matchCount = Array.isArray(synastryRecords) ? synastryRecords.length : 0;
 
     const avatarUrl = storage.get('user_avatar') || '';
+    const birthInfo = storage.get('astro_user') || {};
     const isLoggedIn = Boolean(storage.get('access_token'));
     this.setData({
       userProfile: profile,
       avatarUrl,
+      birthDate: birthInfo.birthDate || '',
+      birthTime: birthInfo.birthTime || '',
+      birthCity: birthInfo.birthCity || '',
       isLoggedIn,
     });
 
@@ -86,6 +93,9 @@ Page({
         this.setData({
           userProfile: profile,
           avatarUrl: hasAvatarField ? (res.avatarUrl || '') : this.data.avatarUrl,
+          birthDate: res.birthDate || this.data.birthDate,
+          birthTime: res.birthTime || this.data.birthTime,
+          birthCity: res.birthCity || this.data.birthCity,
         });
       }
     } catch (err) {
@@ -113,8 +123,16 @@ Page({
     wx.navigateTo({ url: '/pages/records/records' });
   },
 
-  handleEditBirthInfo() {
-    wx.navigateTo({ url: '/pages/onboarding/onboarding?mode=edit' });
+  goEditBirthDate() {
+    wx.navigateTo({ url: '/pages/profile/profile?focus=birthDate' });
+  },
+
+  goEditBirthTime() {
+    wx.navigateTo({ url: '/pages/profile/profile?focus=birthTime' });
+  },
+
+  goEditBirthCity() {
+    wx.navigateTo({ url: '/pages/profile/profile?focus=birthCity' });
   },
 
   goToOrders() {

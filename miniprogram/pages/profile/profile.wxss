@@ -140,7 +140,10 @@
   border-radius: 24rpx 24rpx 0 0;
   padding: var(--spacing-lg) var(--spacing-lg) 60rpx;
   max-height: 70vh;
-  overflow-y: auto;
+}
+
+.avatar-picker-scroll {
+  max-height: 55vh;
 }
 
 .avatar-picker-header {

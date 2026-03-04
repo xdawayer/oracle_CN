@@ -74,34 +74,36 @@
   </picker>
 
   <!-- 头像选择弹窗 -->
-  <view class="avatar-picker-mask" wx:if="{{showAvatarPicker}}" bindtap="onCloseAvatarPicker" catchtouchmove="onCloseAvatarPicker">
-    <view class="avatar-picker-popup" catchtap="onNoop" catchtouchmove="onNoop">
+  <view class="avatar-picker-mask" wx:if="{{showAvatarPicker}}" bindtap="onCloseAvatarPicker">
+    <view class="avatar-picker-popup" catchtap="onNoop">
       <view class="avatar-picker-header">
         <text class="avatar-picker-title">选择头像</text>
         <text class="avatar-picker-close" bindtap="onCloseAvatarPicker">×</text>
       </view>
-      <view class="avatar-picker-grid">
-        <button
-          class="avatar-picker-item wechat-avatar-btn"
-          open-type="chooseAvatar"
-          bindchooseavatar="onChooseWechatAvatar"
-        >
-          <view class="wechat-avatar-icon">
-            <text class="wechat-icon-text">微</text>
+      <scroll-view scroll-y class="avatar-picker-scroll">
+        <view class="avatar-picker-grid">
+          <button
+            class="avatar-picker-item wechat-avatar-btn"
+            open-type="chooseAvatar"
+            bindchooseavatar="onChooseWechatAvatar"
+          >
+            <view class="wechat-avatar-icon">
+              <text class="wechat-icon-text">微</text>
+            </view>
+            <text class="avatar-picker-label">微信头像</text>
+          </button>
+          <view
+            class="avatar-picker-item {{avatarUrl === item.url ? 'selected' : ''}}"
+            wx:for="{{avatarOptions}}"
+            wx:key="url"
+            data-url="{{item.url}}"
+            bindtap="onSelectAvatar"
+          >
+            <image class="avatar-picker-img" src="{{item.url}}" mode="aspectFill"></image>
+            <text class="avatar-picker-label">{{item.label}}</text>
           </view>
-          <text class="avatar-picker-label">微信头像</text>
-        </button>
-        <view
-          class="avatar-picker-item {{avatarUrl === item.url ? 'selected' : ''}}"
-          wx:for="{{avatarOptions}}"
-          wx:key="url"
-          data-url="{{item.url}}"
-          bindtap="onSelectAvatar"
-        >
-          <image class="avatar-picker-img" src="{{item.url}}" mode="aspectFill"></image>
-          <text class="avatar-picker-label">{{item.label}}</text>
         </view>
-      </view>
+      </scroll-view>
     </view>
   </view>
 

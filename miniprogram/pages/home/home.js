@@ -174,10 +174,19 @@ Page({
     }
     this.userProfile = { ...DEFAULT_PROFILE, ...stored };
 
+    const updates = {};
+
     const avatarUrl = storage.get('user_avatar') || '';
     if (avatarUrl) {
-      this.setData({ avatarUrl });
+      updates.avatarUrl = avatarUrl;
     }
+
+    const userName = stored.name || '星语用户';
+    const hour = new Date().getHours();
+    const timeGreeting = hour < 12 ? '早安' : hour < 18 ? '午安' : '晚安';
+    updates.greeting = `${timeGreeting}, ${userName}`;
+
+    this.setData(updates);
   },
 
   loadHomeVisibleData() {

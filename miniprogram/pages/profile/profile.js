@@ -47,8 +47,8 @@ Page({
     editingName: '',
   },
 
-  onLoad() {
-    // 构建头像选项列表
+  onLoad(options) {
+    // 头像选项：微信头像（如有缓存）+ 预设星座头像
     const wechatAvatar = storage.get('wechat_avatar') || '';
     const avatarOptions = [];
     if (wechatAvatar) {
@@ -56,7 +56,7 @@ Page({
     }
     avatarOptions.push(...ZODIAC_ICONS);
     this.setData({ avatarOptions });
-
+    this._focusField = options.focus || '';
     this.loadProfile();
   },
 
@@ -122,6 +122,17 @@ Page({
     } catch (err) {
       // 使用本地数据
     }
+
+    // 从"我的"页面跳转过来时，自动触发对应编辑
+    if (this._focusField) {
+      const field = this._focusField;
+      this._focusField = '';
+      setTimeout(() => {
+        if (field === 'birthDate') this.onEditBirthDate();
+        else if (field === 'birthTime') this.onEditBirthTime();
+        else if (field === 'birthCity') this.onEditBirthCity();
+      }, 300);
+    }
   },
 
   checkChanges() {
@@ -145,7 +156,6 @@ Page({
     const savedPath = `${wx.env.USER_DATA_PATH}/wechat_avatar.jpg`;
     try {
       const fs = wx.getFileSystemManager();
-      // 先清理旧文件，避免 saveFileSync 因目标已存在而报错
       try { fs.unlinkSync(savedPath); } catch (_) { /* ignore */ }
       fs.saveFileSync(avatarUrl, savedPath);
       storage.set('wechat_avatar', savedPath);
@@ -155,7 +165,7 @@ Page({
     }
     this.checkChanges();
 
-    // 更新头像选项列表
+    // 更新头像选项列表，确保微信头像在首位
     const opts = this.data.avatarOptions.filter(item => item.label !== '微信');
     opts.unshift({ url: this.data.avatarUrl, label: '微信' });
     this.setData({ avatarOptions: opts });

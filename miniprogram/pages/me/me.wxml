@@ -3,20 +3,45 @@
 
   <view class="menu-view">
     <!-- 用户头部 -->
-    <view class="user-header ink-border" bindtap="goToProfile">
-      <view class="avatar-wrap">
-        <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
-        <view class="avatar placeholder" wx:else>
-          <text class="avatar-text">U</text>
+    <view class="user-header ink-border">
+      <view class="user-header-top" bindtap="goToProfile">
+        <view class="avatar-wrap">
+          <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarLoadError" wx:if="{{avatarUrl}}"></image>
+          <view class="avatar placeholder" wx:else>
+            <text class="avatar-text">U</text>
+          </view>
+        </view>
+        <view class="user-info">
+          <view class="name-row">
+            <text class="user-name font-ancient">{{userProfile.name || '星语用户'}}</text>
+            <text class="name-chevron">></text>
+          </view>
+          <view class="vip-status-tag" wx:if="{{userProfile.isVip}}">
+            <text class="vip-tag-text">尊享会员</text>
+          </view>
         </view>
       </view>
-      <view class="user-info">
-        <view class="name-row">
-          <text class="user-name font-ancient">{{userProfile.name || '星语用户'}}</text>
-          <text class="name-chevron">></text>
+      <view class="birth-info-list">
+        <view class="birth-info-item" bindtap="goEditBirthDate">
+          <text class="birth-info-label">出生日期</text>
+          <view class="birth-info-right">
+            <text class="birth-info-value">{{birthDate || '未设置'}}</text>
+            <text class="birth-info-chevron">></text>
+          </view>
         </view>
-        <view class="vip-status-tag" wx:if="{{userProfile.isVip}}">
-          <text class="vip-tag-text">尊享会员</text>
+        <view class="birth-info-item" bindtap="goEditBirthTime">
+          <text class="birth-info-label">出生时间</text>
+          <view class="birth-info-right">
+            <text class="birth-info-value">{{birthTime || '未设置'}}</text>
+            <text class="birth-info-chevron">></text>
+          </view>
+        </view>
+        <view class="birth-info-item" bindtap="goEditBirthCity">
+          <text class="birth-info-label">出生城市</text>
+          <view class="birth-info-right">
+            <text class="birth-info-value">{{birthCity || '未设置'}}</text>
+            <text class="birth-info-chevron">></text>
+          </view>
         </view>
       </view>
     </view>
@@ -57,10 +82,6 @@
 
     <!-- 菜单列表 -->
     <view class="menu-list ink-border">
-      <view class="menu-list-item" bindtap="handleEditBirthInfo">
-        <text class="menu-item-label">编辑出生资料</text>
-        <text class="menu-item-chevron">></text>
-      </view>
       <view class="menu-list-item" bindtap="goToOrders">
         <text class="menu-item-label">订单管理</text>
         <text class="menu-item-chevron">></text>
