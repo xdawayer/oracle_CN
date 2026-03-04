@@ -173,7 +173,7 @@
 }
 
 .avatar-picker-item {
-  width: calc(25% - 18rpx);
+  width: calc(25% - 24rpx);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

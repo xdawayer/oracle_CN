@@ -359,7 +359,7 @@ Page({
 
       // editCity 模式：通过 eventChannel 通知上级页面
       const eventChannel = this.getOpenerEventChannel && this.getOpenerEventChannel();
-      if (eventChannel) {
+      if (eventChannel && typeof eventChannel.emit === 'function') {
         eventChannel.emit('selectCity', { city: newProfile.birthCity });
       }
 

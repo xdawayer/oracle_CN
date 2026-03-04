@@ -97,25 +97,16 @@ Page({
         const serverName = res.name || this.data.name;
         const hasAvatarField = Object.prototype.hasOwnProperty.call(res, 'avatarUrl');
         const serverAvatar = hasAvatarField ? (res.avatarUrl || '') : this.data.avatarUrl;
-        // 出生信息优先使用本地缓存（后端可能有编码问题）
-        const localBirthDate = this.data.birthDate;
-        const localBirthTime = this.data.birthTime;
-        const localBirthCity = this.data.birthCity;
-        const finalBirthDate = localBirthDate !== '2000-01-01' ? localBirthDate : (res.birthDate || localBirthDate);
-        const finalBirthTime = localBirthTime !== '12:00' ? localBirthTime : (res.birthTime || localBirthTime);
-        const finalBirthCity = localBirthCity !== '北京, 中国' ? localBirthCity : (res.birthCity || localBirthCity);
+        // 出生信息完全使用本地缓存（后端可能有编码问题），不用服务端数据覆盖
         this.setData({
           name: serverName,
           avatarUrl: serverAvatar,
-          birthDate: finalBirthDate,
-          birthTime: finalBirthTime,
-          birthCity: finalBirthCity,
           originalData: {
             name: serverName,
             avatarUrl: serverAvatar,
-            birthDate: finalBirthDate,
-            birthTime: finalBirthTime,
-            birthCity: finalBirthCity,
+            birthDate: this.data.birthDate,
+            birthTime: this.data.birthTime,
+            birthCity: this.data.birthCity,
           },
         });
         if (hasAvatarField) {
