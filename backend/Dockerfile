@@ -20,6 +20,9 @@ RUN npm run build
 # 删除 devDependencies，减小镜像体积
 RUN npm prune --omit=dev && apk del python3 make g++
 
+# 运行时设为生产模式（必须在 npm ci 之后，否则会跳过 devDependencies）
+ENV NODE_ENV=production
+
 RUN mkdir -p uploads/avatars
 EXPOSE 3001
 CMD ["node", "dist/index.js"]

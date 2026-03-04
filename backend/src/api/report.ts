@@ -3,7 +3,7 @@
 // POS: 通用报告任务API；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from './auth.js';
+import { authMiddleware, requireAuth } from './auth.js';
 import {
   createReportTask,
   getReportTaskStatus,
@@ -32,7 +32,7 @@ export const REPORT_PRICES: Record<string, number> = {
   'wealth-topic':  200,  // ¥20
 };
 
-/** 开发模式默认用户 ID（仅 development 环境生效） */
+/** 开发模式默认用户 ID（requireAuth 已保证生产环境不会走到 fallback） */
 const DEV_USER_ID = process.env.NODE_ENV === 'production' ? '' : 'dev-user-report';
 
 /** 报告配置注册表 */
@@ -61,7 +61,7 @@ export const reportRouter = Router();
  * POST /api/report/create
  * 创建异步生成任务
  */
-reportRouter.post('/create', authMiddleware, async (req: Request, res: Response) => {
+reportRouter.post('/create', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID || 'anonymous';
 
   const { reportType, birth, lang = 'zh', year, month } = req.body as {
@@ -171,7 +171,7 @@ reportRouter.post('/create', authMiddleware, async (req: Request, res: Response)
  * GET /api/report/status
  * 查询任务状态
  */
-reportRouter.get('/status', authMiddleware, async (req: Request, res: Response) => {
+reportRouter.get('/status', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID || 'anonymous';
   const { reportType, birth } = req.query as { reportType?: string; birth?: string };
 
@@ -233,7 +233,7 @@ reportRouter.get('/status', authMiddleware, async (req: Request, res: Response) 
  * GET /api/report/content
  * 获取报告内容
  */
-reportRouter.get('/content', authMiddleware, async (req: Request, res: Response) => {
+reportRouter.get('/content', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID || 'anonymous';
   const { reportType, birth } = req.query as { reportType?: string; birth?: string };
 
@@ -286,7 +286,7 @@ reportRouter.get('/content', authMiddleware, async (req: Request, res: Response)
  * POST /api/report/retry
  * 重试失败的任务
  */
-reportRouter.post('/retry', authMiddleware, async (req: Request, res: Response) => {
+reportRouter.post('/retry', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID || 'anonymous';
 
   const { reportType, birth } = req.body as {
@@ -337,7 +337,7 @@ reportRouter.post('/retry', authMiddleware, async (req: Request, res: Response) 
  * DELETE /api/report
  * 删除任务
  */
-reportRouter.delete('/', authMiddleware, async (req: Request, res: Response) => {
+reportRouter.delete('/', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID || 'anonymous';
 
   const { reportType, birth } = req.body as {

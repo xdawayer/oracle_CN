@@ -3,7 +3,7 @@
 // POS: 流年报告任务API；若更新此文件，务必更新本头注释与所属文件夹的 FOLDER.md。
 
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from './auth.js';
+import { authMiddleware, requireAuth } from './auth.js';
 import {
   createTask,
   getTaskStatus,
@@ -13,8 +13,8 @@ import {
 } from '../services/annual-task.js';
 import type { BirthInput, Language } from '../types/api.js';
 
-/** 开发模式默认用户 ID */
-const DEV_USER_ID = 'dev-user-annual-report';
+/** 开发模式默认用户 ID（requireAuth 已保证生产环境不会走到 fallback） */
+const DEV_USER_ID = process.env.NODE_ENV === 'production' ? '' : 'dev-user-annual-report';
 
 export const annualTaskRouter = Router();
 
@@ -22,7 +22,7 @@ export const annualTaskRouter = Router();
  * POST /api/annual-task/create
  * 创建异步生成任务
  */
-annualTaskRouter.post('/create', authMiddleware, async (req: Request, res: Response) => {
+annualTaskRouter.post('/create', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID;
 
   const { birth, lang = 'zh' } = req.body as {
@@ -62,7 +62,7 @@ annualTaskRouter.post('/create', authMiddleware, async (req: Request, res: Respo
  * GET /api/annual-task/status
  * 查询任务状态
  */
-annualTaskRouter.get('/status', authMiddleware, async (req: Request, res: Response) => {
+annualTaskRouter.get('/status', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID;
   const { birth } = req.query as { birth?: string };
 
@@ -113,7 +113,7 @@ annualTaskRouter.get('/status', authMiddleware, async (req: Request, res: Respon
  * GET /api/annual-task/content
  * 获取报告内容（需要任务已完成或部分完成）
  */
-annualTaskRouter.get('/content', authMiddleware, async (req: Request, res: Response) => {
+annualTaskRouter.get('/content', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID;
   const { birth } = req.query as { birth?: string };
 
@@ -155,7 +155,7 @@ annualTaskRouter.get('/content', authMiddleware, async (req: Request, res: Respo
  * POST /api/annual-task/retry
  * 重试失败的任务
  */
-annualTaskRouter.post('/retry', authMiddleware, async (req: Request, res: Response) => {
+annualTaskRouter.post('/retry', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID;
 
   const { birth } = req.body as { birth?: Partial<BirthInput> };
@@ -192,7 +192,7 @@ annualTaskRouter.post('/retry', authMiddleware, async (req: Request, res: Respon
  * DELETE /api/annual-task
  * 删除任务（主要用于测试）
  */
-annualTaskRouter.delete('/', authMiddleware, async (req: Request, res: Response) => {
+annualTaskRouter.delete('/', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId || DEV_USER_ID;
 
   const { birth } = req.body as { birth?: Partial<BirthInput> };
