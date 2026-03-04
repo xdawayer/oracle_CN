@@ -88,6 +88,11 @@ Page({
       app.notifyTabActivated('home');
     }
 
+    // 确保 tabBar 可见（防止 hideTabBar 后异常退出未恢复）
+    if (!this.data.showPayment && wx.showTabBar) {
+      wx.showTabBar({ animation: false });
+    }
+
     // 初始加载尚未完成，不重复触发
     if (this._homeVisibleLoadPromise) {
       return;
@@ -108,7 +113,8 @@ Page({
       const currentFp = this._lastProfileFingerprint || '';
       const newFp = buildProfileFingerprint(this.userProfile);
       if (newFp !== currentFp) {
-        // currentFp 为空说明是首次获取 profile，不需要 skipCache
+        // currentFp 非空说明是资料变更（非首次），需要完整 loading 体验
+        this._profileChanged = !!currentFp;
         jobs.push(this.fetchDailyForecast(!!currentFp));
       }
       // 仍处于初始加载状态 → 重试
@@ -443,6 +449,8 @@ Page({
           if (!this._isLatestForecast(seq)) return;
           if (res && res.forecast) {
             if (homeCardKey) storage.set(homeCardKey, res);
+            this._profileChanged = false;
+            this._transitFallback = null;
             this._renderCardFromFullResult(res, today);
             return;
           }
@@ -451,20 +459,27 @@ Page({
         }
       }
       // 所有重试用尽
-      if (this._isLatestForecast(seq) && this.data.isLoadingForecast) {
-        // transit 也失败了，此时仍在 loading → 显示错误
-        this.setData({
-          isLoadingForecast: false,
-          shareData: {
-            ...this.data.shareData,
-            score: '--',
-            quote: '暂时无法获取',
-            body: '请下拉刷新重试',
-            lucky: { color: '--', number: '--', direction: '--' }
-          }
-        });
-      } else {
-        logger.warn('AI forecast all retries exhausted, keeping transit data');
+      if (this._isLatestForecast(seq)) {
+        // 资料变更模式下有 transit 暂存数据，降级渲染
+        if (this._transitFallback) {
+          this._renderCardFromTransit(this._transitFallback.data, this._transitFallback.today);
+          this._transitFallback = null;
+          this._profileChanged = false;
+        } else if (this.data.isLoadingForecast) {
+          // transit 也失败了，此时仍在 loading → 显示错误
+          this.setData({
+            isLoadingForecast: false,
+            shareData: {
+              ...this.data.shareData,
+              score: '--',
+              quote: '暂时无法获取',
+              body: '请下拉刷新重试',
+              lucky: { color: '--', number: '--', direction: '--' }
+            }
+          });
+        } else {
+          logger.warn('AI forecast all retries exhausted, keeping transit data');
+        }
       }
     } finally {
       // 仅当仍是最新请求时才清除 pending，避免旧序列误删新序列的标记
@@ -520,6 +535,7 @@ Page({
     }
 
     // Phase 1：快速 transit（确定性数据，<500ms）→ 立即渲染卡片
+    // 资料变更时保持 loading 骨架屏，等 AI 内容到达后再渲染
     try {
       const transitRes = await request({
         url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`,
@@ -527,7 +543,12 @@ Page({
         timeout: 15000,
       });
       if (this._isLatestForecast(seq) && transitRes && transitRes.interpreted) {
-        this._renderCardFromTransit(transitRes, today);
+        if (this._profileChanged) {
+          // 资料变更：暂存 transit，保持 loading 直到 AI 内容到达
+          this._transitFallback = { data: transitRes, today };
+        } else {
+          this._renderCardFromTransit(transitRes, today);
+        }
       }
     } catch (e) {
       logger.warn('Transit fetch failed:', e?.message || e);
@@ -861,6 +882,7 @@ Page({
 
       // 处理积分不足
       if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
         return;
       }
 
@@ -894,7 +916,10 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
-      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
+        return;
+      }
       logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

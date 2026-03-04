@@ -96,6 +96,11 @@ Page({
     if (app && typeof app.notifyTabActivated === 'function') {
       app.notifyTabActivated('discovery');
     }
+
+    // 确保 tabBar 可见（防止 hideTabBar 后异常退出未恢复）
+    if (!this.data.showPayment && wx.showTabBar) {
+      wx.showTabBar({ animation: false });
+    }
     const entry = storage.get('discovery_entry');
     if (entry === 'synastry') {
       storage.remove('discovery_entry');
@@ -340,6 +345,7 @@ Page({
 
       // 处理积分不足：同时关闭支付弹窗
       if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
         return;
       }
 
@@ -372,7 +378,10 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
-      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
+        return;
+      }
       logger.error(`Create ${reportType} task error:`, error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {

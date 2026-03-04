@@ -430,6 +430,11 @@ Page({
       app.notifyTabActivated('self');
     }
 
+    // 确保 tabBar 可见（防止 hideTabBar 后异常退出未恢复）
+    if (!this.data.showPayment && wx.showTabBar) {
+      wx.showTabBar({ animation: false });
+    }
+
     // 延迟检查报告权限（可能在其他页面购买了），避免抢占网络
     setTimeout(() => {
       this.checkAnnualReportAccess();
@@ -1203,6 +1208,7 @@ Page({
 
       // 处理积分不足
       if (handleInsufficientCredits(this, result, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
         return;
       }
 
@@ -1256,7 +1262,10 @@ Page({
         wx.showToast({ title: result?.error || '创建任务失败', icon: 'none' });
       }
     } catch (error) {
-      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) return;
+      if (handleInsufficientCredits(this, error, { showPayment: false, paymentLoading: false })) {
+        if (wx.showTabBar) wx.showTabBar({ animation: false });
+        return;
+      }
       logger.error('Create task error:', error);
       wx.showToast({ title: '创建任务失败，请稍后重试', icon: 'none' });
     } finally {
