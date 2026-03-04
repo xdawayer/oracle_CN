@@ -626,7 +626,7 @@ Page({
         }
       });
 
-      logger.info('[CBT] submit res:', JSON.stringify(submitRes).substring(0, 200));
+      logger.log('[CBT] submit res:', JSON.stringify(submitRes).substring(0, 200));
 
       // Step 2: 异步模式 - 轮询结果
       let res = submitRes;

@@ -279,7 +279,7 @@ Page({
         retry: 1,
       });
 
-      logger.info('[Ask] submit res:', JSON.stringify(submitRes).substring(0, 200));
+      logger.log('[Ask] submit res:', JSON.stringify(submitRes).substring(0, 200));
 
       if (submitRes && submitRes.taskId) {
         // Step 2: 异步模式 - 轮询结果
@@ -296,6 +296,7 @@ Page({
       const errInfo = err ? (err.message || err.errMsg || String(err)) : 'unknown';
       const statusCode = err && err.statusCode;
       logger.error('Ask AI Error:', errInfo, 'statusCode:', statusCode);
+
       // 403 配额不足
       if (statusCode === 403) {
         this.setData({ showReport: false, reportLoading: false, reportData: null, isLoading: false });
@@ -356,7 +357,7 @@ Page({
   // 处理 Ask 结果
   _handleAskResult(res) {
     if (res && res.content) {
-      logger.info('[Ask] content type:', typeof res.content, 'hasSection:', !!(res.content && res.content.sections));
+      logger.log('[Ask] content type:', typeof res.content, 'hasSection:', !!(res.content && res.content.sections));
       this.setData({
         reportData: this._parseReport(res.content),
         reportChartData: res.chart || null,
