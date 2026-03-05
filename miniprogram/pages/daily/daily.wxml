@@ -422,8 +422,7 @@
 
       <!-- 空状态提示 -->
       <view class="weekly-empty" wx:if="{{weeklyScores.length === 0 && weeklyDescriptions.length === 0}}">
-        <text class="weekly-empty-text" wx:if="{{isForecastPending}}">本周趋势生成中，你可以在当前页面等待...</text>
-        <text class="weekly-empty-text" wx:else>本周趋势暂时不可用</text>
+        <text class="weekly-empty-text">AI 分析生成中，请稍候...</text>
       </view>
     </view>
     </block>
