@@ -914,14 +914,14 @@ Page({
             if (data) {
               if (coreCacheKey) storage.set(coreCacheKey, data);
               this._processCoreData(data, dateStr, generateSeq);
-            } else {
+            } else if (this.data.coreStatus !== 'SUCCESS') {
               this.setData({ coreStatus: 'ERROR' });
             }
           } else if (label === 'extended') {
             if (data) {
               if (extendedCacheKey) storage.set(extendedCacheKey, data);
               this._processExtendedData(data, dateStr, generateSeq);
-            } else {
+            } else if (this.data.extendedStatus !== 'SUCCESS') {
               this.setData({ extendedStatus: 'ERROR' });
             }
           }
@@ -1122,14 +1122,16 @@ Page({
     if (!selected || !this.userProfile) return;
     const dateStr = selected.fullDate.toISOString().slice(0, 10);
 
-    let needRequest = false;
+    let needFetchCore = false;
+    let needFetchExtended = false;
+
     if (coreStatus === 'ERROR') {
       const coreCacheKey = this.getDailyCoreCacheKey(dateStr);
       const cached = coreCacheKey ? storage.get(coreCacheKey) : null;
       if (cached) {
         this._processCoreData(cached, dateStr);
       } else {
-        needRequest = true;
+        needFetchCore = true;
       }
     }
     if (extendedStatus === 'ERROR') {
@@ -1138,13 +1140,68 @@ Page({
       if (cached) {
         this._processExtendedData(cached, dateStr);
       } else {
-        needRequest = true;
+        needFetchExtended = true;
       }
     }
 
-    if (needRequest) {
-      // 仍有未缓存的失败模块，重新走完整流程
-      this.handleGenerate();
+    if (needFetchCore || needFetchExtended) {
+      this._fetchFailedModules(dateStr, needFetchCore, needFetchExtended);
+    }
+  },
+
+  /** 仅针对失败模块发起独立请求，不影响已成功的模块 */
+  async _fetchFailedModules(dateStr, needCore, needExtended) {
+    if (!needCore && !needExtended) return;
+    const query = this.buildDailyParams(dateStr);
+    if (!query) return;
+
+    const promises = [];
+    const labels = [];
+
+    if (needCore) {
+      this.setData({ coreStatus: 'LOADING' });
+      promises.push(
+        request({ url: `${API_ENDPOINTS.DAILY_CORE}?${query}`, method: 'GET', timeout: 120000 })
+          .catch(err => { logger.warn('[Daily] retry /core failed:', err); return null; })
+      );
+      labels.push('core');
+    }
+    if (needExtended) {
+      this.setData({ extendedStatus: 'LOADING' });
+      promises.push(
+        request({ url: `${API_ENDPOINTS.DAILY_EXTENDED}?${query}`, method: 'GET', timeout: 120000 })
+          .catch(err => { logger.warn('[Daily] retry /extended failed:', err); return null; })
+      );
+      labels.push('extended');
+    }
+
+    const results = await Promise.allSettled(promises);
+    results.forEach((result, i) => {
+      const label = labels[i];
+      const data = result.status === 'fulfilled' ? result.value : null;
+      if (label === 'core') {
+        if (data) {
+          const cacheKey = this.getDailyCoreCacheKey(dateStr);
+          if (cacheKey) storage.set(cacheKey, data);
+          this._processCoreData(data, dateStr);
+        } else {
+          this.setData({ coreStatus: 'ERROR' });
+        }
+      } else if (label === 'extended') {
+        if (data) {
+          const cacheKey = this.getDailyExtendedCacheKey(dateStr);
+          if (cacheKey) storage.set(cacheKey, data);
+          this._processExtendedData(data, dateStr);
+        } else {
+          this.setData({ extendedStatus: 'ERROR' });
+        }
+      }
+    });
+
+    // 更新整体状态
+    const hasAnyData = this.data.transitReady || this.data.coreStatus === 'SUCCESS' || this.data.extendedStatus === 'SUCCESS';
+    if (hasAnyData) {
+      this.setData({ status: LoadingState.SUCCESS, isForecastPending: false });
     }
   },
 
