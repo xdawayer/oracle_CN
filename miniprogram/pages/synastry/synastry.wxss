@@ -600,6 +600,12 @@
   border: 1rpx solid #9F7645;
   border-radius: 32rpx;
 }
+.error-hint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--ink-lighter, #aaa);
+}
 
 /* Modal Overlay */
 .modal-overlay {

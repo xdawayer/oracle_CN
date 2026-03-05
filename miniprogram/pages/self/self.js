@@ -3,6 +3,7 @@ const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 const { isDev } = logger;
+const { pollTaskResult } = require('../../utils/pollTask');
 const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 const {
   MAJOR_PLANETS,
@@ -1675,14 +1676,18 @@ Page({
       return cached.content;
     }
 
-    // 3. 走原有的 /api/detail POST 请求
+    // 3. 走 /api/detail 异步任务模式（POST 提交 + GET 轮询）
     const payload = {
       type,
       context: 'natal',
       lang: 'zh',
       chartData,
     };
-    const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000, retry: 1 });
+    const submitRes = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 15000 });
+    if (!submitRes || !submitRes.taskId) {
+      throw new Error('Failed to create detail task');
+    }
+    const result = await pollTaskResult(API_ENDPOINTS.DETAIL_RESULT, submitRes.taskId);
     const content = result?.content ?? null;
     if (cacheKey) {
       storage.set(cacheKey, { content });

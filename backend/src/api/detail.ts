@@ -9,6 +9,7 @@ import { AIUnavailableError, generateAIContent } from '../services/ai.js';
 import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService } from '../services/ephemeris.js';
 import { resolveLocation } from '../services/geocoding.js';
 import { SIGNS } from '../data/sources.js';
+import { createTask, completeTask, failTask, getTask } from '../utils/taskStore.js';
 
 export const detailRouter = Router();
 
@@ -136,47 +137,12 @@ function resolvePromptId(type: DetailType, context: DetailContext): string {
   return `detail-${type}-${context}`;
 }
 
-// POST /api/detail - 按需生成技术规格详情解读
-detailRouter.post('/', async (req, res) => {
+// 后台处理 Detail AI 生成
+async function processDetailTask(taskId: string, body: DetailRequest) {
   try {
     const requestStart = performance.now();
-    const body = req.body as DetailRequest;
     const { type, context, chartData, transitDate, nameA, nameB, date, birth, dimension } = body;
     const lang = resolveLang(body.lang);
-
-    if (!type || !context) {
-      res.status(400).json({ error: 'Missing required fields: type, context' });
-      return;
-    }
-
-    const validTypes: DetailType[] = [
-      'big3',
-      'elements',
-      'aspects',
-      'planets',
-      'asteroids',
-      'rulers',
-      'synthesis',
-      'dimension',
-      'deep',
-      'advice',
-      'time-windows',
-      'weekly-trend',
-      'aspect-matrix',
-      'astro-report',
-    ];
-    const validContexts: DetailContext[] = ['natal', 'transit', 'synastry', 'composite'];
-
-    if (!validTypes.includes(type)) {
-      res.status(400).json({ error: `Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}` });
-      return;
-    }
-
-    if (!validContexts.includes(context)) {
-      res.status(400).json({ error: `Invalid context: ${context}. Must be one of: ${validContexts.join(', ')}` });
-      return;
-    }
-
     const promptId = resolvePromptId(type, context);
     let resolvedChartData = chartData;
     let chartSummary: Record<string, unknown> | null = null;
@@ -225,18 +191,11 @@ detailRouter.post('/', async (req, res) => {
     }
 
     const requiresChartData = [
-      'big3',
-      'elements',
-      'aspects',
-      'planets',
-      'asteroids',
-      'rulers',
-      'synthesis',
-      'deep',
-      'aspect-matrix',
+      'big3', 'elements', 'aspects', 'planets', 'asteroids',
+      'rulers', 'synthesis', 'deep', 'aspect-matrix',
     ].includes(type);
     if (requiresChartData && !resolvedChartData) {
-      res.status(400).json({ error: 'Missing required fields: chartData or birth' });
+      await failTask(taskId, 'Missing required fields: chartData or birth', 400);
       return;
     }
 
@@ -263,9 +222,9 @@ detailRouter.post('/', async (req, res) => {
     });
     const aiMs = performance.now() - aiStart;
     const totalMs = performance.now() - requestStart;
-    res.setHeader('Server-Timing', `core;dur=0,ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
+    console.log(`[Detail] Task ${taskId} completed: type=${type}, context=${context}, aiMs=${aiMs.toFixed(0)}, totalMs=${totalMs.toFixed(0)}`);
 
-    res.json({
+    await completeTask(taskId, {
       type,
       context,
       lang: result.lang,
@@ -273,9 +232,90 @@ detailRouter.post('/', async (req, res) => {
     });
   } catch (error) {
     if (error instanceof AIUnavailableError) {
-      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      console.warn(`[Detail] Task ${taskId} AIUnavailableError: ${error.reason}`);
+      await failTask(taskId, 'AI unavailable', 503);
       return;
     }
+    console.error(`[Detail] Task ${taskId} error: ${(error as Error).message}`);
+    await failTask(taskId, (error as Error).message, 500);
+  }
+}
+
+// POST /api/detail - 提交详情解读任务（立即返回 taskId，AI 生成在后台执行）
+detailRouter.post('/', async (req, res) => {
+  try {
+    const body = req.body as DetailRequest;
+    const { type, context, chartData } = body;
+
+    // Quick validation only — no slow operations in POST handler
+    if (!type || !context) {
+      res.status(400).json({ error: 'Missing required fields: type, context' });
+      return;
+    }
+
+    const validTypes: DetailType[] = [
+      'big3',
+      'elements',
+      'aspects',
+      'planets',
+      'asteroids',
+      'rulers',
+      'synthesis',
+      'dimension',
+      'deep',
+      'advice',
+      'time-windows',
+      'weekly-trend',
+      'aspect-matrix',
+      'astro-report',
+    ];
+    const validContexts: DetailContext[] = ['natal', 'transit', 'synastry', 'composite'];
+
+    if (!validTypes.includes(type)) {
+      res.status(400).json({ error: `Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}` });
+      return;
+    }
+
+    if (!validContexts.includes(context)) {
+      res.status(400).json({ error: `Invalid context: ${context}. Must be one of: ${validContexts.join(', ')}` });
+      return;
+    }
+
+    const requiresChartData = [
+      'big3', 'elements', 'aspects', 'planets', 'asteroids',
+      'rulers', 'synthesis', 'deep', 'aspect-matrix',
+    ].includes(type);
+    if (requiresChartData && !chartData && !body.birth) {
+      res.status(400).json({ error: 'Missing required fields: chartData or birth' });
+      return;
+    }
+
+    const taskId = await createTask();
+    processDetailTask(taskId, body).catch(async (err) => {
+      console.error(`[Detail] Unhandled task error ${taskId}:`, err);
+      await failTask(taskId, 'Internal error', 500);
+    });
+
+    console.log(`[Detail] Task ${taskId} created: type=${type}, context=${context}`);
+    res.json({ taskId, status: 'pending' });
+  } catch (error) {
+    console.error(`[Detail] Submit error: ${(error as Error).message}`);
     res.status(500).json({ error: (error as Error).message });
   }
+});
+
+// GET /api/detail/result/:taskId - 轮询详情解读任务结果
+detailRouter.get('/result/:taskId', async (req, res) => {
+  const task = await getTask(req.params.taskId);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found or expired' });
+  }
+  if (task.status === 'pending') {
+    return res.json({ status: 'pending' });
+  }
+  if (task.status === 'failed') {
+    return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
+  }
+  // completed
+  res.json({ status: 'completed', ...task.result });
 });

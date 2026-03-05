@@ -156,9 +156,16 @@
         <text class="loading-hint">正在生成综述…</text>
       </view>
 
+      <!-- 综述配额不足 -->
+      <view class="card empty-state" wx:if="{{tabLoadStatus.overview === 'quota_exceeded'}}">
+        <text>合盘免费次数已用完</text>
+        <text class="error-hint">购买后可继续使用合盘分析</text>
+      </view>
+
       <!-- 综述加载失败 -->
       <view class="card empty-state" wx:if="{{tabLoadStatus.overview === 'error'}}">
         <text>综述加载失败，请重试</text>
+        <text class="error-hint" wx:if="{{_overviewError}}">{{_overviewError}}</text>
         <view class="retry-btn" bindtap="retryOverview">
           <text>重新加载</text>
         </view>

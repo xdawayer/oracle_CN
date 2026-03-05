@@ -3,6 +3,7 @@ const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const { searchCities, formatCityDisplay, autoMatchCity, getCityCoordinates } = require('../../utils/city-search');
 const logger = require('../../utils/logger');
+const { pollTaskResult } = require('../../utils/pollTask');
 
 const SELF_PROFILE_ID = 'self_profile';
 const CITY_SEARCH_DEBOUNCE = 300;
@@ -78,7 +79,8 @@ Page({
 
     // 懒加载状态
     preloadQueue: [],       // 预加载队列
-    tabLoadStatus: {},      // 各 tab 加载状态: 'pending' | 'loading' | 'loaded' | 'error'
+    tabLoadStatus: {},      // 各 tab 加载状态: 'pending' | 'loading' | 'loaded' | 'error' | 'quota_exceeded'
+    _overviewError: '',     // 综述加载失败时的错误信息（用于诊断）
 
     // 图谱数据 - 分别存储不同类型的图谱
     chartDataA: { positions: [], aspects: [], houseCusps: [] },       // A 的人格图谱
@@ -148,7 +150,10 @@ Page({
     const key = this._buildCacheKey();
     if (!key) return null;
     const c = storage.get(key);
-    if (!c || !c.overviewData) return null;
+    // 必须有 overviewData 且 overview 处于 loaded 状态才算有效缓存
+    if (!c || !c.overviewData || !c.tabLoadStatus || c.tabLoadStatus.overview !== 'loaded') return null;
+    // overviewData 必须有有效评分（非默认空状态）
+    if (c.overviewData.score === null && (!c.overviewData.dimensions || c.overviewData.dimensions.length === 0)) return null;
     // 30 天过期
     if (Date.now() - c.ts > 30 * 24 * 3600 * 1000) {
       storage.remove(key);
@@ -1400,6 +1405,7 @@ Page({
         : Promise.resolve(null);
 
       const fullBody = this.buildSynastryData(null);
+      let _fullError = null;
       const fullPromise = (async () => {
         try {
           const submitRes = await request({
@@ -1416,6 +1422,7 @@ Page({
           return await this._pollSynastryResult(submitRes.taskId, API_ENDPOINTS.SYNASTRY_FULL_RESULT);
         } catch (err) {
           logger.warn('[Synastry] /full async failed:', err.message || err);
+          _fullError = err;
           return null;
         }
       })();
@@ -1471,7 +1478,16 @@ Page({
 
       // /full 失败时，回退到单个 /synastry AI 调用
       if (!fullSuccess) {
-        await this.handleAnalyzeFallback();
+        // 403 = 配额不足，跳过 fallback（fallback 同样会被 403 拦截）
+        if (_fullError && _fullError.statusCode === 403) {
+          this.setData({
+            'tabLoadStatus.overview': 'quota_exceeded',
+            'tabLoadStatus.coreDynamics': 'error',
+            'tabLoadStatus.highlights': 'error'
+          });
+        } else {
+          await this.handleAnalyzeFallback();
+        }
       }
 
       // 启动后台预加载其他 tab
@@ -1519,7 +1535,11 @@ Page({
       this._saveSynastryCache();
     } catch (aiErr) {
       logger.error('[Synastry] AI fallback failed:', aiErr.message || aiErr);
-      this.setData({ 'tabLoadStatus.overview': 'error' });
+      if (aiErr && aiErr.statusCode === 403) {
+        this.setData({ 'tabLoadStatus.overview': 'quota_exceeded' });
+      } else {
+        this.setData({ 'tabLoadStatus.overview': 'error', _overviewError: (aiErr && aiErr.message) || '未知错误' });
+      }
     }
   },
 
@@ -1591,7 +1611,10 @@ Page({
       }
 
       this.setData(update);
-      this._saveSynastryCache();
+      // 仅在 overview 已加载时保存缓存，避免存入 overview 未就绪的半成品状态
+      if (this.data.tabLoadStatus.overview === 'loaded') {
+        this._saveSynastryCache();
+      }
     } catch (err) {
       logger.error(`[Synastry] Preload ${tabId} failed:`, err.message || err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
@@ -1658,7 +1681,10 @@ Page({
         currentSectionText: text,
         currentSectionCards: cards
       });
-      this._saveSynastryCache();
+      // 仅在 overview 已加载时保存缓存
+      if (this.data.tabLoadStatus.overview === 'loaded') {
+        this._saveSynastryCache();
+      }
     } catch (err) {
       logger.error('[Synastry] switchTab error:', err.message || err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
@@ -1718,7 +1744,8 @@ Page({
   async retryOverview() {
     this.setData({
       'tabLoadStatus.overview': 'loading',
-      overviewData: null
+      overviewData: null,
+      _overviewError: ''
     });
     await this.handleAnalyzeFallback();
     // fallback 完成后启动预加载
@@ -1775,10 +1802,11 @@ Page({
           : this.data.chartDataB
       };
 
-      const requestDeep = () => request({
+      // Step 1: 提交任务
+      const submitRes = await request({
         url: API_ENDPOINTS.DETAIL,
         method: 'POST',
-        timeout: 120000,
+        timeout: 15000,
         data: {
           type: 'deep',
           context: 'synastry',
@@ -1789,21 +1817,26 @@ Page({
         }
       });
 
-      // 首次请求失败时延迟 1.5s 后重试一次（避免加剧服务端过载）
-      let res;
-      try {
-        res = await requestDeep();
-      } catch (firstErr) {
-        logger.warn('[Synastry] Deep overlay first attempt failed, retrying in 1.5s:', firstErr);
-        await new Promise(r => setTimeout(r, 1500));
-        res = await requestDeep();
+      if (!submitRes || !submitRes.taskId) {
+        throw new Error('Failed to create detail task');
       }
+
+      // Step 2: 轮询结果
+      const res = await pollTaskResult(
+        API_ENDPOINTS.DETAIL_RESULT,
+        submitRes.taskId,
+        { shouldCancel: () => !this.data.showDeepOverlay }
+      );
 
       const reportData = this.buildDeepReportData(title, _clean(res.content));
       this.deepContentCache[cacheKey] = reportData;
       this.setData({ deepOverlayData: reportData, deepOverlayLoading: false });
       this._saveSynastryCache();
     } catch (err) {
+      if (err && err.message === 'cancelled') {
+        this.setData({ deepOverlayLoading: false });
+        return;
+      }
       logger.error('[Synastry] Deep overlay failed:', err);
       this.setData({ deepOverlayLoading: false, showDeepOverlay: false });
       wx.showToast({ title: '服务暂时不可用，请稍后重试', icon: 'none' });
@@ -1864,6 +1897,7 @@ Page({
       // 清空懒加载状态
       preloadQueue: [],
       tabLoadStatus: {},
+      _overviewError: '',
       chartRetrying: false,
       // 清空深度解读
       showDeepOverlay: false,
