@@ -26,9 +26,11 @@ const DEFAULT_LANG: Language = 'zh';
 const DEFAULT_MAX_TOKENS = 4096;
 
 const MAX_TOKENS_MAP: Record<string, number> = {
-  // 高频文本与结构化输出：控制长尾时长
-  'ask-answer': 2048,
-  'oracle-answer': 3072,
+  // 高频文本与结构化输出：按 prompt 实际输出格式估算 + 30% buffer
+  // ask: astroContext+4sections JSON ≈ 600-1100 tokens
+  'ask-answer': 1400,
+  // oracle: 同 ask 结构但更深 ≈ 870-1200 tokens
+  'oracle-answer': 2000,
   'daily-forecast': 1600,
   'daily-detail': 1600,
   'daily-core': 600,
@@ -36,12 +38,15 @@ const MAX_TOKENS_MAP: Record<string, number> = {
   'natal-overview': 1400,
   'natal-core-themes': 1400,
   'natal-dimension': 1400,
-  'cbt-analysis': 1600,
-  'cbt-aggregate-analysis': 1600,
-  'cbt-somatic-analysis': 1400,
-  'cbt-root-analysis': 1400,
-  'cbt-mood-analysis': 1400,
-  'cbt-competence-analysis': 1400,
+  // CBT: JSON 300-500字 ≈ 400-770 tokens
+  'cbt-analysis': 1000,
+  // CBT aggregate: Markdown 400-600字 ≈ 600-850 tokens
+  'cbt-aggregate-analysis': 1000,
+  // CBT sub-reports: Markdown 200-400字 ≈ 310-560 tokens
+  'cbt-somatic-analysis': 700,
+  'cbt-root-analysis': 900,
+  'cbt-mood-analysis': 700,
+  'cbt-competence-analysis': 700,
   'wiki-home': 1800,
   'wiki-classics-master': 2000,
   'pairing-analysis': 1600,
