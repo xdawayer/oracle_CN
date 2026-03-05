@@ -816,6 +816,13 @@ Page({
       isMonthly: true,
     };
 
+    // 检查缓存
+    const cached = storage.get(`cbt_monthly_report_${monthLabel}`);
+    if (cached && cached.reportData) {
+      this.setData({ viewMode: 'result', reportData: cached.reportData, recordSummary: cached.recordSummary || recordSummary, analyzing: false });
+      return;
+    }
+
     this.setData({ viewMode: 'result', analyzing: true, recordSummary, reportData: null });
 
     try {
@@ -834,7 +841,6 @@ Page({
         method: 'POST',
         timeout: 15000,
         dedupe: false,
-        retry: 1,
         data: {
           birth: {
             date: userProfile.birthDate,
@@ -854,15 +860,17 @@ Page({
       logger.log('[CBT] aggregate submit res:', JSON.stringify(submitRes).substring(0, 200));
 
       // Step 2: 异步模式 - 轮询结果
-      let res = submitRes;
-      if (submitRes && submitRes.taskId) {
-        res = await this._pollCbtResult(submitRes.taskId, API_ENDPOINTS.CBT_AGGREGATE_ANALYSIS_RESULT);
+      if (!submitRes || !submitRes.taskId) {
+        throw new Error(submitRes && submitRes.error || 'Submit failed: no taskId');
       }
+      const res = await this._pollCbtResult(submitRes.taskId, API_ENDPOINTS.CBT_AGGREGATE_ANALYSIS_RESULT);
 
       if (res && res.content) {
         const raw = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
         const sections = this._parseMonthlyReport(raw);
-        this.setData({ reportData: { sections } });
+        const reportData = { sections };
+        this.setData({ reportData });
+        storage.set(`cbt_monthly_report_${monthLabel}`, { reportData, recordSummary });
       } else {
         this.setData({
           reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 月度解读暂时不可用，请稍后重试。' }] },
