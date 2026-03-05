@@ -23,11 +23,11 @@ export const ASPECT_COLORS = {
   sesquiquadrate: '#CBD5F5', // 浅灰紫 (默认禁用)
 };
 
-// 视觉层样式 - 相位线样式 - 与 oracle_CN/constants.ts 同步
+// 视觉层样式 - 相位线样式（加粗以确保手机端可见）
 export const VISUAL_LAYER_STYLES = {
-  foreground: { strokeWidth: 1.0, opacity: 1.0 },    // 紧密相位 (orb <= 2°)
-  midground: { strokeWidth: 0.8, opacity: 0.85 },    // 中等相位 (2° < orb <= 4°)
-  background: { strokeWidth: 0.6, opacity: 0.65 },   // 宽松相位 (4° < orb <= 6°)
+  foreground: { strokeWidth: 2.0, opacity: 1.0 },    // 紧密相位 (orb <= 2°)
+  midground: { strokeWidth: 1.5, opacity: 0.85 },    // 中等相位 (2° < orb <= 4°)
+  background: { strokeWidth: 1.0, opacity: 0.6 },    // 宽松相位 (4° < orb <= 6°)
 };
 
 // 默认相位设置
@@ -287,13 +287,13 @@ export const SINGLE_CHART_LAYOUT = {
   planetRing: 0.80,
   positionInfo: 0.65,          // 位置信息中心
 
-  // 宫位区域
-  houseRing: 0.375,            // 宫位分隔线外径
-  houseNumbers: 0.33,          // 宫位数字环（调整到圆环中央）
+  // 宫位区域（外推以容纳更大的相位线区域）
+  houseRing: 0.42,             // 宫位分隔线外径
+  houseNumbers: 0.39,          // 宫位数字环
 
-  // 相位线区域
-  aspectLine: 0.285,           // 相位线半径
-  innerHub: 0.125,             // 中心点
+  // 相位线区域（增大以匹配专业星盘样式）
+  aspectLine: 0.36,            // 相位线半径
+  innerHub: 0.02,              // 中心点
 
   // 字号配置（单位：px）
   fontSize: {
@@ -332,13 +332,13 @@ export const DUAL_CHART_LAYOUT = {
   // 内环（核心图谱）
   innerPlanetRing: 0.59,       // 内环行星符号
 
-  // 宫位区域
-  houseRing: 0.36,             // 宫位分隔线外径
-  houseNumbers: 0.315,         // 宫位数字环（调整到圆环中央）
+  // 宫位区域（外推以容纳更大的相位线区域）
+  houseRing: 0.39,             // 宫位分隔线外径
+  houseNumbers: 0.36,          // 宫位数字环
 
-  // 相位线区域
-  aspectLine: 0.27,            // 相位线半径
-  innerHub: 0.125,             // 中心点
+  // 相位线区域（增大以匹配专业星盘样式）
+  aspectLine: 0.33,            // 相位线半径
+  innerHub: 0.02,              // 中心点
 
   // 字号配置（缩放 80%）
   fontSize: {

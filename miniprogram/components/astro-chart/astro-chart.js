@@ -408,6 +408,7 @@ Component({
       // 计算相位
       let allAspects = [];
       const hasProvidedAspects = this.data.aspects && this.data.aspects.length > 0;
+      logger.log(`[drawChart] hasProvidedAspects=${hasProvidedAspects}, provided=${this.data.aspects?.length ?? 'null'}, innerAspectPlanets=${innerAspectPlanets.length}`);
 
       if (type === 'transit' && isBiWheel && 'crossAspects' in chartConfig) {
         // 行运盘仅保留跨盘相位
@@ -438,6 +439,7 @@ Component({
         ? chartConfig.crossAspects
         : singleConfig.aspects;
       const filteredAspects = filterAspects(allAspects, aspectSettings);
+      logger.log(`[drawChart] allAspects=${allAspects.length}, filtered=${filteredAspects.length}`, filteredAspects.slice(0, 3).map(a => `${a.planet1}-${a.planet2}:${a.type}(${a.orb})`));
 
       // 保存数据供点击事件使用
       this.chartData = {
@@ -588,19 +590,14 @@ Component({
       ctx.arc(cx, cy, aspectLineRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // 绘制中心点
-      ctx.beginPath();
-      ctx.arc(cx, cy, innerHubRadius, 0, 2 * Math.PI);
-      ctx.stroke();
-
       // 绘制宫位线
       equalAngles.forEach((cuspLongitude, i) => {
         const angle = cuspLongitude - rotation;
-        const startCoords = getCoords(angle, innerHubRadius, cx, cy);
-        const endCoords = getCoords(angle, outerRadius, cx, cy);
-
-        // 主轴（ASC/IC/DSC/MC）使用更粗的线条
+        // 主轴（ASC/IC/DSC/MC）穿越整个图谱，普通宫位线只到相位圆边界
         const isAxis = i === 0 || i === 3 || i === 6 || i === 9;
+        const innerR = isAxis ? innerHubRadius : aspectLineRadius;
+        const startCoords = getCoords(angle, innerR, cx, cy);
+        const endCoords = getCoords(angle, outerRadius, cx, cy);
 
         ctx.strokeStyle = isAxis ? 'rgba(160, 155, 145, 0.8)' : 'rgba(160, 155, 145, 0.4)';
         ctx.lineWidth = isAxis ? 1.5 : 0.8;
@@ -731,6 +728,8 @@ Component({
     drawAspects(ctx, cx, cy, baseRadius, aspects, innerPlanets, outerPlanets, rotation, config, layout) {
       const aspectLineRadius = baseRadius * layout.aspectLine;
 
+      logger.log(`[drawAspects] Total aspects: ${aspects.length}, innerPlanets: ${innerPlanets.length}, radius: ${aspectLineRadius.toFixed(1)}`);
+
       // 按层级分组
       const layers = { foreground: [], midground: [], background: [] };
       aspects.forEach(aspect => {
@@ -738,12 +737,18 @@ Component({
         layers[layer].push(aspect);
       });
 
+      logger.log(`[drawAspects] Layers: fg=${layers.foreground.length}, mid=${layers.midground.length}, bg=${layers.background.length}`);
+
       // 按层级绘制（背景 -> 中景 -> 前景）
+      let drawnCount = 0;
       ['background', 'midground', 'foreground'].forEach(layer => {
         layers[layer].forEach(aspect => {
-          this.drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, aspectLineRadius);
+          const drawn = this.drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, aspectLineRadius);
+          if (drawn) drawnCount++;
         });
       });
+
+      logger.log(`[drawAspects] Actually drawn: ${drawnCount} aspect lines`);
     },
 
     /**
@@ -751,14 +756,17 @@ Component({
      */
     drawAspectLine(ctx, cx, cy, aspect, innerPlanets, outerPlanets, rotation, layer, radius) {
       // 跳过合相（不绘制）
-      if (aspect.type === 'conjunction') return;
+      if (aspect.type === 'conjunction') return false;
 
       // 查找行星
       const allPlanets = [...innerPlanets, ...outerPlanets];
       const p1 = allPlanets.find(p => p.name === aspect.planet1);
       const p2 = allPlanets.find(p => p.name === aspect.planet2);
 
-      if (!p1 || !p2) return;
+      if (!p1 || !p2) {
+        logger.log(`[drawAspectLine] Planet not found: ${aspect.planet1}=${!!p1}, ${aspect.planet2}=${!!p2}`);
+        return false;
+      }
 
       // 计算坐标（使用实际角度 absAngle，而非视觉角度）
       const coords1 = getCoords(p1.absAngle - rotation, radius, cx, cy);
@@ -777,6 +785,7 @@ Component({
       ctx.lineTo(coords2.x, coords2.y);
       ctx.stroke();
       ctx.globalAlpha = 1.0;
+      return true;
     },
 
     /**
