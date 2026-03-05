@@ -6,11 +6,14 @@ const API_ENDPOINTS = {
   NATAL_CORE_THEMES: '/api/natal/core-themes',
   NATAL_DIMENSION: '/api/natal/dimension',
   DETAIL: '/api/detail',
+  DETAIL_RESULT: '/api/detail/result',  // GET /api/detail/result/:taskId
   DAILY_FORECAST: '/api/daily',
   DAILY_FULL: '/api/daily/full',
 
   DAILY_DETAIL: '/api/daily/detail',
   DAILY_TRANSIT: '/api/daily/transit',
+  DAILY_CORE: '/api/daily/core',
+  DAILY_EXTENDED: '/api/daily/extended',
   ASK: '/api/ask',
   ASK_RESULT: '/api/ask/result',  // GET /api/ask/result/:taskId
   SYNASTRY: '/api/synastry',
