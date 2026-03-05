@@ -65,8 +65,8 @@
     <view class="chart-box" style="height: 500rpx;">
       <canvas wx:if="{{!showDetailReport && !showPayment && !isZoomed && !selectedPlanet}}" type="2d" id="radarChart" class="radar-chart-canvas" style="width: 100%; height: 100%;"></canvas>
     </view>
-    <view class="radar-summary" wx:if="{{radarHighlight}}">
-      <text class="summary-text">{{radarSummaryPrefix}}<text class="summary-highlight">{{radarHighlight}}</text>{{radarSummarySuffix}}</text>
+    <view class="radar-summary" wx:if="{{radarSummarySegments.length > 0}}">
+      <text class="summary-text"><text wx:for="{{radarSummarySegments}}" wx:key="index" class="{{item.bold ? 'summary-highlight' : ''}}">{{item.text}}</text></text>
     </view>
   </view>
 

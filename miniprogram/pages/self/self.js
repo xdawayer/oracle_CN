@@ -353,9 +353,7 @@ Page({
     chartHouseCusps: [],
 
     radarScores: [],
-    radarSummaryPrefix: '',
-    radarHighlight: '',
-    radarSummarySuffix: '',
+    radarSummarySegments: [],
 
     asteroids: [],
     houseRulers: [],
@@ -814,9 +812,7 @@ Page({
         chartAspects: aspects,
         chartHouseCusps: houseCusps,
         radarScores,
-        radarSummaryPrefix: summary.prefix,
-        radarHighlight: summary.highlight,
-        radarSummarySuffix: summary.suffix,
+        radarSummarySegments: summary.segments,
       }, () => {
         this.drawRadarChart('radarChart', this.data.radarSize);
         // 图谱渲染完成后，后台预取 AI 内容（不阻塞界面）
@@ -842,9 +838,7 @@ Page({
         chartAspects: [],
         chartHouseCusps: [],
         radarScores: [],
-        radarSummaryPrefix: '',
-        radarHighlight: '',
-        radarSummarySuffix: '',
+        radarSummarySegments: [],
       });
     } finally {
       wx.hideLoading();
@@ -985,43 +979,71 @@ Page({
    */
   generateRadarSummary(scores) {
     if (!scores || scores.length !== 12) {
-      return { prefix: '', highlight: '', suffix: '' };
+      return { segments: [] };
     }
 
     // Fix #3: 使用未截断的原始浮点分数寻找 max/min，精度更高避免平局
     const raw = this._rawRadarScores || scores;
     const labels = DIMENSION_LIST.map(d => d.label);
-    let maxIdx = 0, minIdx = 0;
+
+    let maxVal = raw[0], minVal = raw[0];
     for (let i = 1; i < raw.length; i++) {
-      if (raw[i] > raw[maxIdx]) maxIdx = i;
-      if (raw[i] < raw[minIdx]) minIdx = i;
+      if (raw[i] > maxVal) maxVal = raw[i];
+      if (raw[i] < minVal) minVal = raw[i];
+    }
+
+    // 收集所有并列最高/最低维度
+    const maxLabels = [];
+    const minLabels = [];
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] === maxVal) maxLabels.push(labels[i]);
+      if (raw[i] === minVal) minLabels.push(labels[i]);
     }
 
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
     const variance = scores.reduce((sum, s) => sum + (s - avg) ** 2, 0) / scores.length;
     const stdDev = Math.sqrt(variance);
 
-    const highlight = labels[maxIdx];
-    const lowLabel = labels[minIdx];
+    const highText = maxLabels.join('、');
+    const lowText = minLabels.join('、');
 
     // 所有维度同分时的保护
-    if (maxIdx === minIdx) {
-      return { prefix: '整体能量分布均衡，各维度发展较为', highlight: '平衡', suffix: '，是难得的稳定状态。' };
+    if (maxVal === minVal) {
+      return { segments: [
+        { text: '整体能量分布均衡，各维度发展较为', bold: false },
+        { text: '平衡', bold: true },
+        { text: '，是难得的稳定状态。', bold: false },
+      ] };
     }
 
-    let prefix, suffix;
+    let segments;
     if (stdDev < 8) {
-      prefix = '整体能量分布均衡，其中';
-      suffix = `维度表现突出，${lowLabel}维度有进一步提升空间。`;
+      segments = [
+        { text: '整体能量分布均衡，其中', bold: false },
+        { text: highText, bold: true },
+        { text: '维度表现突出，', bold: false },
+        { text: lowText, bold: true },
+        { text: '维度有进一步提升空间。', bold: false },
+      ];
     } else if (stdDev > 15) {
-      prefix = '能量分布有明显侧重，';
-      suffix = `是你的核心优势，可以多关注${lowLabel}的发展与平衡。`;
+      segments = [
+        { text: '能量分布有明显侧重，', bold: false },
+        { text: highText, bold: true },
+        { text: '是你的核心优势，可以多关注', bold: false },
+        { text: lowText, bold: true },
+        { text: '的发展与平衡。', bold: false },
+      ];
     } else {
-      prefix = '整体能量较为均衡，其中';
-      suffix = `最为突出，建议多关注${lowLabel}维度的成长。`;
+      segments = [
+        { text: '整体能量较为均衡，其中', bold: false },
+        { text: highText, bold: true },
+        { text: '最为突出，建议多关注', bold: false },
+        { text: lowText, bold: true },
+        { text: '维度的成长。', bold: false },
+      ];
     }
 
-    return { prefix, highlight, suffix };
+    return { segments };
   },
 
   drawRadarChart(canvasId, size, retryCount = 0) {
