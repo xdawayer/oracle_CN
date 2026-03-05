@@ -3,6 +3,8 @@ const storage = require('../../utils/storage');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 const { buildDailyFullCacheKey } = require('../../utils/tab-preloader');
+const { buildTransitCacheKey, fetchTransitDedup } = require('../../utils/transit-dedup');
+const { pollTaskResult } = require('../../utils/pollTask');
 const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 
 const LoadingState = {
@@ -187,6 +189,8 @@ Page({
     auditMode: false,
     LoadingState,
     status: LoadingState.IDLE,
+    coreStatus: 'IDLE',
+    extendedStatus: 'IDLE',
     errorMessage: '',
     isForecastPending: false,
     dates: [],
@@ -714,9 +718,19 @@ Page({
   },
 
   getTransitCacheKey(dateStr) {
+    return buildTransitCacheKey(this.userProfile, dateStr);
+  },
+
+  getDailyCoreCacheKey(dateStr) {
     if (!this.userProfile) return null;
     const { birthDate, birthTime, birthCity } = this.userProfile;
-    return `daily_transit_cache_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
+    return `daily_core_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
+  },
+
+  getDailyExtendedCacheKey(dateStr) {
+    if (!this.userProfile) return null;
+    const { birthDate, birthTime, birthCity } = this.userProfile;
+    return `daily_extended_${birthDate || ''}_${birthTime || ''}_${birthCity || ''}_${dateStr}`;
   },
 
   async handleGenerate() {
@@ -734,12 +748,11 @@ Page({
       const currentDateStr = this.formatDateLabel(dateStr);
       const weekRange = this.getWeekRange();
 
-      // 尝试从 transit 缓存中提取 lucky 值（首页可能已加载）
-      const transitCacheKeyEarly = this.getTransitCacheKey(dateStr);
-      const cachedTransitEarly = transitCacheKeyEarly ? storage.get(transitCacheKeyEarly) : null;
+      // 从共享 transit 缓存中提取 lucky 值（首页可能已加载）
+      const transitCacheKey = this.getTransitCacheKey(dateStr);
+      const cachedTransitEarly = transitCacheKey ? storage.get(transitCacheKey) : null;
       this._transitLucky = this._extractTransitLucky(cachedTransitEarly);
 
-      // 如果 transit 缓存有确定性数据，直接用；否则用默认值
       const initLucky = this._transitLucky;
       const initForecast = {};
       if (initLucky) {
@@ -751,6 +764,8 @@ Page({
 
       this.setData({
         status: LoadingState.LOADING,
+        coreStatus: 'LOADING',
+        extendedStatus: 'LOADING',
         errorMessage: '',
         isForecastPending: true,
         forecast: initForecast,
@@ -767,16 +782,11 @@ Page({
         weeklyDescriptions: [],
         transitReady: false,
         transits: [],
-        transitChartData: {
-          innerPositions: [],
-          outerPositions: [],
-          aspects: [],
-          houseCusps: []
-        },
+        transitChartData: { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },
         technical: null
       });
 
-      // 1. 优先检查 /full 缓存（含 AI 内容）
+      // 1. 检查 /full 旧缓存（向后兼容）
       const fullCacheKey = this.getCacheKey(dateStr, true);
       const cachedFull = storage.get(fullCacheKey);
       if (cachedFull) {
@@ -786,7 +796,7 @@ Page({
         return;
       }
 
-      // 2. 检查旧版缓存（向后兼容）
+      // 2. 检查旧版缓存
       const legacyCacheKey = this.getCacheKey(dateStr, false);
       const cachedLegacy = storage.get(legacyCacheKey);
       if (cachedLegacy) {
@@ -800,101 +810,92 @@ Page({
       const query = this.buildDailyParams(dateStr);
       if (!query) {
         if (this._isLatestGenerate(generateSeq)) {
-          this.setData({ status: LoadingState.ERROR, errorMessage: '无法获取今日洞察，请先完善个人信息。', isForecastPending: false });
+          this.setData({ status: LoadingState.ERROR, coreStatus: 'ERROR', extendedStatus: 'ERROR', errorMessage: '无法获取今日洞察，请先完善个人信息。', isForecastPending: false });
         }
         return;
       }
 
-      // 4. 并行发起 /transit（快，~50ms）和 /full（慢，含 AI）
-      const transitCacheKey = this.getTransitCacheKey(dateStr);
-      const cachedTransit = transitCacheKey ? storage.get(transitCacheKey) : null;
+      // 4. 检查 core/extended 缓存
+      const coreCacheKey = this.getDailyCoreCacheKey(dateStr);
+      const extendedCacheKey = this.getDailyExtendedCacheKey(dateStr);
+      const cachedCore = coreCacheKey ? storage.get(coreCacheKey) : null;
+      const cachedExtended = extendedCacheKey ? storage.get(extendedCacheKey) : null;
 
+      // 5. Transit 请求（使用去重）
+      const cachedTransit = transitCacheKey ? storage.get(transitCacheKey) : null;
       const transitPromise = cachedTransit
         ? Promise.resolve(cachedTransit)
-        : request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`, method: 'GET' }).catch(err => {
+        : fetchTransitDedup(this.userProfile, dateStr, query).catch(err => {
             logger.warn('[Daily] /transit failed:', err);
             return null;
           });
 
-      const fullPromise = request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: 120000 }).catch(err => {
-            logger.warn('[Daily] /full failed:', err);
+      // 6. Core 请求
+      const corePromise = cachedCore
+        ? Promise.resolve(cachedCore)
+        : request({ url: `${API_ENDPOINTS.DAILY_CORE}?${query}`, method: 'GET', timeout: 120000 }).catch(err => {
+            logger.warn('[Daily] /core failed:', err);
             return null;
           });
 
-      // 5. /transit 先到 → 立即渲染行运图表和技术数据（保持 LOADING，等 AI 内容）
+      // 7. Extended 请求
+      const extendedPromise = cachedExtended
+        ? Promise.resolve(cachedExtended)
+        : request({ url: `${API_ENDPOINTS.DAILY_EXTENDED}?${query}`, method: 'GET', timeout: 120000 }).catch(err => {
+            logger.warn('[Daily] /extended failed:', err);
+            return null;
+          });
+
+      // 8. Transit 先到 → 立即渲染卡片和图表
       const transitResult = await transitPromise;
       if (!this._isLatestGenerate(generateSeq)) return;
       if (transitResult) {
-        // 缓存 transit 数据
         if (transitCacheKey && !cachedTransit) {
           storage.set(transitCacheKey, transitResult);
         }
-        // 提取并存储 transit lucky 值（权威来源，与首页一致）
         this._transitLucky = this._extractTransitLucky(transitResult) || this._transitLucky;
-        // 立即渲染行运图表（不含 AI 预测，状态保持 LOADING）
         const transitChartData = this.prepareTransitChartData(transitResult);
         const technical = this.prepareTechnicalData(transitResult.technical);
-        const transits = transitResult.transits?.positions || [];
-        this.setData({
-          transitReady: true,
-          transits,
-          transitChartData,
-          technical
-        });
+        const transits = transitResult.transits && transitResult.transits.positions ? transitResult.transits.positions : [];
+        this.setData({ transitReady: true, transits, transitChartData, technical });
         if (this.data.isForecastPending) {
           this.markTransitReadyView(dateStr, generateSeq);
         }
       }
 
-      // 6. /full 到达 → 填充 AI 预测内容
-      const fullResult = await fullPromise;
+      // 9. Core + Extended 并行等待，各自独立处理
+      const [coreResult, extendedResult] = await Promise.allSettled([corePromise, extendedPromise]);
       if (!this._isLatestGenerate(generateSeq)) return;
 
-      if (fullResult) {
-        storage.set(fullCacheKey, fullResult);
-        this.processFullData(fullResult, dateStr, generateSeq);
-        return;
+      // 处理 Core 结果
+      const coreData = coreResult.status === 'fulfilled' ? coreResult.value : null;
+      if (coreData) {
+        if (coreCacheKey && !cachedCore) storage.set(coreCacheKey, coreData);
+        this._processCoreData(coreData, dateStr, generateSeq);
+      } else {
+        this.setData({ coreStatus: 'ERROR' });
       }
 
-      // 7. /full 失败 → fallback 到旧 /api/daily 端点
-      try {
-        const result = await request({
-          url: `${API_ENDPOINTS.DAILY_FORECAST}?${query}`,
-          method: 'GET'
-        });
-        if (!this._isLatestGenerate(generateSeq)) return;
+      // 处理 Extended 结果
+      const extData = extendedResult.status === 'fulfilled' ? extendedResult.value : null;
+      if (extData) {
+        if (extendedCacheKey && !cachedExtended) storage.set(extendedCacheKey, extData);
+        this._processExtendedData(extData, dateStr, generateSeq);
+      } else {
+        this.setData({ extendedStatus: 'ERROR' });
+      }
 
-        if (result) {
-          storage.set(legacyCacheKey, result);
-          this.processDailyData(result, dateStr, generateSeq);
-        } else if (transitResult) {
-          // AI 全部失败但 transit 已渲染，标记为 SUCCESS 展示图表
-          this.setData({
-            status: LoadingState.SUCCESS,
-            isForecastPending: false,
-            overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
-          });
-        } else {
-          this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
-        }
-      } catch (legacyErr) {
-        if (!this._isLatestGenerate(generateSeq)) return;
-        logger.error('[Daily] Legacy fallback failed:', legacyErr);
-        if (transitResult) {
-          this.setData({
-            status: LoadingState.SUCCESS,
-            isForecastPending: false,
-            overviewSummary: this.data.overviewSummary || '已加载今日周期数据，个性化解读暂不可用。'
-          });
-        } else {
-          this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
-        }
+      // 10. 至少有一个成功就标记 SUCCESS
+      if (coreData || extData || transitResult) {
+        this.setData({ status: LoadingState.SUCCESS, isForecastPending: false });
+      } else {
+        this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
       }
 
     } catch (e) {
       if (!this._isLatestGenerate(generateSeq)) return;
       logger.error(e);
-      this.setData({ status: LoadingState.ERROR, errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
+      this.setData({ status: LoadingState.ERROR, coreStatus: 'ERROR', extendedStatus: 'ERROR', errorMessage: '网络加载失败，请稍后重试。', isForecastPending: false });
     } finally {
       // cleanup
     }
@@ -1013,6 +1014,60 @@ Page({
       transits,
       transitChartData,
       technical
+    });
+  },
+
+  /** 处理 /api/daily/core 响应 */
+  _processCoreData(coreResult, _dateStr, requestSeq) {
+    if (requestSeq && !this._isLatestGenerate(requestSeq)) return;
+    const content = coreResult.content || coreResult || {};
+
+    const dimensions = content.dimensions || null;
+    const dimensionItems = dimensions ? DIMENSION_ORDER.map((item) => ({
+      key: item.key, label: item.label, color: item.color,
+      score: Number.isFinite(dimensions[item.key]) ? dimensions[item.key] : 0,
+      iconUrl: DIMENSION_ICONS[item.key]
+    })) : this.buildDefaultDimensionItems();
+
+    const advice = this.buildAdvice(content);
+    const overviewSummary = content.theme_explanation || content.theme_title || '';
+
+    // 更新 forecast 对象中的主题和标签
+    const forecast = Object.assign({}, this.data.forecast);
+    if (content.theme_title) forecast.theme_title = content.theme_title;
+    if (content.tags) forecast.tags = content.tags;
+    if (content.share_text) forecast.share_text = content.share_text;
+
+    this.setData({
+      coreStatus: 'SUCCESS',
+      dimensionItems,
+      advice,
+      overviewSummary: overviewSummary || this.data.overviewSummary,
+      forecast,
+    });
+  },
+
+  /** 处理 /api/daily/extended 响应 */
+  _processExtendedData(extResult, dateStr, requestSeq) {
+    if (requestSeq && !this._isLatestGenerate(requestSeq)) return;
+    const content = extResult.content || extResult || {};
+
+    const timeWindows = this.buildTimeWindows(content);
+    const weeklyTrend = content.weekly_trend || {};
+    const weeklyEvents = this.buildWeeklyEvents(content);
+    const weeklyScores = this.buildWeeklyScores(content, dateStr);
+    const weekRange = weeklyTrend.weekRange || weeklyTrend.week_range || this.getWeekRange();
+    const weekRangeTitle = this.formatWeekRangeTitle(weekRange);
+    const weeklyDescriptions = this.buildWeeklyDescriptions(weeklyScores, weeklyEvents, weekRangeTitle);
+
+    this.setData({
+      extendedStatus: 'SUCCESS',
+      timeWindows,
+      weekRange,
+      weekRangeTitle,
+      weeklyEvents,
+      weeklyDescriptions,
+      weeklyScores,
     });
   },
 
@@ -1426,7 +1481,11 @@ Page({
     try {
       const payload = this.buildDetailPayload(type, dateStr);
       if (!payload) return null;
-      const result = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 120000 });
+      const submitRes = await request({ url: API_ENDPOINTS.DETAIL, method: 'POST', data: payload, timeout: 15000 });
+      if (!submitRes || !submitRes.taskId) {
+        throw new Error('Failed to create detail task');
+      }
+      const result = await pollTaskResult(API_ENDPOINTS.DETAIL_RESULT, submitRes.taskId);
       const content = result?.content || null;
       if (content && cacheKey) {
         storage.set(cacheKey, { content });
