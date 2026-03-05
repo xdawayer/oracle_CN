@@ -193,8 +193,26 @@
       </view>
     </block>
 
+    <!-- 本周趋势骨架屏 -->
+    <block wx:if="{{extendedStatus === 'LOADING'}}">
+      <view class="weekly-section card ink-border skeleton-card">
+        <text class="card-title weekly-title font-ancient">本周趋势</text>
+        <view class="weekly-chart">
+          <view class="chart-bar-group" wx:for="{{['一','二','三','四','五','六','日']}}" wx:key="*this">
+            <view class="skeleton-block skeleton-score-sm"></view>
+            <view class="chart-bar-wrapper">
+              <view class="skeleton-block" style="height: {{40 + index * 8}}%; width: 100%; border-radius: 4rpx 4rpx 0 0;"></view>
+            </view>
+            <text class="chart-day">{{item}}</text>
+          </view>
+        </view>
+        <view class="skeleton-block skeleton-line" style="margin-top: 20rpx;"></view>
+        <view class="skeleton-block skeleton-line skeleton-line-short"></view>
+      </view>
+    </block>
+
     <!-- ========== 深度解读层 ========== -->
-    
+
     <!-- 5. 今日周期分析（审核期由 auditMode 控制） -->
     <view class="card technical-card ink-border" wx:if="{{!auditMode}}">
       <view class="card-header-row font-ancient">

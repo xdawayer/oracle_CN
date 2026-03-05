@@ -73,11 +73,6 @@ const buildSelfChartCacheKey = (profile) => {
   return `self_natal_chart_cache_${profile.birthDate}_${profile.birthTime || ''}_${profile.birthCity || ''}_${profile.timezone || ''}_${accuracy}_${lat}_${lon}`;
 };
 
-const buildDailyTransitCacheKey = (profile, dateStr) => {
-  if (!profile || !profile.birthDate) return null;
-  return `daily_transit_cache_${profile.birthDate}_${profile.birthTime || ''}_${profile.birthCity || ''}_${dateStr}`;
-};
-
 const buildDailyFullCacheKey = (profile, dateStr) => {
   if (!profile || !profile.birthDate) return null;
   const lat = profile.lat === undefined ? '' : profile.lat;
@@ -469,7 +464,6 @@ const createTabPreloader = () => {
 
 module.exports = {
   createTabPreloader,
-  buildDailyTransitCacheKey,
   buildDailyFullCacheKey,
   buildDiscoveryCacheKey,
   buildSelfChartCacheKey,
