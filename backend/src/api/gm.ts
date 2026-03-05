@@ -1,7 +1,7 @@
 // GM Commands API - 测试/开发用命令
 import { Router, Request, Response } from 'express';
 import { authMiddleware, requireAuth } from './auth.js';
-import { isDatabaseConfigured, DbUser, upsert, update, insert, remove } from '../db/mysql.js';
+import { isDatabaseConfigured, DbUser, upsert, update, insert, remove, getOne } from '../db/mysql.js';
 import { userService } from '../services/userService.js';
 import { addDevGmCredits, clearDevGmCredits, resetDevEntitlements, setDevSubscription } from '../services/entitlementService.js';
 
@@ -284,6 +284,46 @@ router.get('/status', (_req: Request, res: Response) => {
     enabled: isGMEnabled(),
     environment: process.env.NODE_ENV || 'development',
   });
+});
+
+// =====================================================
+// 临时管理接口：按用户名重置配额（用完后删除）
+// =====================================================
+router.post('/admin-reset-user', async (req: Request, res: Response) => {
+  const { name, secret } = req.body;
+  if (secret !== 'oracle_admin_2026') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (!name || !isDatabaseConfigured()) {
+    return res.status(400).json({ error: 'Missing name or DB not configured' });
+  }
+
+  try {
+    const user = await getOne<DbUser>('SELECT * FROM users WHERE name = ? LIMIT 1', [name]);
+    if (!user) {
+      return res.status(404).json({ error: `User "${name}" not found` });
+    }
+
+    const userId = user.id;
+    const results: string[] = [];
+
+    // 重置 free_usage（ask + synastry 计数归零）
+    const freeRows = await remove('free_usage', 'user_id = ?', [userId]);
+    results.push(`free_usage: deleted ${freeRows} rows`);
+
+    // 重置 subscription_usage
+    const subRows = await remove('subscription_usage', 'user_id = ?', [userId]);
+    results.push(`subscription_usage: deleted ${subRows} rows`);
+
+    // 删除合盘记录（释放 synastry hash 占用）
+    const synRows = await remove('synastry_records', 'user_id = ?', [userId]);
+    results.push(`synastry_records: deleted ${synRows} rows`);
+
+    res.json({ success: true, userId, name: user.name, results });
+  } catch (error) {
+    console.error('Admin reset user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // 辅助函数：获取本周开始日期
