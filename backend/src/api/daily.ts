@@ -444,10 +444,11 @@ dailyRouter.get('/full', async (req, res) => {
     // 5. 按 sections 参数决定生成哪些内容（默认全部）
     const rawSections = req.query.sections;
     const sectionsStr = Array.isArray(rawSections) ? rawSections.join(',') : (rawSections as string | undefined);
+    const validPromptIds = ['daily-forecast', 'daily-detail', 'daily-core', 'daily-extended'];
     const promptIds = sectionsStr
-      ? sectionsStr.split(',').map(s => `daily-${s.trim()}`).filter(id => ['daily-forecast', 'daily-detail'].includes(id))
-      : ['daily-forecast', 'daily-detail'];
-    if (promptIds.length === 0) promptIds.push('daily-forecast');
+      ? sectionsStr.split(',').map(s => `daily-${s.trim()}`).filter(id => validPromptIds.includes(id))
+      : ['daily-core', 'daily-extended', 'daily-detail'];
+    if (promptIds.length === 0) promptIds.push('daily-core', 'daily-extended');
 
     const aiStart = performance.now();
     const parallelResult = await generateParallel({
@@ -489,8 +490,10 @@ dailyRouter.get('/full', async (req, res) => {
 
     res.json({
       chart: { natal: chart, transits, technical },
-      forecast: contents['daily-forecast'] ?? null,
+      forecast: contents['daily-forecast'] ?? (contents['daily-core'] ? { content: contents['daily-core'] } : null),
       detail: contents['daily-detail'] ?? null,
+      core: contents['daily-core'] ?? null,
+      extended: contents['daily-extended'] ?? null,
       lucky,
       timing: {
         coreMs: Math.round(coreMs),
@@ -500,6 +503,102 @@ dailyRouter.get('/full', async (req, res) => {
         parallelFail: parallelResult.failCount,
       },
     });
+  } catch (error) {
+    if (error instanceof AIUnavailableError) {
+      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      return;
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// GET /api/daily/core - 核心内容（四维指数 + 宜忌）
+dailyRouter.get('/core', async (req, res) => {
+  try {
+    const requestStart = performance.now();
+    const lang: Language = 'zh';
+    const query = req.query as Record<string, unknown>;
+    let birth: BirthInput;
+    try {
+      birth = parseBirthInputFast(query);
+    } catch {
+      birth = await parseBirthInput(query);
+    }
+    let date = new Date(query.date as string || new Date().toISOString().split('T')[0]);
+    if (isNaN(date.getTime())) date = new Date();
+    const dateStr = date.toISOString().split('T')[0];
+
+    const coreStart = performance.now();
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, date),
+    ]);
+    const coreMs = performance.now() - coreStart;
+
+    const chartSummary = buildCompactChartSummary(chart);
+    const transitSummary = buildCompactTransitSummary(transits);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    const aiStart = performance.now();
+    const result = await generateAIContent({
+      promptId: 'daily-core',
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: dateStr, userAge, userAgeGroup, userBirthDate: birth.date },
+      lang,
+    });
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+    res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
+
+    res.json({ content: result.content, lang: result.lang });
+  } catch (error) {
+    if (error instanceof AIUnavailableError) {
+      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      return;
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// GET /api/daily/extended - 扩展内容（时间窗口 + 本周趋势）
+dailyRouter.get('/extended', async (req, res) => {
+  try {
+    const requestStart = performance.now();
+    const lang: Language = 'zh';
+    const query = req.query as Record<string, unknown>;
+    let birth: BirthInput;
+    try {
+      birth = parseBirthInputFast(query);
+    } catch {
+      birth = await parseBirthInput(query);
+    }
+    let date = new Date(query.date as string || new Date().toISOString().split('T')[0]);
+    if (isNaN(date.getTime())) date = new Date();
+    const dateStr = date.toISOString().split('T')[0];
+
+    const coreStart = performance.now();
+    const [chart, transits] = await Promise.all([
+      ephemerisService.calculateNatalChart(birth),
+      ephemerisService.calculateTransits(birth, date),
+    ]);
+    const coreMs = performance.now() - coreStart;
+
+    const chartSummary = buildCompactChartSummary(chart);
+    const transitSummary = buildCompactTransitSummary(transits);
+    const userAge = calculateAge(birth.date);
+    const userAgeGroup = getAgeGroup(userAge);
+
+    const aiStart = performance.now();
+    const result = await generateAIContent({
+      promptId: 'daily-extended',
+      context: { chart_summary: chartSummary, transit_summary: transitSummary, date: dateStr, userAge, userAgeGroup, userBirthDate: birth.date },
+      lang,
+    });
+    const aiMs = performance.now() - aiStart;
+    const totalMs = performance.now() - requestStart;
+    res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
+
+    res.json({ content: result.content, lang: result.lang });
   } catch (error) {
     if (error instanceof AIUnavailableError) {
       res.status(503).json({ error: 'AI unavailable', reason: error.reason });
