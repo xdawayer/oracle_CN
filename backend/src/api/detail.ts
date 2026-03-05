@@ -306,16 +306,21 @@ detailRouter.post('/', async (req, res) => {
 
 // GET /api/detail/result/:taskId - 轮询详情解读任务结果
 detailRouter.get('/result/:taskId', async (req, res) => {
-  const task = await getTask(req.params.taskId);
-  if (!task) {
-    return res.status(404).json({ error: 'Task not found or expired' });
+  try {
+    const task = await getTask(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found or expired' });
+    }
+    if (task.status === 'pending') {
+      return res.json({ status: 'pending' });
+    }
+    if (task.status === 'failed') {
+      return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
+    }
+    // completed
+    res.json({ status: 'completed', ...task.result });
+  } catch (error) {
+    console.error(`[Detail] Get task error:`, error);
+    res.status(500).json({ error: 'Internal error' });
   }
-  if (task.status === 'pending') {
-    return res.json({ status: 'pending' });
-  }
-  if (task.status === 'failed') {
-    return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
-  }
-  // completed
-  res.json({ status: 'completed', ...task.result });
 });
