@@ -553,7 +553,7 @@ Component({
 
       // 绘制外圈
       ctx.strokeStyle = '#B8B0A3';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.arc(cx, cy, outerRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -579,7 +579,7 @@ Component({
 
       // 绘制宫位外分隔圆
       ctx.strokeStyle = '#B8B0A3';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.arc(cx, cy, houseRingRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -600,7 +600,7 @@ Component({
         const endCoords = getCoords(angle, outerRadius, cx, cy);
 
         ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.9)' : 'rgba(160, 155, 145, 0.7)';
-        ctx.lineWidth = isAxis ? 2 : 1.2;
+        ctx.lineWidth = isAxis ? 0.8 : 0.5;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
@@ -716,7 +716,7 @@ Component({
       const separatorRadius = baseRadius * layout.separator;
 
       ctx.strokeStyle = '#B8B0A3';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.arc(cx, cy, separatorRadius, 0, 2 * Math.PI);
       ctx.stroke();
