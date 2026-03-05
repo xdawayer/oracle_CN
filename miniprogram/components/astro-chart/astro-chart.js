@@ -551,9 +551,9 @@ Component({
         ctx.fill();
       }
 
-      // 绘制外圈 - 纸感中灰色
-      ctx.strokeStyle = '#D8D1C5';
-      ctx.lineWidth = 2;
+      // 绘制外圈
+      ctx.strokeStyle = '#B8B0A3';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(cx, cy, outerRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -578,8 +578,8 @@ Component({
       const equalAngles = houseCusps.map((_, i) => normalizeAngle(ascLongitude + i * 30));
 
       // 绘制宫位外分隔圆
-      ctx.strokeStyle = '#D8D1C5';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#B8B0A3';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cx, cy, houseRingRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -599,8 +599,8 @@ Component({
         const startCoords = getCoords(angle, innerR, cx, cy);
         const endCoords = getCoords(angle, outerRadius, cx, cy);
 
-        ctx.strokeStyle = isAxis ? 'rgba(160, 155, 145, 0.8)' : 'rgba(160, 155, 145, 0.4)';
-        ctx.lineWidth = isAxis ? 1.5 : 0.8;
+        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.9)' : 'rgba(160, 155, 145, 0.7)';
+        ctx.lineWidth = isAxis ? 2 : 1.2;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
@@ -715,8 +715,8 @@ Component({
     drawSeparator(ctx, cx, cy, baseRadius, layout) {
       const separatorRadius = baseRadius * layout.separator;
 
-      ctx.strokeStyle = 'rgba(216, 209, 197, 0.6)';
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = '#B8B0A3';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cx, cy, separatorRadius, 0, 2 * Math.PI);
       ctx.stroke();
