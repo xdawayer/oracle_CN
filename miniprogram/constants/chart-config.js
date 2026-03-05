@@ -25,9 +25,9 @@ export const ASPECT_COLORS = {
 
 // 视觉层样式 - 相位线样式（精细线条，参考专业占星软件）
 export const VISUAL_LAYER_STYLES = {
-  foreground: { strokeWidth: 1.0, opacity: 1.0 },    // 紧密相位 (orb <= 2°)
-  midground: { strokeWidth: 0.8, opacity: 0.85 },    // 中等相位 (2° < orb <= 4°)
-  background: { strokeWidth: 0.5, opacity: 0.6 },    // 宽松相位 (4° < orb <= 6°)
+  foreground: { strokeWidth: 0.8, opacity: 0.9 },    // 紧密相位 (orb <= 2°)
+  midground: { strokeWidth: 0.5, opacity: 0.7 },     // 中等相位 (2° < orb <= 4°)
+  background: { strokeWidth: 0.35, opacity: 0.45 },   // 宽松相位 (4° < orb <= 6°)
 };
 
 // 默认相位设置
