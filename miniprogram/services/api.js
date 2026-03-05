@@ -66,6 +66,7 @@ const API_ENDPOINTS = {
   POINTS_HISTORY: '/api/user/points-history',
   // 权益
   ENTITLEMENTS_V2: '/api/entitlements/v2',
+  SYNASTRY_CHECK_HASH: '/api/entitlements/v2/synastry/check-hash',
 };
 
 module.exports = {

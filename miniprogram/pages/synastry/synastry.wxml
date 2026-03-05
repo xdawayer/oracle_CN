@@ -1,7 +1,13 @@
 <view class="page">
   <!-- 标题只在输入界面显示，结果界面使用顶部导航栏 -->
   <view class="header" wx:if="{{step === 1}}">
-    <text class="title font-ancient">关系分析</text>
+    <view class="header-title-row">
+      <text class="title font-ancient">关系分析</text>
+      <view class="quota-badge" wx:if="{{quotaLoaded}}">
+        <text class="quota-text" wx:if="{{synastryTotalLeft > 0}}">剩余 {{synastryTotalLeft}} 次</text>
+        <text class="quota-text quota-empty" wx:else>次数已用完</text>
+      </view>
+    </view>
     <text class="subtitle">探索两个人的引力法则</text>
   </view>
 

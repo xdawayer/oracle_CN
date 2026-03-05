@@ -20,6 +20,26 @@
   display: block;
 }
 
+.header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.quota-badge {
+  flex-shrink: 0;
+}
+
+.quota-text {
+  font-size: 22rpx;
+  color: var(--ink-light);
+}
+
+.quota-empty {
+  color: var(--seal-red);
+}
+
 .subtitle {
   font-size: 24rpx;
   color: var(--ink-light);

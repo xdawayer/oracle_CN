@@ -100,6 +100,10 @@ Page({
     backArrow: '\u2039',
     // 自档案为空提示
     selfProfileEmpty: false,
+    // 配额信息
+    synastryTotalLeft: 0,
+    synastryFreeLeft: 0,
+    quotaLoaded: false,
 
     // 城市搜索相关
     birthCitySuggestions: [],
@@ -187,6 +191,60 @@ Page({
     // 仅在输入界面刷新档案，结果页面不需要重复刷新
     if (this.data.step === 1) {
       this.loadProfiles();
+      this._fetchSynastryQuota();
+    }
+  },
+
+  async _fetchSynastryQuota() {
+    try {
+      const res = await request({
+        url: API_ENDPOINTS.ENTITLEMENTS_V2,
+        method: 'GET',
+      });
+      if (res && res.synastry) {
+        this.setData({
+          synastryTotalLeft: res.synastry.totalLeft || 0,
+          synastryFreeLeft: res.synastry.freeLeft || 0,
+          quotaLoaded: true,
+        });
+      }
+    } catch (err) {
+      logger.warn('Fetch synastry quota failed:', err);
+    }
+  },
+
+  async _checkSynastryHash(profileA, profileB) {
+    try {
+      const buildPersonInfo = (profile) => ({
+        name: profile.name || '',
+        birthDate: profile.birthDate || '',
+        birthTime: profile.birthTime || undefined,
+        birthCity: profile.birthCity || '',
+        lat: profile.lat != null ? Number(profile.lat) : 0,
+        lon: profile.lon != null ? Number(profile.lon) : 0,
+        timezone: profile.timezone || undefined,
+      });
+      const res = await request({
+        url: API_ENDPOINTS.SYNASTRY_CHECK_HASH,
+        method: 'POST',
+        data: {
+          personA: buildPersonInfo(profileA),
+          personB: buildPersonInfo(profileB),
+          relationshipType: this.data.relations.find(r => r.id === this.data.relation)?.label || '关系',
+        },
+        timeout: 10000,
+      });
+      if (res) {
+        this.setData({
+          synastryTotalLeft: res.totalLeft || 0,
+          synastryFreeLeft: res.freeLeft || 0,
+          quotaLoaded: true,
+        });
+      }
+      return res;
+    } catch (err) {
+      logger.warn('Check synastry hash failed:', err);
+      return null;
     }
   },
 
@@ -1319,6 +1377,7 @@ Page({
   },
 
   async handleAnalyze() {
+    if (this.data.loading) return;
     const { nameA, nameB } = this.data;
     if (!nameA || !nameB) return;
     if (nameA === nameB) {
@@ -1328,7 +1387,7 @@ Page({
     const ready = this.ensureProfilesReady();
     if (!ready) return;
 
-    // 检查本地缓存：同一对人 + 同一关系类型 → 直接恢复
+    // 检查本地缓存：同一对人 + 同一关系类型 → 直接恢复（不受配额限制）
     const cached = this._loadSynastryCache();
     if (cached) {
       logger.log('[Synastry] Local cache hit');
@@ -1359,8 +1418,26 @@ Page({
       return;
     }
 
+    // 设置 loading 防止重入，在所有 async 操作之前
     this.setData({ loading: true });
     try {
+      // check-hash: 检查配额 + 同一对人是否已分析过（不重复扣次数）
+      const hashCheck = await this._checkSynastryHash(ready.profileA, ready.profileB);
+      if (hashCheck && !hashCheck.exists && hashCheck.totalLeft <= 0) {
+        wx.showModal({
+          title: '分析次数已用完',
+          content: '开通会员可享更多合盘分析次数',
+          confirmText: '了解会员',
+          cancelText: '取消',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              wx.navigateTo({ url: '/pages/subscription/subscription' });
+            }
+          },
+        });
+        return;
+      }
+
       const fullQuery = this.buildFullQuery();
       const technicalQuery = this.buildTechnicalQuery();
       if (!fullQuery) {
@@ -1471,6 +1548,7 @@ Page({
 
           fullSuccess = true;
           this._saveSynastryCache();
+          this._fetchSynastryQuota();
         } catch (parseErr) {
           logger.error('[Synastry] Failed to parse /full response:', parseErr);
         }
@@ -1480,6 +1558,7 @@ Page({
       if (!fullSuccess) {
         // 403 = 配额不足，跳过 fallback（fallback 同样会被 403 拦截）
         if (_fullError && _fullError.statusCode === 403) {
+          this._fetchSynastryQuota();
           this.setData({
             'tabLoadStatus.overview': 'quota_exceeded',
             'tabLoadStatus.coreDynamics': 'error',
