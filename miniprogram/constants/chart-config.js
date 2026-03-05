@@ -287,12 +287,12 @@ export const SINGLE_CHART_LAYOUT = {
   planetRing: 0.80,
   positionInfo: 0.65,          // 位置信息中心
 
-  // 宫位区域（外推以容纳更大的相位线区域）
-  houseRing: 0.42,             // 宫位分隔线外径
-  houseNumbers: 0.39,          // 宫位数字环
+  // 宫位区域（数字夹在两条圆线之间）
+  houseRing: 0.45,             // 宫位分隔线外径
+  houseNumbers: 0.39,          // 宫位数字环（居中于 aspectLine 与 houseRing 之间）
 
-  // 相位线区域（增大以匹配专业星盘样式）
-  aspectLine: 0.36,            // 相位线半径
+  // 相位线区域
+  aspectLine: 0.33,            // 相位线半径（= 宫位数字内边界）
   innerHub: 0.02,              // 中心点
 
   // 字号配置（单位：px）
@@ -332,12 +332,12 @@ export const DUAL_CHART_LAYOUT = {
   // 内环（核心图谱）
   innerPlanetRing: 0.59,       // 内环行星符号
 
-  // 宫位区域（外推以容纳更大的相位线区域）
-  houseRing: 0.39,             // 宫位分隔线外径
-  houseNumbers: 0.36,          // 宫位数字环
+  // 宫位区域（数字夹在两条圆线之间）
+  houseRing: 0.41,             // 宫位分隔线外径
+  houseNumbers: 0.355,         // 宫位数字环（居中）
 
-  // 相位线区域（增大以匹配专业星盘样式）
-  aspectLine: 0.33,            // 相位线半径
+  // 相位线区域
+  aspectLine: 0.30,            // 相位线半径（= 宫位数字内边界）
   innerHub: 0.02,              // 中心点
 
   // 字号配置（缩放 80%）
