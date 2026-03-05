@@ -31,6 +31,8 @@ const MAX_TOKENS_MAP: Record<string, number> = {
   'oracle-answer': 3072,
   'daily-forecast': 1600,
   'daily-detail': 1600,
+  'daily-core': 600,
+  'daily-extended': 800,
   'natal-overview': 1400,
   'natal-core-themes': 1400,
   'natal-dimension': 1400,
@@ -165,6 +167,8 @@ const TEMPERATURE_MAP: Record<string, number> = {
   // T4 (0.6): 时效性/建议性内容
   'daily-forecast': 0.6,
   'daily-detail': 0.6,
+  'daily-core': 0.6,
+  'daily-extended': 0.6,
   'synastry-practice-tools': 0.6,
   'synastry-relationship-timing': 0.6,
   'synastry-vibe-tags': 0.6,

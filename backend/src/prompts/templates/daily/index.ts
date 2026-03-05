@@ -19,6 +19,8 @@ export { detailDimensionTransitPrompt } from './transit/dimension';
 import { dailyForecastPrompt } from './forecast';
 import { dailyDetailPrompt } from './detail';
 import { dailyHomeCardPrompt } from './home-card';
+import { dailyCorePrompt } from './core';
+import { dailyExtendedPrompt } from './extended';
 import { transitPrompts } from './transit';
 import type { PromptTemplate } from '../../core/types';
 
@@ -27,5 +29,7 @@ export const dailyPrompts: PromptTemplate[] = [
   dailyForecastPrompt,
   dailyDetailPrompt,
   dailyHomeCardPrompt,
+  dailyCorePrompt,
+  dailyExtendedPrompt,
   ...transitPrompts,
 ];
