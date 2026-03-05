@@ -5,6 +5,7 @@ import reportService, { ReportType } from '../services/reportService.js';
 import { REPORT_PRICES } from './report.js';
 import { computeChartHash } from '../services/report-task.js';
 import type { BirthInput } from '../types/api.js';
+import { isDatabaseConfigured, getOne } from '../db/mysql.js';
 
 const router = Router();
 
@@ -17,7 +18,19 @@ router.get('/available', async (_req: Request, res: Response) => {
 // Get user's purchased reports
 router.get('/', authMiddleware, requireAuth, async (req: Request, res: Response) => {
   try {
-    const reports = await reportService.getUserReports(req.userId!);
+    let birthFilter: { date: string; time: string; city: string } | undefined;
+    if (isDatabaseConfigured()) {
+      const user = await getOne<{ birth_profile: Record<string, string> | null }>(
+        'SELECT birth_profile FROM users WHERE id = ?',
+        [req.userId!]
+      );
+      const bp = (user?.birth_profile as Record<string, string>) || {};
+      if (bp.date) {
+        birthFilter = { date: bp.date, time: bp.time || '', city: bp.city || bp.location || '' };
+      }
+    }
+
+    const reports = await reportService.getUserReports(req.userId!, birthFilter);
 
     res.json({
       reports: reports.map(r => ({

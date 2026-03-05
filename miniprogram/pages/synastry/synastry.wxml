@@ -156,6 +156,14 @@
         <text class="loading-hint">正在生成综述…</text>
       </view>
 
+      <!-- 综述加载失败 -->
+      <view class="card empty-state" wx:if="{{tabLoadStatus.overview === 'error'}}">
+        <text>综述加载失败，请重试</text>
+        <view class="retry-btn" bindtap="retryOverview">
+          <text>重新加载</text>
+        </view>
+      </view>
+
       <!-- 总分卡片 -->
       <view class="score-card ink-border" wx:if="{{tabLoadStatus.overview === 'loaded'}}">
         <text class="score-label">契合度评分</text>

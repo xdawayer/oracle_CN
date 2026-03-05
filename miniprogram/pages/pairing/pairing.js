@@ -2,6 +2,19 @@ const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 
+function stripMarkdown(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\*([^\s*][\s\S]*?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '').replace(/`([^`]+)`/g, '$1');
+  }
+  if (Array.isArray(obj)) return obj.map(stripMarkdown);
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const key of Object.keys(obj)) result[key] = stripMarkdown(obj[key]);
+    return result;
+  }
+  return obj;
+}
+
 const ZODIAC_SIGNS = [
   { id: 'aries', name: '3月21日 - 4月19日', emoji: 'ARI', element: 'fire' },
   { id: 'taurus', name: '4月20日 - 5月20日', emoji: 'TAU', element: 'earth' },
@@ -215,7 +228,7 @@ Page({
         });
 
         if (res && res.content) {
-          const aiContent = res.content;
+          const aiContent = stripMarkdown(res.content);
           const aiDims = aiContent.dimensions || [];
           return {
             ...quickResult,

@@ -88,16 +88,20 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // 并行获取订阅状态、积分、报告数量
-      const [subscription, entitlements, reportCount] = await Promise.all([
+      const birthProfile = (data.birth_profile as unknown as Record<string, string>) || {};
+      const birthFilter = birthProfile.date
+        ? { date: birthProfile.date, time: birthProfile.time || '', city: birthProfile.city || birthProfile.location || '' }
+        : undefined;
+
+      // 并行获取订阅状态、积分、报告数量、合盘记录数量
+      const [subscription, entitlements, reportCount, matchCount] = await Promise.all([
         subscriptionService.getSubscription(req.userId!),
         entitlementServiceV2.getEntitlements(req.userId!),
-        reportService.getReportCount(req.userId!),
+        reportService.getReportCount(req.userId!, birthFilter),
+        entitlementServiceV2.getSynastryRecordCount(req.userId!, birthFilter),
       ]);
       const isVip = !!(subscription && (subscription.status === 'active' || subscription.status === 'trialing'));
       const vipExpireDate = subscription?.current_period_end || '';
-
-      const birthProfile = (data.birth_profile as unknown as Record<string, string>) || {};
       const { url: avatarUrl, staleLocalUpload } = await sanitizeAvatarUrl(data.avatar);
       if (staleLocalUpload) {
         // 已失效的本地上传头像会持续触发 404，异步清理数据库旧值（不阻塞响应）
@@ -116,13 +120,18 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         vipExpireDate,
         points: entitlements.credits || 0,
         reportCount,
+        matchCount,
       });
     } else {
       // 开发模式
       const profile = devProfiles.get(req.userId!) || {};
-      const [entitlements, reportCount] = await Promise.all([
+      const devBirthFilter = profile.birthDate
+        ? { date: profile.birthDate as string, time: (profile.birthTime || '') as string, city: (profile.birthCity || '') as string }
+        : undefined;
+      const [entitlements, reportCount, matchCount] = await Promise.all([
         entitlementServiceV2.getEntitlements(req.userId!),
-        reportService.getReportCount(req.userId!),
+        reportService.getReportCount(req.userId!, devBirthFilter),
+        entitlementServiceV2.getSynastryRecordCount(req.userId!, devBirthFilter),
       ]);
       const { url: avatarUrl, staleLocalUpload } = await sanitizeAvatarUrl(profile.avatarUrl);
       if (staleLocalUpload) {
@@ -139,6 +148,7 @@ router.get('/profile', authMiddleware, requireAuth, async (req: Request, res: Re
         vipExpireDate: profile.vipExpireDate || '',
         points: entitlements.credits || 0,
         reportCount,
+        matchCount,
       });
     }
   } catch (error) {

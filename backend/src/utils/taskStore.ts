@@ -11,16 +11,17 @@ interface TaskEntry {
   error?: string;
   statusCode?: number;
   createdAt: number;
+  ownerId?: string;
 }
 
 const TASK_TTL_SECONDS = 10 * 60; // 10 minutes
 const KEY_PREFIX = 'task:';
 
-export async function createTask(): Promise<string> {
+export async function createTask(ownerId?: string): Promise<string> {
   const taskId = randomUUID();
   await cacheService.set<TaskEntry>(
     KEY_PREFIX + taskId,
-    { status: 'pending', createdAt: Date.now() },
+    { status: 'pending', createdAt: Date.now(), ownerId },
     TASK_TTL_SECONDS,
   );
   return taskId;

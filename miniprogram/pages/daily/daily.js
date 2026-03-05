@@ -1569,7 +1569,7 @@ Page({
     const rawTitle = data.title || titleBase;
     const reportTitle = this.normalizeReportTitle(rawTitle, type, titleBase);
     const sections = [];
-    const stripMd = (s) => String(s).replace(/\*{1,3}(.+?)\*{1,3}/g, '$1');
+    const stripMd = (s) => String(s).replace(/\*{1,3}([\s\S]+?)\*{1,3}/g, '$1').replace(/^#{1,6}\s+/gm, '').replace(/`([^`]+)`/g, '$1');
     const addSection = (title, text, list, cardColor) => {
       if (!title) return;
       const hasText = text && String(text).trim();

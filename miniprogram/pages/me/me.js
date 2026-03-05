@@ -41,10 +41,6 @@ Page({
       vipExpireDate: '',
     };
 
-    // 从本地存储读取分析记录数量
-    const synastryRecords = storage.get('synastry_records') || [];
-    profile.matchCount = Array.isArray(synastryRecords) ? synastryRecords.length : 0;
-
     const avatarUrl = storage.get('user_avatar') || '';
     const isLoggedIn = Boolean(storage.get('access_token'));
     this.setData({
@@ -69,10 +65,7 @@ Page({
         profile.isVip = res.isVip !== undefined ? res.isVip : profile.isVip;
         profile.vipExpireDate = res.vipExpireDate || profile.vipExpireDate;
         profile.reportCount = res.reportCount !== undefined ? res.reportCount : (profile.reportCount || 0);
-
-        // 从本地存储读取分析记录数量
-        const synastryRecords = storage.get('synastry_records') || [];
-        profile.matchCount = Array.isArray(synastryRecords) ? synastryRecords.length : 0;
+        profile.matchCount = res.matchCount !== undefined ? res.matchCount : (profile.matchCount || 0);
 
         storage.set('user_profile', profile);
         const hasAvatarField = Object.prototype.hasOwnProperty.call(res, 'avatarUrl');

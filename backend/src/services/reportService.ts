@@ -198,13 +198,24 @@ class ReportService {
   }
 
   // Get user's purchased reports (deduplicated by report_type, keeping latest)
-  async getUserReports(userId: string): Promise<DbReport[]> {
+  async getUserReports(userId: string, birthFilter?: { date: string; time: string; city: string }): Promise<DbReport[]> {
     if (!isDatabaseConfigured()) return [];
 
-    const data = await query<DbReport>(
-      'SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC',
-      [userId]
-    );
+    let sql: string;
+    let params: unknown[];
+    if (birthFilter) {
+      sql = `SELECT * FROM reports WHERE user_id = ?
+        AND JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.date')) = ?
+        AND (JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.time')) = ? OR (? = '' AND JSON_EXTRACT(birth_profile, '$.time') IS NULL))
+        AND (JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.city')) = ? OR JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.location')) = ?)
+        ORDER BY created_at DESC`;
+      params = [userId, birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city, birthFilter.city];
+    } else {
+      sql = 'SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC';
+      params = [userId];
+    }
+
+    const data = await query<DbReport>(sql, params);
 
     // 按 report_type 去重，保留最新的一份
     const seen = new Set<string>();
@@ -219,13 +230,23 @@ class ReportService {
   }
 
   // Get report count for a user (deduplicated by report_type)
-  async getReportCount(userId: string): Promise<number> {
+  async getReportCount(userId: string, birthFilter?: { date: string; time: string; city: string }): Promise<number> {
     if (!isDatabaseConfigured()) return 0;
 
-    const data = await query<{ report_type: string }>(
-      'SELECT report_type FROM reports WHERE user_id = ?',
-      [userId]
-    );
+    let sql: string;
+    let params: unknown[];
+    if (birthFilter) {
+      sql = `SELECT report_type FROM reports WHERE user_id = ?
+        AND JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.date')) = ?
+        AND (JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.time')) = ? OR (? = '' AND JSON_EXTRACT(birth_profile, '$.time') IS NULL))
+        AND (JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.city')) = ? OR JSON_UNQUOTE(JSON_EXTRACT(birth_profile, '$.location')) = ?)`;
+      params = [userId, birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city, birthFilter.city];
+    } else {
+      sql = 'SELECT report_type FROM reports WHERE user_id = ?';
+      params = [userId];
+    }
+
+    const data = await query<{ report_type: string }>(sql, params);
 
     const uniqueTypes = new Set(data.map(r => r.report_type));
     return uniqueTypes.size;

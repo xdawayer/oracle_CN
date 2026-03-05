@@ -17,6 +17,10 @@ const API_ENDPOINTS = {
   SYNASTRY_OVERVIEW_SECTION: '/api/synastry/overview-section',
   SYNASTRY_TECHNICAL: '/api/synastry/technical',
   SYNASTRY_SUGGESTIONS: '/api/synastry/suggestions',
+  SYNASTRY_FULL_RESULT: '/api/synastry/full/result',   // GET /api/synastry/full/result/:taskId
+  SYNASTRY_TAB: '/api/synastry/tab',                   // POST /api/synastry/tab
+  SYNASTRY_TAB_RESULT: '/api/synastry/tab/result',     // GET /api/synastry/tab/result/:taskId
+  SYNASTRY_RECORDS: '/api/synastry/records',            // GET /api/synastry/records
   SYNTHETICA_GENERATE: '/api/synthetica/generate',
   CYCLE_LIST: '/api/cycle/list',
   CBT_ANALYSIS: '/api/cbt/analysis',

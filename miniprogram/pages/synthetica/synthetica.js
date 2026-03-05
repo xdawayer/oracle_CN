@@ -2,6 +2,19 @@ const { request } = require('../../utils/request');
 const { API_ENDPOINTS } = require('../../services/api');
 const logger = require('../../utils/logger');
 
+function stripMarkdown(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\*([^\s*][\s\S]*?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '').replace(/`([^`]+)`/g, '$1');
+  }
+  if (Array.isArray(obj)) return obj.map(stripMarkdown);
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const key of Object.keys(obj)) result[key] = stripMarkdown(obj[key]);
+    return result;
+  }
+  return obj;
+}
+
 const PLANETS = [
   { id: 'sun', name: '太阳', tier: 1 },
   { id: 'moon', name: '月亮', tier: 1 },
@@ -190,7 +203,7 @@ Page({
         data: payload
       });
 
-      const content = res && res.content ? res.content : res;
+      const content = stripMarkdown(res && res.content ? res.content : res);
 
       // 兼容新旧两种数据格式
       let result = null;

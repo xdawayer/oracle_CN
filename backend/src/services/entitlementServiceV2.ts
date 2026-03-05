@@ -1220,6 +1220,64 @@ class EntitlementServiceV2 {
     return record;
   }
 
+  // 查询用户合盘记录（按出生数据过滤）
+  async getSynastryRecords(userId: string, birthFilter?: { date: string; time: string; city: string }): Promise<DbSynastryRecord[]> {
+    if (!isDatabaseConfigured()) return [];
+
+    let sql: string;
+    let params: unknown[];
+    if (birthFilter) {
+      sql = `SELECT * FROM synastry_records WHERE user_id = ?
+        AND (
+          (JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthDate')) = ?
+           AND (JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthTime')) = ? OR (? = '' AND JSON_EXTRACT(person_a_info, '$.birthTime') IS NULL))
+           AND JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthCity')) = ?)
+          OR
+          (JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthDate')) = ?
+           AND (JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthTime')) = ? OR (? = '' AND JSON_EXTRACT(person_b_info, '$.birthTime') IS NULL))
+           AND JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthCity')) = ?)
+        )
+        ORDER BY created_at DESC`;
+      params = [userId,
+        birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city,
+        birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city];
+    } else {
+      sql = 'SELECT * FROM synastry_records WHERE user_id = ? ORDER BY created_at DESC';
+      params = [userId];
+    }
+
+    return query<DbSynastryRecord>(sql, params);
+  }
+
+  // 查询用户合盘记录数量（按出生数据过滤）
+  async getSynastryRecordCount(userId: string, birthFilter?: { date: string; time: string; city: string }): Promise<number> {
+    if (!isDatabaseConfigured()) return 0;
+
+    let sql: string;
+    let params: unknown[];
+    if (birthFilter) {
+      sql = `SELECT COUNT(*) as cnt FROM synastry_records WHERE user_id = ?
+        AND (
+          (JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthDate')) = ?
+           AND (JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthTime')) = ? OR (? = '' AND JSON_EXTRACT(person_a_info, '$.birthTime') IS NULL))
+           AND JSON_UNQUOTE(JSON_EXTRACT(person_a_info, '$.birthCity')) = ?)
+          OR
+          (JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthDate')) = ?
+           AND (JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthTime')) = ? OR (? = '' AND JSON_EXTRACT(person_b_info, '$.birthTime') IS NULL))
+           AND JSON_UNQUOTE(JSON_EXTRACT(person_b_info, '$.birthCity')) = ?)
+        )`;
+      params = [userId,
+        birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city,
+        birthFilter.date, birthFilter.time, birthFilter.time, birthFilter.city];
+    } else {
+      sql = 'SELECT COUNT(*) as cnt FROM synastry_records WHERE user_id = ?';
+      params = [userId];
+    }
+
+    const result = await getOne<{ cnt: number }>(sql, params);
+    return result?.cnt || 0;
+  }
+
   // =====================================================
   // 购买记录方法
   // =====================================================

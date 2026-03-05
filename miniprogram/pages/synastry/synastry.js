@@ -7,7 +7,7 @@ const logger = require('../../utils/logger');
 const SELF_PROFILE_ID = 'self_profile';
 const CITY_SEARCH_DEBOUNCE = 300;
 const _isTimeoutError = (err) => err && ((err.errMsg || '').includes('timeout'));
-const _strip = (s) => typeof s === 'string' ? s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '') : s;
+const _strip = (s) => typeof s === 'string' ? s.replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\*([^\s*][\s\S]*?)\*/g, '$1').replace(/^#{1,6}\s+/gm, '').replace(/`([^`]+)`/g, '$1') : s;
 const _clean = (obj) => {
   if (!obj || typeof obj !== 'object') return _strip(obj);
   if (Array.isArray(obj)) return obj.map(_clean);
@@ -108,6 +108,62 @@ Page({
 
   // 深度解读内容缓存
   deepContentCache: {},
+
+  // 本地持久化缓存 key（基于双方出生信息 + 关系类型）
+  _buildCacheKey() {
+    const pA = this.profileA;
+    const pB = this.profileB;
+    const rel = this.data.relation;
+    if (!pA || !pB) return null;
+    const n = (p) => [
+      p.birthDate || '', p.birthTime || '',
+      (p.lat != null && Number.isFinite(Number(p.lat))) ? Math.round(Number(p.lat) * 100) : '',
+      (p.lon != null && Number.isFinite(Number(p.lon))) ? Math.round(Number(p.lon) * 100) : '',
+      p.timezone || ''
+    ].join('|');
+    return 'syn_' + n(pA) + '_' + n(pB) + '_' + rel;
+  },
+
+  _saveSynastryCache() {
+    const key = this._buildCacheKey();
+    if (!key) return;
+    const d = this.data;
+    storage.set(key, {
+      overviewData: d.overviewData,
+      tabContents: d.tabContents,
+      tabLoadStatus: d.tabLoadStatus,
+      chartDataA: d.chartDataA,
+      chartDataB: d.chartDataB,
+      synastryChartAB: d.synastryChartAB,
+      synastryChartBA: d.synastryChartBA,
+      compositeChart: d.compositeChart,
+      deepContentCache: this.deepContentCache || {},
+      nameA: d.nameA,
+      nameB: d.nameB,
+      ts: Date.now()
+    });
+  },
+
+  _loadSynastryCache() {
+    const key = this._buildCacheKey();
+    if (!key) return null;
+    const c = storage.get(key);
+    if (!c || !c.overviewData) return null;
+    // 30 天过期
+    if (Date.now() - c.ts > 30 * 24 * 3600 * 1000) {
+      storage.remove(key);
+      return null;
+    }
+    // 清理中间态 tabLoadStatus：非 'loaded' 状态重置为 'pending'，避免恢复永远加载中的状态
+    if (c.tabLoadStatus) {
+      for (const tab of Object.keys(c.tabLoadStatus)) {
+        if (c.tabLoadStatus[tab] !== 'loaded') {
+          c.tabLoadStatus[tab] = 'pending';
+        }
+      }
+    }
+    return c;
+  },
 
   // 防抖定时器
   birthCitySearchTimer: null,
@@ -534,6 +590,78 @@ Page({
   // 构建 /full 端点的查询参数（不含 tab 参数）
   buildFullQuery() {
     return this.buildSynastryQuery(null);
+  },
+
+  // 构建 POST body（用于异步任务模式）
+  buildSynastryData(tabId) {
+    const { nameA, nameB, relation, relations } = this.data;
+    const relationLabel = relations.find(r => r.id === relation)?.label || '关系';
+    const profileA = this.resolveProfileByName(nameA) || this.profileA;
+    const profileB = this.resolveProfileByName(nameB) || this.profileB;
+    if (!profileA || !profileB) return null;
+
+    const buildBirth = (profile) => {
+      const birth = {
+        date: profile.birthDate || '',
+        city: profile.birthCity || '',
+        accuracy: profile.accuracy || profile.accuracyLevel || 'approximate'
+      };
+      if (profile.birthTime) birth.time = profile.birthTime;
+      if (profile.timezone) birth.timezone = profile.timezone;
+      const lat = profile.lat;
+      const lon = profile.lon;
+      if (lat !== undefined && lat !== null && lat !== '' && Number.isFinite(Number(lat))) birth.lat = Number(lat);
+      if (lon !== undefined && lon !== null && lon !== '' && Number.isFinite(Number(lon))) birth.lon = Number(lon);
+      return birth;
+    };
+
+    const data = {
+      birthA: buildBirth(profileA),
+      birthB: buildBirth(profileB),
+      nameA,
+      nameB,
+      relationType: relationLabel,
+      lang: 'zh'
+    };
+    if (tabId) data.tab = tabId;
+    return data;
+  },
+
+  // 轮询异步任务结果（通用，用于 /full 和 /tab）
+  async _pollSynastryResult(taskId, resultEndpoint) {
+    const MAX_ATTEMPTS = 60; // 60 × 2s = 120s
+    const POLL_INTERVAL = 2000;
+
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+
+      // 用户离开结果页 → 取消轮询
+      if (this.data.step !== 2) throw new Error('cancelled');
+
+      try {
+        const res = await request({
+          url: resultEndpoint + '/' + taskId,
+          method: 'GET',
+          timeout: 10000
+        });
+
+        if (res && res.status === 'completed') {
+          return res;
+        }
+        if (res && res.status === 'failed') {
+          const err = new Error(res.error || 'Analysis failed');
+          err.statusCode = res.statusCode || 500;
+          throw err;
+        }
+        // status === 'pending' → 继续轮询
+      } catch (pollErr) {
+        // 任务级错误（有 statusCode）→ 立即抛出
+        if (pollErr && pollErr.statusCode) throw pollErr;
+        // 网络错误 → 继续轮询重试
+        logger.warn('[Synastry] poll network error (attempt ' + i + '):', pollErr.message || pollErr);
+      }
+    }
+    throw new Error('timeout');
   },
 
   ensureProfilesReady() {
@@ -1195,6 +1323,37 @@ Page({
     const ready = this.ensureProfilesReady();
     if (!ready) return;
 
+    // 检查本地缓存：同一对人 + 同一关系类型 → 直接恢复
+    const cached = this._loadSynastryCache();
+    if (cached) {
+      logger.log('[Synastry] Local cache hit');
+      this.deepContentCache = cached.deepContentCache || {};
+      this._preloadStarted = true; // 跳过预加载
+      this.setData({
+        resultReady: true,
+        step: 2,
+        activeTab: 'overview',
+        overviewData: cached.overviewData,
+        tabContents: cached.tabContents,
+        tabLoadStatus: cached.tabLoadStatus,
+        chartDataA: cached.chartDataA || { positions: [], aspects: [], houseCusps: [] },
+        chartDataB: cached.chartDataB || { positions: [], aspects: [], houseCusps: [] },
+        synastryChartAB: cached.synastryChartAB || { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },
+        synastryChartBA: cached.synastryChartBA || { innerPositions: [], outerPositions: [], aspects: [], houseCusps: [] },
+        compositeChart: cached.compositeChart || { positions: [], aspects: [], houseCusps: [] },
+        currentSectionText: '',
+        currentSectionTitle: '',
+        currentSectionCards: [],
+        loading: false,
+        preloadQueue: [],
+        chartRetrying: false,
+        showDeepOverlay: false,
+        deepOverlayData: null,
+        deepOverlayLoading: false
+      });
+      return;
+    }
+
     this.setData({ loading: true });
     try {
       const fullQuery = this.buildFullQuery();
@@ -1231,7 +1390,7 @@ Page({
         chartRetrying: false
       });
 
-      // 并行发起 /technical（快，~50ms）和 /full（慢，含 AI）
+      // 并行发起 /technical（快 GET，~50ms）和 /full（异步任务模式：POST + 轮询）
       let technicalRes = null;
       const technicalPromise = technicalQuery
         ? request({ url: `${API_ENDPOINTS.SYNASTRY_TECHNICAL}?${technicalQuery}`, retry: 1, timeout: 20000 }).catch(err => {
@@ -1240,10 +1399,26 @@ Page({
           })
         : Promise.resolve(null);
 
-      const fullPromise = request({ url: `${API_ENDPOINTS.SYNASTRY_FULL}?${fullQuery}`, timeout: 120000 }).catch(err => {
-            logger.warn('[Synastry] /full failed:', err);
-            return null;
+      const fullBody = this.buildSynastryData(null);
+      const fullPromise = (async () => {
+        try {
+          const submitRes = await request({
+            url: API_ENDPOINTS.SYNASTRY_FULL,
+            method: 'POST',
+            data: fullBody,
+            timeout: 15000,
+            retry: 1
           });
+          if (!submitRes || !submitRes.taskId) {
+            logger.warn('[Synastry] /full submit failed: no taskId');
+            return null;
+          }
+          return await this._pollSynastryResult(submitRes.taskId, API_ENDPOINTS.SYNASTRY_FULL_RESULT);
+        } catch (err) {
+          logger.warn('[Synastry] /full async failed:', err.message || err);
+          return null;
+        }
+      })();
 
       // /technical 先到 → 立即渲染图谱图表
       technicalRes = await technicalPromise;
@@ -1252,7 +1427,7 @@ Page({
         this.setData(allChartData);
       }
 
-      // /full 到达 → 填充 AI 内容
+      // /full 轮询完成 → 填充 AI 内容
       const fullRes = await fullPromise;
       let fullSuccess = false;
 
@@ -1288,6 +1463,7 @@ Page({
           }, chartData, statusUpdate));
 
           fullSuccess = true;
+          this._saveSynastryCache();
         } catch (parseErr) {
           logger.error('[Synastry] Failed to parse /full response:', parseErr);
         }
@@ -1295,7 +1471,7 @@ Page({
 
       // /full 失败时，回退到单个 /synastry AI 调用
       if (!fullSuccess) {
-        await this.handleAnalyzeFallback(technicalRes);
+        await this.handleAnalyzeFallback();
       }
 
       // 启动后台预加载其他 tab
@@ -1308,38 +1484,42 @@ Page({
     }
   },
 
-  // /full 失败时的 fallback：调用单个 /synastry AI 端点获取 overview
-  async handleAnalyzeFallback(technicalRes) {
+  // /full 失败时的 fallback：异步提交单个 overview tab 任务
+  async handleAnalyzeFallback() {
     // /full 失败意味着 coreDynamics 和 highlights 不可用，清理其状态
     this.setData({
       'tabLoadStatus.coreDynamics': 'error',
       'tabLoadStatus.highlights': 'error'
     });
 
-    const query = this.buildSynastryQuery('overview');
-    if (!query) return;
+    const body = this.buildSynastryData('overview');
+    if (!body) return;
 
     try {
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 120000 });
-      res.content = _clean(res.content || {});
-      const overviewData = this.parseOverview(res.content);
-
-      // 如果技术数据之前为空，用 AI 返回的 technical 数据补充图谱
-      let chartUpdate = {};
-      if (!technicalRes && res.technical) {
-        chartUpdate = this.prepareAllChartData(res);
+      const submitRes = await request({
+        url: API_ENDPOINTS.SYNASTRY_TAB,
+        method: 'POST',
+        data: body,
+        timeout: 15000,
+        retry: 1
+      });
+      if (!submitRes || !submitRes.taskId) {
+        this.setData({ 'tabLoadStatus.overview': 'error' });
+        return;
       }
+      const res = await this._pollSynastryResult(submitRes.taskId, API_ENDPOINTS.SYNASTRY_TAB_RESULT);
+      const cleaned = _clean(res.content || {});
+      const overviewData = this.parseOverview(cleaned);
 
       this.setData({
         overviewData,
-        ...chartUpdate,
-        tabContents: { overview: res.content || {} },
+        tabContents: { overview: cleaned },
         'tabLoadStatus.overview': 'loaded'
       });
+      this._saveSynastryCache();
     } catch (aiErr) {
-      logger.error('[Synastry] AI fallback failed:', aiErr);
+      logger.error('[Synastry] AI fallback failed:', aiErr.message || aiErr);
       this.setData({ 'tabLoadStatus.overview': 'error' });
-      wx.showToast({ title: '综述加载失败', icon: 'none' });
     }
   },
 
@@ -1376,13 +1556,25 @@ Page({
 
   async preloadSingleTab(tabId) {
     try {
-      const query = this.buildSynastryQuery(tabId);
-      if (!query) {
+      const body = this.buildSynastryData(tabId);
+      if (!body) {
         this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
         return;
       }
 
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
+      // 异步任务模式：POST 提交 → 轮询结果
+      const submitRes = await request({
+        url: API_ENDPOINTS.SYNASTRY_TAB,
+        method: 'POST',
+        data: body,
+        timeout: 15000,
+        retry: 1
+      });
+      if (!submitRes || !submitRes.taskId) {
+        this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
+        return;
+      }
+      const res = await this._pollSynastryResult(submitRes.taskId, API_ENDPOINTS.SYNASTRY_TAB_RESULT);
       const cleaned = _clean(res.content || {});
 
       // 单次 setData 原子更新，避免 switchTab 读到不一致状态
@@ -1399,9 +1591,9 @@ Page({
       }
 
       this.setData(update);
+      this._saveSynastryCache();
     } catch (err) {
-      const isTimeout = _isTimeoutError(err);
-      logger.error(`[Synastry] Preload ${tabId} failed${isTimeout ? ' (timeout)' : ''}:`, err);
+      logger.error(`[Synastry] Preload ${tabId} failed:`, err.message || err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
     }
   },
@@ -1435,17 +1627,29 @@ Page({
       return;
     }
 
-    // 主动加载（不使用全屏 loading，仅在 tab 内部显示加载状态）
+    // 主动加载（异步任务模式：POST + 轮询）
     this.setData({ activeTab: tabId, currentSectionText: '', currentSectionTitle: title, currentSectionCards: [], [`tabLoadStatus.${tabId}`]: 'loading' });
     try {
-      const query = this.buildSynastryQuery(tabId);
-      if (!query) {
+      const body = this.buildSynastryData(tabId);
+      if (!body) {
         wx.showToast({ title: '档案信息不完整', icon: 'none' });
         this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
         return;
       }
 
-      const res = await request({ url: `${API_ENDPOINTS.SYNASTRY}?${query}`, timeout: 90000, retry: 1 });
+      const submitRes = await request({
+        url: API_ENDPOINTS.SYNASTRY_TAB,
+        method: 'POST',
+        data: body,
+        timeout: 15000,
+        retry: 1
+      });
+      if (!submitRes || !submitRes.taskId) {
+        this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
+        wx.showToast({ title: '提交失败，请重试', icon: 'none' });
+        return;
+      }
+      const res = await this._pollSynastryResult(submitRes.taskId, API_ENDPOINTS.SYNASTRY_TAB_RESULT);
       const cleaned = _clean(res.content || {});
       const { text, cards } = this.formatTabContent(tabId, cleaned);
       this.setData({
@@ -1454,11 +1658,11 @@ Page({
         currentSectionText: text,
         currentSectionCards: cards
       });
+      this._saveSynastryCache();
     } catch (err) {
-      const isTimeout = _isTimeoutError(err);
-      logger.error('[Synastry] switchTab error:', err);
+      logger.error('[Synastry] switchTab error:', err.message || err);
       this.setData({ [`tabLoadStatus.${tabId}`]: 'error' });
-      wx.showToast({ title: isTimeout ? '加载超时，请重试' : '加载失败，请重试', icon: 'none' });
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
     }
   },
 
@@ -1508,6 +1712,17 @@ Page({
       this.setData({ chartRetrying: false });
       wx.showToast({ title: '图表加载失败', icon: 'none' });
     }
+  },
+
+  // 重试加载综述（从 overview error 状态按钮触发）
+  async retryOverview() {
+    this.setData({
+      'tabLoadStatus.overview': 'loading',
+      overviewData: null
+    });
+    await this.handleAnalyzeFallback();
+    // fallback 完成后启动预加载
+    this.startPreloading();
   },
 
   // 重试加载失败的 tab（从 UI 按钮触发）
@@ -1587,6 +1802,7 @@ Page({
       const reportData = this.buildDeepReportData(title, _clean(res.content));
       this.deepContentCache[cacheKey] = reportData;
       this.setData({ deepOverlayData: reportData, deepOverlayLoading: false });
+      this._saveSynastryCache();
     } catch (err) {
       logger.error('[Synastry] Deep overlay failed:', err);
       this.setData({ deepOverlayLoading: false, showDeepOverlay: false });
