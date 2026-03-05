@@ -352,3 +352,27 @@ export interface DbSubscriptionUsage {
   created_at: string;
   updated_at: string;
 }
+
+export interface DbCbtRecord {
+  id: string;
+  user_id: string;
+  date_key: string;
+  record_date: string;
+  timestamp: number;
+  mood_group: unknown | null;
+  moods: unknown | null;
+  scene: unknown | null;
+  sleep_tag: unknown | null;
+  body_tags: unknown | null;
+  note: string | null;
+  situation: string | null;
+  automatic_thoughts: unknown | null;
+  hot_thought: string | null;
+  evidence_for: unknown | null;
+  evidence_against: unknown | null;
+  balanced_entries: unknown | null;
+  body_signal: string | null;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+}

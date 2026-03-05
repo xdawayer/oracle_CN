@@ -4,6 +4,7 @@
 
 import { Router } from 'express';
 import { performance } from 'perf_hooks';
+import { v4 as uuidv4 } from 'uuid';
 import type { BirthInput, Language } from '../types/api.js';
 import { buildCompactChartSummary, buildCompactTransitSummary, ephemerisService } from '../services/ephemeris.js';
 import { AIUnavailableError, generateAIContent } from '../services/ai.js';
@@ -13,6 +14,8 @@ import { resolveLocation } from '../services/geocoding.js';
 import { calculateAge, getAgeGroup } from '../utils/age.js';
 import { sanitizeUserInput } from '../services/content-security.js';
 import { createTask, completeTask, failTask, getTask } from '../utils/taskStore.js';
+import { isDatabaseConfigured, upsert, query } from '../db/mysql.js';
+import type { DbCbtRecord } from '../db/mysql.js';
 
 export const cbtRouter = Router();
 
@@ -22,14 +25,22 @@ const CBT_RETENTION_TTL = 90 * 24 * 60 * 60;
 interface CBTRecord {
   id: string;
   timestamp: number;
+  date?: string;
+  dateKey?: string;
+  moodGroup?: unknown;
+  moods: unknown[];
+  scene?: unknown;
+  sleep?: unknown;
+  bodyTags?: unknown[];
+  note?: string;
   situation: string;
-  moods: Array<{ id: string; name: string; initialIntensity: number; finalIntensity?: number }>;
   automaticThoughts: string[];
   hotThought: string;
   evidenceFor: string[];
   evidenceAgainst: string[];
-  balancedEntries: Array<{ id: string; text: string; belief: number }>;
+  balancedEntries: unknown[];
   bodySignal?: string;
+  summary?: string;
   analysis?: unknown;
 }
 
@@ -484,24 +495,52 @@ cbtRouter.post('/batch-analysis', async (req, res) => {
 // POST /api/cbt/records - 创建情绪日记记录
 cbtRouter.post('/records', async (req, res) => {
   try {
-    const { userId, record } = req.body as { userId: string; record: CBTRecord };
-    const key = `cbt:records:${userId}`;
+    const { userId, dateKey, record } = req.body as { userId: string; dateKey?: string; record: CBTRecord };
+    const useDb = isDatabaseConfigured() && userId !== 'anonymous';
 
-    // 获取现有记录
-    const existing = await cacheService.get<CBTRecord[]>(key) || [];
+    if (useDb) {
+      // MySQL 持久化：upsert by (user_id, date_key)
+      const dk = dateKey || record.dateKey || new Date(record.timestamp).toISOString().slice(0, 10);
+      const recordDate = record.date || new Date(record.timestamp).toISOString();
 
-    // 添加新记录
-    existing.push(record);
+      await upsert<DbCbtRecord>('cbt_records', {
+        id: uuidv4(),
+        user_id: userId,
+        date_key: dk,
+        record_date: recordDate,
+        timestamp: record.timestamp,
+        mood_group: record.moodGroup ?? null,
+        moods: record.moods ?? null,
+        scene: record.scene ?? null,
+        sleep_tag: record.sleep ?? null,
+        body_tags: record.bodyTags ?? null,
+        note: record.note ?? null,
+        situation: record.situation ?? null,
+        automatic_thoughts: record.automaticThoughts ?? null,
+        hot_thought: record.hotThought ?? null,
+        evidence_for: record.evidenceFor ?? null,
+        evidence_against: record.evidenceAgainst ?? null,
+        balanced_entries: record.balancedEntries ?? null,
+        body_signal: record.bodySignal ?? null,
+        summary: record.summary ?? null,
+      });
 
-    // 过滤过期记录（3 个月前）
-    const cutoff = Date.now() - CBT_RETENTION_TTL * 1000;
-    const filtered = existing.filter(r => r.timestamp > cutoff);
-
-    // 保存（带 TTL）
-    await cacheService.set(key, filtered, CBT_RETENTION_TTL);
-
-    res.json({ success: true, count: filtered.length });
+      // 查询该用户总记录数
+      const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM cbt_records WHERE user_id = ?', [userId]);
+      const count = rows[0]?.cnt ?? 0;
+      res.json({ success: true, count });
+    } else {
+      // Fallback: Redis/内存缓存（anonymous 用户或无 DB）
+      const key = `cbt:records:${userId}`;
+      const existing = await cacheService.get<CBTRecord[]>(key) || [];
+      existing.push(record);
+      const cutoff = Date.now() - CBT_RETENTION_TTL * 1000;
+      const filtered = existing.filter(r => r.timestamp > cutoff);
+      await cacheService.set(key, filtered, CBT_RETENTION_TTL);
+      res.json({ success: true, count: filtered.length });
+    }
   } catch (error) {
+    console.error('[CBT] Save record error:', (error as Error).message);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -510,16 +549,46 @@ cbtRouter.post('/records', async (req, res) => {
 cbtRouter.get('/records', async (req, res) => {
   try {
     const userId = req.query.userId as string;
-    const key = `cbt:records:${userId}`;
+    const useDb = isDatabaseConfigured() && userId !== 'anonymous';
 
-    const records = await cacheService.get<CBTRecord[]>(key) || [];
-
-    // 过滤过期记录
-    const cutoff = Date.now() - CBT_RETENTION_TTL * 1000;
-    const filtered = records.filter(r => r.timestamp > cutoff);
-
-    res.json({ records: filtered });
+    if (useDb) {
+      // MySQL 查询
+      const rows = await query<DbCbtRecord>(
+        'SELECT * FROM cbt_records WHERE user_id = ? ORDER BY date_key DESC',
+        [userId]
+      );
+      // snake_case → camelCase 映射回前端格式
+      const records = rows.map(r => ({
+        id: r.id,
+        timestamp: Number(r.timestamp),
+        date: r.record_date,
+        dateKey: r.date_key,
+        moodGroup: r.mood_group,
+        moods: r.moods ?? [],
+        scene: r.scene,
+        sleep: r.sleep_tag,
+        bodyTags: r.body_tags ?? [],
+        note: r.note ?? '',
+        situation: r.situation ?? '',
+        automaticThoughts: r.automatic_thoughts ?? [],
+        hotThought: r.hot_thought ?? '',
+        evidenceFor: r.evidence_for ?? [],
+        evidenceAgainst: r.evidence_against ?? [],
+        balancedEntries: r.balanced_entries ?? [],
+        bodySignal: r.body_signal ?? '',
+        summary: r.summary ?? '',
+      }));
+      res.json({ records });
+    } else {
+      // Fallback: Redis/内存缓存
+      const key = `cbt:records:${userId}`;
+      const records = await cacheService.get<CBTRecord[]>(key) || [];
+      const cutoff = Date.now() - CBT_RETENTION_TTL * 1000;
+      const filtered = records.filter(r => r.timestamp > cutoff);
+      res.json({ records: filtered });
+    }
   } catch (error) {
+    console.error('[CBT] Get records error:', (error as Error).message);
     res.status(500).json({ error: (error as Error).message });
   }
 });

@@ -226,6 +226,33 @@ const TABLE_STATEMENTS: string[] = [
     paid_at DATETIME(3),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  // --- cbt_records ---
+  `CREATE TABLE IF NOT EXISTS cbt_records (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    date_key VARCHAR(10) NOT NULL,
+    record_date DATETIME(3) NOT NULL,
+    timestamp BIGINT NOT NULL,
+    mood_group JSON,
+    moods JSON,
+    scene JSON,
+    sleep_tag JSON,
+    body_tags JSON,
+    note TEXT,
+    situation TEXT,
+    automatic_thoughts JSON,
+    hot_thought TEXT,
+    evidence_for JSON,
+    evidence_against JSON,
+    balanced_entries JSON,
+    body_signal TEXT,
+    summary VARCHAR(255),
+    created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    UNIQUE KEY uk_cbt_user_datekey (user_id, date_key),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 // ============================================
@@ -250,4 +277,6 @@ const INDEX_STATEMENTS: string[] = [
   'CREATE INDEX idx_free_usage_user ON free_usage(user_id)',
   'CREATE INDEX idx_wxpay_orders_user ON wxpay_orders(user_id)',
   'CREATE INDEX idx_wxpay_orders_status ON wxpay_orders(status)',
+  'CREATE INDEX idx_cbt_records_user_id ON cbt_records(user_id)',
+  'CREATE INDEX idx_cbt_records_date_key ON cbt_records(date_key)',
 ];
