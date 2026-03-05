@@ -2,6 +2,7 @@ const storage = require('./storage');
 const { request } = require('./request');
 const { API_ENDPOINTS } = require('../services/api');
 const logger = require('./logger');
+const { buildTransitCacheKey, fetchTransitDedup } = require('./transit-dedup');
 
 const TAB_ORDER = ['self', 'daily', 'discovery', 'me'];
 const USER_INTERACTION_PAUSE_MS = 1500;
@@ -168,27 +169,45 @@ const createTabPreloader = () => {
     const query = buildDailyQuery(profile, dateStr);
     if (!query) return;
 
-    const transitCacheKey = buildDailyTransitCacheKey(profile, dateStr);
-
+    // Transit：使用共享缓存 + 去重
+    const transitCacheKey = buildTransitCacheKey(profile, dateStr);
     if (transitCacheKey && !storage.get(transitCacheKey)) {
-      const transitRes = await request({ url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`, method: 'GET', timeout: PRELOAD_TIMEOUT_MS });
-      if (transitRes) {
-        storage.set(transitCacheKey, transitRes);
+      try {
+        await fetchTransitDedup(profile, dateStr, query);
+      } catch (e) {
+        logger.warn('[tab-preload] transit fetch failed:', e && e.message || e);
       }
     }
 
-    // home.js 后台已触发 /daily/full，此处检查缓存是否就绪
-    // 若 full 缓存不存在，主动请求以确保切到「今日」Tab 时数据可用
     if (controls.shouldDefer && controls.shouldDefer()) {
       throw createDeferredError('daily');
     }
 
-    const fullCacheKey = buildDailyFullCacheKey(profile, dateStr);
-    if (fullCacheKey && !storage.get(fullCacheKey) && !storage.get(fullCacheKey + '_pending')) {
-      const fullRes = await request({ url: `${API_ENDPOINTS.DAILY_FULL}?${query}`, method: 'GET', timeout: PRELOAD_AI_TIMEOUT_MS });
-      if (fullRes) {
-        storage.set(fullCacheKey, fullRes);
-      }
+    // AI 内容预加载：core + extended 并行
+    const bp = profile.birthDate || '';
+    const bt = profile.birthTime || '';
+    const bc = profile.birthCity || '';
+    const coreCacheKey = `daily_core_${bp}_${bt}_${bc}_${dateStr}`;
+    const extendedCacheKey = `daily_extended_${bp}_${bt}_${bc}_${dateStr}`;
+
+    const promises = [];
+    if (!storage.get(coreCacheKey)) {
+      promises.push(
+        request({ url: `${API_ENDPOINTS.DAILY_CORE}?${query}`, method: 'GET', timeout: PRELOAD_AI_TIMEOUT_MS })
+          .then(res => { if (res) storage.set(coreCacheKey, res); })
+          .catch(err => logger.warn('[tab-preload] core fetch failed:', err && err.message || err))
+      );
+    }
+    if (!storage.get(extendedCacheKey)) {
+      promises.push(
+        request({ url: `${API_ENDPOINTS.DAILY_EXTENDED}?${query}`, method: 'GET', timeout: PRELOAD_AI_TIMEOUT_MS })
+          .then(res => { if (res) storage.set(extendedCacheKey, res); })
+          .catch(err => logger.warn('[tab-preload] extended fetch failed:', err && err.message || err))
+      );
+    }
+
+    if (promises.length > 0) {
+      await Promise.allSettled(promises);
     }
   };
 

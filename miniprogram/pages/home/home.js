@@ -5,6 +5,7 @@ const logger = require('../../utils/logger');
 const { isDev } = logger;
 const { handleInsufficientCredits, creditsModalData, creditsModalMethods } = require('../../utils/credits');
 const { buildDailyFullCacheKey, buildProfileFingerprint } = require('../../utils/tab-preloader');
+const { fetchTransitDedup } = require('../../utils/transit-dedup');
 const avatarBehavior = require('../../behaviors/avatar');
 
 // 星座英文→中文名映射
@@ -552,11 +553,7 @@ Page({
     // Phase 1：快速 transit（确定性数据，<500ms）→ 立即渲染卡片
     // 资料变更时保持 loading 骨架屏，等 AI 内容到达后再渲染
     try {
-      const transitRes = await request({
-        url: `${API_ENDPOINTS.DAILY_TRANSIT}?${query}`,
-        method: 'GET',
-        timeout: 15000,
-      });
+      const transitRes = await fetchTransitDedup(this.userProfile, today, query);
       if (this._isLatestForecast(seq) && transitRes && transitRes.interpreted) {
         this._transitFallback = { data: transitRes, today };
         if (this._profileChanged) {
