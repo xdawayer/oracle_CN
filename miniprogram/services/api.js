@@ -30,6 +30,7 @@ const API_ENDPOINTS = {
   CBT_ANALYSIS_RESULT: '/api/cbt/analysis/result',  // GET /api/cbt/analysis/result/:taskId
   CBT_RECORDS: '/api/cbt/records',
   CBT_AGGREGATE_ANALYSIS: '/api/cbt/aggregate-analysis',
+  CBT_AGGREGATE_ANALYSIS_RESULT: '/api/cbt/aggregate-analysis/result',
   WIKI_HOME: '/api/wiki/home',
   WIKI_ITEMS: '/api/wiki/items',
   WIKI_SEARCH: '/api/wiki/search',

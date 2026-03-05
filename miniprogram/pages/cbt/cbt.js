@@ -679,7 +679,8 @@ Page({
   },
 
   // 轮询 CBT 分析任务结果
-  async _pollCbtResult(taskId) {
+  async _pollCbtResult(taskId, resultUrl) {
+    if (!resultUrl) resultUrl = API_ENDPOINTS.CBT_ANALYSIS_RESULT;
     const MAX_ATTEMPTS = 60;
     const POLL_INTERVAL = 2000;
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
@@ -687,7 +688,7 @@ Page({
       if (!this.data.analyzing) throw new Error('cancelled');
       try {
         const res = await request({
-          url: API_ENDPOINTS.CBT_ANALYSIS_RESULT + '/' + taskId,
+          url: resultUrl + '/' + taskId,
           method: 'GET',
           timeout: 10000,
         });
@@ -827,10 +828,13 @@ Page({
         return;
       }
 
-      const res = await request({
+      // Step 1: 提交聚合分析任务（快速返回 taskId）
+      const submitRes = await request({
         url: API_ENDPOINTS.CBT_AGGREGATE_ANALYSIS,
         method: 'POST',
-        timeout: 120000,
+        timeout: 15000,
+        dedupe: false,
+        retry: 1,
         data: {
           birth: {
             date: userProfile.birthDate,
@@ -847,6 +851,14 @@ Page({
         }
       });
 
+      logger.log('[CBT] aggregate submit res:', JSON.stringify(submitRes).substring(0, 200));
+
+      // Step 2: 异步模式 - 轮询结果
+      let res = submitRes;
+      if (submitRes && submitRes.taskId) {
+        res = await this._pollCbtResult(submitRes.taskId, API_ENDPOINTS.CBT_AGGREGATE_ANALYSIS_RESULT);
+      }
+
       if (res && res.content) {
         const raw = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
         const sections = this._parseMonthlyReport(raw);
@@ -857,9 +869,17 @@ Page({
         });
       }
     } catch (error) {
-      logger.error('Monthly analysis error:', error);
+      const errInfo = error ? (error.message || error.errMsg || String(error)) : 'unknown';
+      const statusCode = error && error.statusCode;
+      logger.error('Monthly analysis error:', errInfo, 'statusCode:', statusCode);
+
+      let fallbackMsg = 'AI 月度解读服务暂时不可用，请稍后重试。';
+      if (statusCode === 503) {
+        fallbackMsg = '星象解读正在维护中，请稍后再试。';
+      }
+
       this.setData({
-        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: 'AI 月度解读服务暂时不可用，请稍后重试。' }] },
+        reportData: { sections: [{ type: 'mood_echo', title: '提示', content: fallbackMsg }] },
       });
     } finally {
       this.setData({ analyzing: false });
