@@ -148,26 +148,23 @@ cbtRouter.get('/analysis/result/:taskId', async (req, res) => {
   res.json({ status: 'completed', ...task.result });
 });
 
-// POST /api/cbt/aggregate-analysis - 情绪日记聚合分析 (月度/阶段性)
-cbtRouter.post('/aggregate-analysis', async (req, res) => {
+// 后台处理 CBT 聚合分析任务
+async function processAggregateAnalysisTask(taskId: string, body: Record<string, unknown>) {
   try {
     const requestStart = performance.now();
-    const langInput = (req.body as Record<string, unknown>).lang;
+    const langInput = body.lang;
     const lang: Language = langInput === 'en' ? 'en' : 'zh';
-    const birth = await parseBirthInput(req.body);
-    const { period, somatic_stats, root_stats, mood_stats, competence_stats } = req.body;
+    const birth = await parseBirthInput(body);
+    const { period, somatic_stats, root_stats, mood_stats, competence_stats } = body;
 
-    const coreStart = performance.now();
     const now = new Date();
     const [chart, transits] = await Promise.all([
       ephemerisService.calculateNatalChart(birth),
       ephemerisService.calculateTransits(birth, now),
     ]);
-    const coreMs = performance.now() - coreStart;
     const chartSummary = buildCompactChartSummary(chart);
     const transitSummary = buildCompactTransitSummary(transits);
 
-    const aiStart = performance.now();
     const userAge = calculateAge(birth.date);
     const userAgeGroup = getAgeGroup(userAge);
     const result = await generateAIContent({
@@ -186,17 +183,55 @@ cbtRouter.post('/aggregate-analysis', async (req, res) => {
       },
       lang,
     });
-    const aiMs = performance.now() - aiStart;
-    const totalMs = performance.now() - requestStart;
-    res.setHeader('Server-Timing', `core;dur=${coreMs.toFixed(2)},ai;dur=${aiMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`);
 
-    res.json({ lang: result.lang, content: result.content });
+    const totalMs = performance.now() - requestStart;
+    console.log(`[CBT] Aggregate task ${taskId} completed: totalMs=${totalMs.toFixed(0)}, contentSize=${JSON.stringify(result.content).length}`);
+    await completeTask(taskId, { lang: result.lang, content: result.content } as unknown as Record<string, unknown>);
   } catch (error) {
     if (error instanceof AIUnavailableError) {
-      res.status(503).json({ error: 'AI unavailable', reason: error.reason });
+      console.warn(`[CBT] Aggregate task ${taskId} AIUnavailableError: ${(error as AIUnavailableError).reason}`);
+      await failTask(taskId, 'AI unavailable', 503);
       return;
     }
+    console.error(`[CBT] Aggregate task ${taskId} error: ${(error as Error).message}`);
+    await failTask(taskId, (error as Error).message, 500);
+  }
+}
+
+// POST /api/cbt/aggregate-analysis - 提交聚合分析任务（立即返回 taskId）
+cbtRouter.post('/aggregate-analysis', async (req, res) => {
+  try {
+    const taskId = await createTask();
+    processAggregateAnalysisTask(taskId, req.body as Record<string, unknown>)
+      .catch(async (err) => {
+        console.error(`[CBT] Unhandled aggregate task error ${taskId}:`, err);
+        await failTask(taskId, 'Internal error', 500);
+      });
+    console.log(`[CBT] Aggregate analysis task ${taskId} created`);
+    res.json({ taskId, status: 'pending' });
+  } catch (error) {
+    console.error(`[CBT] Aggregate submit error: ${(error as Error).message}`);
     res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// GET /api/cbt/aggregate-analysis/result/:taskId - 轮询聚合分析结果
+cbtRouter.get('/aggregate-analysis/result/:taskId', async (req, res) => {
+  try {
+    const task = await getTask(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found or expired' });
+    }
+    if (task.status === 'pending') {
+      return res.json({ status: 'pending' });
+    }
+    if (task.status === 'failed') {
+      return res.json({ status: 'failed', error: task.error, statusCode: task.statusCode || 500 });
+    }
+    res.json({ status: 'completed', ...task.result });
+  } catch (error) {
+    console.error(`[CBT] Poll aggregate task error:`, (error as Error).message);
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 
