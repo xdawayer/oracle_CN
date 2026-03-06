@@ -551,9 +551,9 @@ Component({
         ctx.fill();
       }
 
-      // 绘制外圈
+      // 绘制外圈（最外圈稍粗，作为边框）
       ctx.strokeStyle = '#B8B0A3';
-      ctx.lineWidth = 1.0;
+      ctx.lineWidth = 1.3;
       ctx.beginPath();
       ctx.arc(cx, cy, outerRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -600,8 +600,8 @@ Component({
         const startCoords = getCoords(angle, innerR, cx, cy);
         const endCoords = getCoords(angle, outerRadius, cx, cy);
 
-        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.5)' : 'rgba(160, 155, 145, 0.45)';
-        ctx.lineWidth = isAxis ? 0.8 : 0.6;
+        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.75)' : 'rgba(155, 150, 140, 0.55)';
+        ctx.lineWidth = isAxis ? 1.0 : 0.7;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
