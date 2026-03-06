@@ -23,11 +23,11 @@ export const ASPECT_COLORS = {
   sesquiquadrate: '#CBD5F5', // 浅灰紫 (默认禁用)
 };
 
-// 视觉层样式 - 相位线样式（精细线条，参考专业占星软件）
+// 视觉层样式 - 相位线样式
 export const VISUAL_LAYER_STYLES = {
-  foreground: { strokeWidth: 0.8, opacity: 0.9 },    // 紧密相位 (orb <= 2°)
-  midground: { strokeWidth: 0.5, opacity: 0.7 },     // 中等相位 (2° < orb <= 4°)
-  background: { strokeWidth: 0.35, opacity: 0.45 },   // 宽松相位 (4° < orb <= 6°)
+  foreground: { strokeWidth: 1.2, opacity: 0.95 },   // 紧密相位 (orb <= 2°)
+  midground: { strokeWidth: 0.8, opacity: 0.75 },    // 中等相位 (2° < orb <= 4°)
+  background: { strokeWidth: 0.5, opacity: 0.5 },    // 宽松相位 (4° < orb <= 6°)
 };
 
 // 默认相位设置
