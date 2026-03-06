@@ -559,7 +559,7 @@ Component({
       ctx.stroke();
 
       // 绘制内圈
-      ctx.lineWidth = 1.0;
+      ctx.lineWidth = 1.3;
       ctx.beginPath();
       ctx.arc(cx, cy, innerRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -573,14 +573,13 @@ Component({
 
       const outerRadius = baseRadius * layout.zodiacInner;
       const houseRingRadius = baseRadius * layout.houseRing;
-      const innerHubRadius = baseRadius * layout.innerHub;
       const houseNumRadius = baseRadius * layout.houseNumbers;
       const ascLongitude = houseCusps[0];
       const equalAngles = houseCusps.map((_, i) => normalizeAngle(ascLongitude + i * 30));
 
       // 绘制宫位外分隔圆
       ctx.strokeStyle = '#B8B0A3';
-      ctx.lineWidth = 0.8;
+      ctx.lineWidth = 1.3;
       ctx.beginPath();
       ctx.arc(cx, cy, houseRingRadius, 0, 2 * Math.PI);
       ctx.stroke();
@@ -599,8 +598,8 @@ Component({
         const startCoords = getCoords(angle, aspectLineRadius, cx, cy);
         const endCoords = getCoords(angle, outerRadius, cx, cy);
 
-        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.75)' : 'rgba(150, 145, 135, 0.7)';
-        ctx.lineWidth = isAxis ? 1.0 : 0.8;
+        ctx.strokeStyle = isAxis ? 'rgba(120, 115, 105, 0.85)' : 'rgba(150, 145, 135, 0.7)';
+        ctx.lineWidth = isAxis ? 1.3 : 0.8;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
