@@ -594,14 +594,13 @@ Component({
       // 绘制宫位线
       equalAngles.forEach((cuspLongitude, i) => {
         const angle = cuspLongitude - rotation;
-        // 主轴（ASC/IC/DSC/MC）穿越整个图谱，普通宫位线只到相位圆边界
         const isAxis = i === 0 || i === 3 || i === 6 || i === 9;
-        const innerR = isAxis ? innerHubRadius : aspectLineRadius;
-        const startCoords = getCoords(angle, innerR, cx, cy);
+        // 所有宫位线都从相位圆边界开始（不穿透相位线区域）
+        const startCoords = getCoords(angle, aspectLineRadius, cx, cy);
         const endCoords = getCoords(angle, outerRadius, cx, cy);
 
-        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.75)' : 'rgba(155, 150, 140, 0.55)';
-        ctx.lineWidth = isAxis ? 1.0 : 0.7;
+        ctx.strokeStyle = isAxis ? 'rgba(140, 135, 125, 0.75)' : 'rgba(150, 145, 135, 0.7)';
+        ctx.lineWidth = isAxis ? 1.0 : 0.8;
 
         ctx.beginPath();
         ctx.moveTo(startCoords.x, startCoords.y);
