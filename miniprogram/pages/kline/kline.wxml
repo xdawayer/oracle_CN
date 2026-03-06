@@ -177,6 +177,10 @@
         </view>
       </view>
 
+      <view class="ai-label">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+      </view>
+
       <!-- 报告章节 - 卷轴展开式 -->
       <view class="scroll-section">
         <view class="scroll-header" bindtap="toggleSection" data-section="overview">
@@ -310,6 +314,10 @@
         <view class="retry-btn" bindtap="retryYearReport">
           <text>重新生成</text>
         </view>
+      </view>
+
+      <view class="ai-label" wx:if="{{selectedYearReport && !yearReportLoading}}">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
       </view>
 
       <!-- 年度主题 -->

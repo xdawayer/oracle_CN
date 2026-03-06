@@ -34,6 +34,10 @@
     </view>
   </view>
 
+  <view class="ai-label">
+    <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+  </view>
+
   <view class="triad-section">
     <view class="section-header">
       <text class="section-title font-ancient">核心人格</text>
@@ -372,6 +376,9 @@
 
   <view class="daily-report-overlay" wx:if="{{showDetailReport && detailReportData}}" style="padding-top: {{statusBarHeight + 44}}px;">
     <scroll-view scroll-y class="daily-report-scroll" show-scrollbar="false">
+      <view class="ai-label">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+      </view>
       <view class="detail-card detail-card--{{item.cardColor || 'default'}}"
             wx:for="{{detailReportData.sections}}" wx:key="title">
         <view class="detail-card__accent"></view>

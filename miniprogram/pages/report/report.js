@@ -26,15 +26,15 @@ const REPORT_TYPE_CONFIG = {
     desc: '30天节奏与行动指南',
   },
   'love-topic': {
-    title: '爱情专题深度报告',
+    title: '爱情专题 AI 解读',
     desc: '恋爱人格、理想伴侣与感情模式',
   },
   'career-topic': {
-    title: '事业专题深度报告',
+    title: '事业专题 AI 解读',
     desc: '职业天赋、职场人际与事业潜能',
   },
   'wealth-topic': {
-    title: '财富专题深度报告',
+    title: '财富专题 AI 解读',
     desc: '金钱关系、财富潜力与理财心理',
   },
 };

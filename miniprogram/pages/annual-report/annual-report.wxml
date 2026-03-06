@@ -17,6 +17,11 @@
 
   <!-- 报告内容 -->
   <view wx:if="{{hasContent}}" class="report-content">
+    <!-- AI 生成标识 -->
+    <view class="ai-label">
+      <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+    </view>
+
     <!-- 生成中提示 -->
     <view wx:if="{{loading}}" class="generating-banner">
       <view class="generating-dot"></view>

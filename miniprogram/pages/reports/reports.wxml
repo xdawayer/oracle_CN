@@ -56,6 +56,10 @@
       </view>
     </view>
 
+    <view class="ai-label">
+      <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+    </view>
+
     <!-- 模块卡片 -->
     <view class="modules-container">
       <block wx:for="{{selectedReport.moduleList}}" wx:key="id">

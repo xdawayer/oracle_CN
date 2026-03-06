@@ -22,7 +22,10 @@
   </view>
 
   <view class="section" wx:if="{{status === LoadingState.SUCCESS || (status === LoadingState.LOADING && (transitReady || forecast.overall_score))}}">
-    
+    <view class="ai-label">
+      <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+    </view>
+
     <view class="overview-card ink-border" wx:if="{{transitReady || forecast.overall_score}}">
       <view class="overview-header">
         <view class="overview-date">
@@ -40,7 +43,7 @@
       <view class="overview-summary">
         <text class="summary-text">{{overviewSummary || (isForecastPending ? '正在生成今日洞察...' : '今日适合稳步推进计划。')}}</text>
       </view>
-      
+
       <view class="lucky-row">
         <view class="lucky-chip">
           <text class="lucky-label">幸运色</text>
@@ -523,6 +526,9 @@
       <view class="daily-report-top-placeholder"></view>
     </view>
     <scroll-view scroll-y class="daily-report-scroll" show-scrollbar="false">
+      <view class="ai-label">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+      </view>
       <view class="daily-report-header" wx:if="{{reportData.subtitle}}">
         <text class="daily-report-subtitle">{{reportData.subtitle}}</text>
       </view>

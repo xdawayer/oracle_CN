@@ -80,6 +80,9 @@
 
     <!-- 报告内容 -->
     <scroll-view scroll-y class="report-scroll" wx:if="{{reportData && !reportLoading}}" show-scrollbar="false">
+      <view class="ai-label">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+      </view>
 
       <!-- 分析概况（Canvas 在 scroll-view 中有层级问题，使用文字展示） -->
       <view class="report-chart-summary ink-border" wx:if="{{reportData.astroContext}}">

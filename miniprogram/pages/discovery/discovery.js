@@ -8,7 +8,7 @@ const DISCOVERY_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
 // 专题报告元数据（用于支付弹窗展示）
 const TOPIC_REPORT_META = {
   'love-topic': {
-    title: '爱情专题深度报告',
+    title: '爱情专题 AI 解读',
     subtitle: '专属恋爱深度解读',
     features: [
       { title: '恋爱人格分析', desc: '深层心理揭示你的爱情模式' },
@@ -20,7 +20,7 @@ const TOPIC_REPORT_META = {
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'career-topic': {
-    title: '事业专题深度报告',
+    title: '事业专题 AI 解读',
     subtitle: '专属职场深度解读',
     features: [
       { title: '职业天赋分析', desc: '性格驱动力揭示你的事业方向' },
@@ -32,7 +32,7 @@ const TOPIC_REPORT_META = {
     note: '约 5000-8000 字深度解读，永久保存',
   },
   'wealth-topic': {
-    title: '财富专题深度报告',
+    title: '财富专题 AI 解读',
     subtitle: '专属财富深度解读',
     features: [
       { title: '金钱关系解读', desc: '深层价值观揭示你的财富观' },

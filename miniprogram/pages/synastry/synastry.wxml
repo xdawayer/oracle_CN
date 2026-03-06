@@ -132,6 +132,11 @@
 
   <!-- Step 2: Results -->
   <view class="content result-container" wx:if="{{step === 2 && resultReady}}">
+    <!-- AI 生成标识 -->
+    <view class="ai-label">
+      <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+    </view>
+
     <!-- Tabs -->
     <view class="tabs-container">
       <scroll-view scroll-x class="tabs-scroll" enable-flex show-scrollbar="{{false}}">
@@ -637,6 +642,9 @@
 
     <!-- 内容 -->
     <scroll-view scroll-y class="deep-overlay-scroll" wx:if="{{deepOverlayData && !deepOverlayLoading}}" show-scrollbar="false">
+      <view class="ai-label">
+        <text class="ai-label-text">以下内容由 AI 生成，仅供参考</text>
+      </view>
       <view class="detail-card detail-card--{{item.cardColor || 'default'}}"
             wx:for="{{deepOverlayData.sections}}" wx:key="title">
         <view class="detail-card__accent"></view>

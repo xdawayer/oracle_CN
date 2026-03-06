@@ -47,14 +47,14 @@
   </view>
 
   <!-- 专题深度报告 -->
-  <view class="section-header topic-report-header">
-    <text class="section-title font-ancient">专题深度报告</text>
+  <view class="section-header topic-report-header" wx:if="{{!auditMode}}">
+    <text class="section-title font-ancient">AI 专题解读</text>
   </view>
 
-  <view class="topic-banner love-topic-banner {{loveTopicStatus === 'processing' ? 'processing' : loveTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="love-topic">
-    <image class="banner-icon" src="/images/astro-symbols/venus.png" mode="aspectFit" />
+  <view wx:if="{{!auditMode}}" class="topic-banner love-topic-banner {{loveTopicStatus === 'processing' ? 'processing' : loveTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="love-topic">
+    <image class="banner-icon" src="/images/icons/love.svg" mode="aspectFit" />
     <view class="topic-banner-info">
-      <text class="topic-banner-title">爱情专题深度报告</text>
+      <text class="topic-banner-title">爱情专题 AI 解读</text>
       <text class="topic-banner-desc">
         {{loveTopicStatus === 'none' ? '恋爱人格、理想伴侣与感情模式' :
           loveTopicStatus === 'pending' ? '任务排队中，请稍候...' :
@@ -78,10 +78,10 @@
     </view>
   </view>
 
-  <view class="topic-banner career-topic-banner {{careerTopicStatus === 'processing' ? 'processing' : careerTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="career-topic">
-    <image class="banner-icon" src="/images/astro-symbols/jupiter.png" mode="aspectFit" />
+  <view wx:if="{{!auditMode}}" class="topic-banner career-topic-banner {{careerTopicStatus === 'processing' ? 'processing' : careerTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="career-topic">
+    <image class="banner-icon" src="/images/icons/career.svg" mode="aspectFit" />
     <view class="topic-banner-info">
-      <text class="topic-banner-title">事业专题深度报告</text>
+      <text class="topic-banner-title">事业专题 AI 解读</text>
       <text class="topic-banner-desc">
         {{careerTopicStatus === 'none' ? '职业天赋、职场人际与事业潜能' :
           careerTopicStatus === 'pending' ? '任务排队中，请稍候...' :
@@ -105,10 +105,10 @@
     </view>
   </view>
 
-  <view class="topic-banner wealth-topic-banner {{wealthTopicStatus === 'processing' ? 'processing' : wealthTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="wealth-topic">
-    <image class="banner-icon" src="/images/astro-symbols/saturn.png" mode="aspectFit" />
+  <view wx:if="{{!auditMode}}" class="topic-banner wealth-topic-banner {{wealthTopicStatus === 'processing' ? 'processing' : wealthTopicStatus === 'completed' ? 'completed' : ''}}" bindtap="onTopicReportTap" data-type="wealth-topic">
+    <image class="banner-icon" src="/images/icons/scene-money.svg" mode="aspectFit" />
     <view class="topic-banner-info">
-      <text class="topic-banner-title">财富专题深度报告</text>
+      <text class="topic-banner-title">财富专题 AI 解读</text>
       <text class="topic-banner-desc">
         {{wealthTopicStatus === 'none' ? '金钱关系、财富潜力与理财心理' :
           wealthTopicStatus === 'pending' ? '任务排队中，请稍候...' :

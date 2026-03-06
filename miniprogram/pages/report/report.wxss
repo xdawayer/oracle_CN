@@ -295,3 +295,15 @@
   font-size: 26rpx;
   color: var(--paper-50);
 }
+
+/* AI 生成标识 */
+.ai-label {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx 0 8rpx;
+}
+.ai-label-text {
+  font-size: 22rpx;
+  color: #999;
+  letter-spacing: 1rpx;
+}

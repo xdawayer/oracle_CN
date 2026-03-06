@@ -420,7 +420,7 @@ Page({
         score: String(interp.score || '--'),
         quote: pending ? 'AI报告正在生成中……' : '已加载今日基础数据',
         body: pending
-          ? '今日运势基础数据已就绪，个性化解读生成中，请稍候。'
+          ? '今日洞察基础数据已就绪，个性化解读生成中，请稍候。'
           : 'AI 解读暂不可用，请稍后下拉刷新重试。',
         sunSign,
         lucky: {
